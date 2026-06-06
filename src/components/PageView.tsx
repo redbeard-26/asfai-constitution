@@ -3,7 +3,7 @@ import { Markdown } from "@/components/Markdown";
 import { Sidebar } from "@/components/Sidebar";
 import { Comments, type CommentData } from "@/components/Comments";
 import { VoteWidget } from "@/components/VoteWidget";
-import { promoteCandidate, demoteCandidate } from "@/lib/actions";
+import { promoteCandidate, demoteThesis } from "@/lib/actions";
 import { formatDate, toRoman } from "@/lib/format";
 import { pageHref, PAGE_TYPE_LABEL, stanceMeta, type PageType } from "@/lib/constants";
 
@@ -152,10 +152,16 @@ export function PageView({
               Promote
             </button>
           </form>
-          <form action={demoteCandidate}>
+        </div>
+      )}
+
+      {type === "THESIS" && isModerator && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 border border-rule bg-panel p-3 text-sm">
+          <span className="text-muted">Moderator:</span>
+          <form action={demoteThesis}>
             <input type="hidden" name="pageId" value={pageId} />
             <button className="rounded border border-con px-3 py-1 text-con-head hover:bg-con-bg">
-              Demote (remove)
+              Demote to candidate
             </button>
           </form>
         </div>

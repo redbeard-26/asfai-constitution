@@ -73,7 +73,9 @@ Local dev endpoint: `http://localhost:3000/api/mcp`.
   **candidate theses** (`/candidates`), a community proposal list ordered by net
   score. A candidate is a `Page` of type `CANDIDATE` (so it has its own text,
   discussion, history, and resources). Moderators **promote** a candidate into an
-  article (it becomes a regular thesis) or **demote** (remove) it.
+  article (it becomes a regular thesis), or **demote** a thesis back into the
+  candidate pool (the inverse of promote — never deletes; votes/discussion/history
+  are kept).
 - **Roles:** `VIEWER` (default) → `MODERATOR` (review edits, moderate comments,
   revert, manage documents, promote/demote candidates) → `ADMIN` (manage roles).
   Emails in `ADMIN_EMAILS` are auto-promoted to admin on sign-in.

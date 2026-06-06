@@ -570,19 +570,26 @@ export async function promoteCandidate(formData: FormData) {
   redirect(`/p/${page.slug}`);
 }
 
-/** Demote (remove) a candidate from the proposal list (moderator). */
-export async function demoteCandidate(formData: FormData) {
+/** Demote a thesis back into the candidate pool (moderator). Reverses promote;
+ *  keeps the page's votes, discussion, history, and resource links. */
+export async function demoteThesis(formData: FormData) {
   const mod = await requireModerator();
   const pageId = String(formData.get("pageId"));
   const page = await prisma.page.findUnique({
     where: { id: pageId },
-    select: { type: true },
+    select: { type: true, slug: true, parent: { select: { slug: true, type: true } } },
   });
-  if (!page || page.type !== "CANDIDATE") throw new Error("Not a candidate.");
+  if (!page || page.type !== "THESIS") {
+    throw new Error("Only a thesis can be demoted to a candidate.");
+  }
 
-  await prisma.page.delete({ where: { id: pageId } });
-  await logAudit(mod.id, "DEMOTE_CANDIDATE", "Page", pageId);
+  await prisma.page.update({
+    where: { id: pageId },
+    data: { type: "CANDIDATE", parentId: null, sortOrder: 0 },
+  });
+  await logAudit(mod.id, "DEMOTE_THESIS", "Page", pageId);
 
   revalidatePath("/candidates");
-  redirect("/candidates");
+  if (page.parent) revalidatePath(pageHref(page.parent));
+  redirect(`/p/${page.slug}`);
 }
