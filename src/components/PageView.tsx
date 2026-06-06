@@ -158,11 +158,19 @@ export function PageView({
         </section>
       )}
 
+      <Comments
+        pageId={pageId}
+        path={path}
+        comments={comments}
+        currentUserId={currentUserId}
+        isModerator={isModerator}
+      />
+
       {relatedDocuments.length > 0 && (
-        <section className="mt-10">
-          <div className="section-rule pt-3">
-            <h2 className="kicker text-base">Related documents</h2>
-          </div>
+        <details open className="section-rule mt-10 pt-3">
+          <summary className="kicker cursor-pointer text-base">
+            Related documents
+          </summary>
           <ul className="mt-4 space-y-2">
             {relatedDocuments.map((d) => (
               <li key={d.slug} className="border border-rule border-l-4 border-l-gold bg-panel p-3">
@@ -179,16 +187,8 @@ export function PageView({
               </li>
             ))}
           </ul>
-        </section>
+        </details>
       )}
-
-      <Comments
-        pageId={pageId}
-        path={path}
-        comments={comments}
-        currentUserId={currentUserId}
-        isModerator={isModerator}
-      />
       </div>
     </div>
   );

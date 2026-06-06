@@ -106,10 +106,10 @@ export function Comments({ pageId, path, comments, currentUserId, isModerator }:
   }
 
   return (
-    <section className="mt-10">
-      <div className="section-rule pt-3">
-        <h2 className="kicker text-base">Discussion ({visibleCount})</h2>
-      </div>
+    <details open className="section-rule mt-10 pt-3">
+      <summary className="kicker cursor-pointer text-base">
+        Discussion ({visibleCount})
+      </summary>
 
       <div className="mt-4">
         {currentUserId ? (
@@ -131,7 +131,7 @@ export function Comments({ pageId, path, comments, currentUserId, isModerator }:
           renderNodes("root", 0)
         )}
       </div>
-    </section>
+    </details>
   );
 }
 
