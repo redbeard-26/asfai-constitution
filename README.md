@@ -1,36 +1,120 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ASFAI Constitution
 
-## Getting Started
+A community-developed wiki for an **AI constitution**. Anyone can read, comment,
+and propose edits in the browser; **moderators approve every change before it is
+published**. Content is organized into two categories — **presentation**
+(the constitution articles) and **discussion** (deliberation pages).
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Next.js 16** (App Router, TypeScript, Server Actions) — deploys to Vercel
+- **Prisma 7** + **PostgreSQL** (Vercel Postgres / Neon), via the `@prisma/adapter-pg` driver adapter
+- **Auth.js (NextAuth v5)** — Google OAuth + email magic links
+- **Tailwind CSS v4** + `@tailwindcss/typography`
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## How it works
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Pages** have a current published **Revision** and a full revision history.
+- A signed-in user opens **Propose edit**, edits the markdown, and submits an
+  **EditProposal** (status `PENDING`). Nothing public changes.
+- A **moderator** reviews the proposal in **/moderation** (side-by-side line
+  diff), then **approves** (creates a new revision and publishes it) or
+  **rejects** (with an optional note). Edits written against an outdated
+  revision are flagged as stale.
+- **Comments** are threaded and first-class on every page. Authors can delete
+  their own; moderators can hide/unhide.
+- **Roles:** `VIEWER` (default) → `MODERATOR` (review edits, moderate comments,
+  revert) → `ADMIN` (manage roles). Emails in `ADMIN_EMAILS` are auto-promoted
+  to admin on sign-in.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Local development
 
-## Learn More
+1. **Install dependencies**
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   npm install
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+2. **Configure environment** — copy `.env.example` to `.env` and fill in:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   - `DATABASE_URL` — pooled Postgres connection (host usually contains `-pooler`)
+   - `DIRECT_URL` — non-pooled connection (used for migrations / `db push`)
+   - `AUTH_SECRET` — `npx auth secret` (or any random 32-byte base64 string)
+   - `AUTH_URL` — `http://localhost:3000` in dev
+   - `ADMIN_EMAILS` — comma-separated emails to grant admin (use the email you'll sign in with)
+   - *(optional)* `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` for Google sign-in
+   - *(optional)* `AUTH_RESEND_KEY` + `EMAIL_FROM` to actually email magic links
 
-## Deploy on Vercel
+   > Without `AUTH_RESEND_KEY`, magic-link sign-in still works in dev — the link
+   > is **printed to the server console**. Paste it into your browser to sign in.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. **Create the schema and seed the initial theses**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+   ```bash
+   npm run db:push     # creates tables in your database
+   npm run db:seed     # imports the four articles + discussion pages + admin user
+   ```
+
+4. **Run it**
+
+   ```bash
+   npm run dev
+   ```
+
+   Open http://localhost:3000.
+
+### Useful scripts
+
+| Script | Purpose |
+| --- | --- |
+| `npm run dev` | Start the dev server |
+| `npm run build` | Production build (`prisma generate && next build`) |
+| `npm run db:push` | Push the Prisma schema to the database |
+| `npm run db:seed` | Seed initial content + admin users |
+| `npm run db:studio` | Open Prisma Studio to inspect data |
+
+## Deploying to Vercel
+
+1. **Push to GitHub** and import the repo as a Vercel project.
+2. **Create a Postgres store** (Vercel dashboard → Storage → Postgres/Neon) and
+   connect it to the project.
+3. **Set environment variables** in the Vercel project (Production + Preview):
+
+   | Variable | Value |
+   | --- | --- |
+   | `DATABASE_URL` | pooled connection string |
+   | `DIRECT_URL` | non-pooled connection string |
+   | `AUTH_SECRET` | random 32-byte base64 secret |
+   | `AUTH_URL` | your deployed URL, e.g. `https://constitution.example.org` |
+   | `ADMIN_EMAILS` | comma-separated admin emails |
+   | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | *(optional)* Google OAuth |
+   | `AUTH_RESEND_KEY` / `EMAIL_FROM` | *(optional)* email magic links |
+
+   > Vercel's Postgres integration injects names like `POSTGRES_PRISMA_URL` and
+   > `POSTGRES_URL_NON_POOLING`. Map them to `DATABASE_URL` and `DIRECT_URL`.
+
+4. **Initialize the database once** (from your machine, with the production
+   connection strings in `.env`):
+
+   ```bash
+   npm run db:push
+   npm run db:seed
+   ```
+
+5. **Deploy.** The build runs `prisma generate && next build` automatically.
+
+6. **Custom subdomain (CNAME):** in the Vercel project → Settings → Domains, add
+   your subdomain (e.g. `constitution.example.org`). Vercel will tell you to add
+   a `CNAME` record pointing to `cname.vercel-dns.com` at your DNS provider.
+   Update `AUTH_URL` to that domain. If using Google OAuth, add
+   `https://<your-domain>/api/auth/callback/google` as an authorized redirect URI.
+
+## Notes
+
+- Enum-like fields (`role`, `category`, `status`) are stored as strings and
+  validated in `src/lib/constants.ts`.
+- Real-time collaborative editing is intentionally out of scope — the
+  proposal/approval model is plain request/response, which is why it runs on
+  Vercel's serverless platform.
+- Anti-spam (rate limiting / captcha) is not yet implemented; consider adding it
+  before opening contributions fully to the public.
