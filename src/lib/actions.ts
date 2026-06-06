@@ -55,7 +55,7 @@ export async function proposeEdit(formData: FormData) {
 
   const page = await prisma.page.findUnique({
     where: { id: parsed.pageId },
-    select: { slug: true, category: true, currentRevision: { select: { content: true } } },
+    select: { slug: true, type: true, currentRevision: { select: { content: true } } },
   });
   if (!page) throw new Error("Page not found.");
 
@@ -79,7 +79,7 @@ export async function proposeEdit(formData: FormData) {
   });
 
   revalidatePath("/moderation");
-  redirect(`${pageHref(page.category, page.slug)}?proposed=1`);
+  redirect(`${pageHref(page)}?proposed=1`);
 }
 
 export async function approveProposal(formData: FormData) {
@@ -88,7 +88,7 @@ export async function approveProposal(formData: FormData) {
 
   const proposal = await prisma.editProposal.findUnique({
     where: { id: proposalId },
-    include: { page: { select: { id: true, slug: true, category: true } } },
+    include: { page: { select: { id: true, slug: true, type: true } } },
   });
   if (!proposal) throw new Error("Proposal not found.");
   if (proposal.status !== "PENDING") throw new Error("Proposal already resolved.");
@@ -116,7 +116,7 @@ export async function approveProposal(formData: FormData) {
   });
 
   revalidatePath("/moderation");
-  revalidatePath(pageHref(proposal.page.category, proposal.page.slug));
+  revalidatePath(pageHref(proposal.page));
   revalidatePath(`/history/${proposal.page.slug}`);
 }
 
@@ -224,7 +224,7 @@ export async function revertToRevision(formData: FormData) {
 
   const revision = await prisma.revision.findUnique({
     where: { id: revisionId },
-    include: { page: { select: { id: true, slug: true, category: true } } },
+    include: { page: { select: { id: true, slug: true, type: true } } },
   });
   if (!revision) throw new Error("Revision not found.");
 
@@ -246,7 +246,7 @@ export async function revertToRevision(formData: FormData) {
     pageId: revision.pageId,
   });
 
-  revalidatePath(pageHref(revision.page.category, revision.page.slug));
+  revalidatePath(pageHref(revision.page));
   revalidatePath(`/history/${revision.page.slug}`);
 }
 

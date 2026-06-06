@@ -3,8 +3,14 @@
 export const ROLES = ["VIEWER", "MODERATOR", "ADMIN"] as const;
 export type Role = (typeof ROLES)[number];
 
-export const CATEGORIES = ["PRESENTATION", "DISCUSSION"] as const;
-export type Category = (typeof CATEGORIES)[number];
+export const PAGE_TYPES = ["CONSTITUTION", "ARTICLE", "THESIS"] as const;
+export type PageType = (typeof PAGE_TYPES)[number];
+
+export const PAGE_TYPE_LABEL: Record<PageType, string> = {
+  CONSTITUTION: "Constitution",
+  ARTICLE: "Article",
+  THESIS: "Thesis",
+};
 
 export const PROPOSAL_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
 export type ProposalStatus = (typeof PROPOSAL_STATUSES)[number];
@@ -28,7 +34,7 @@ export function isAdmin(role: string | null | undefined): boolean {
   return hasRole(role, "ADMIN");
 }
 
-// Route helpers for the two page categories.
-export function pageHref(category: string, slug: string): string {
-  return category === "DISCUSSION" ? `/d/${slug}` : `/p/${slug}`;
+// Route helper. The Constitution root lives at "/"; everything else at /p/<slug>.
+export function pageHref(page: { slug: string; type: string }): string {
+  return page.type === "CONSTITUTION" ? "/" : `/p/${page.slug}`;
 }

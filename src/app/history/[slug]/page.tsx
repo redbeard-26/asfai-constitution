@@ -29,7 +29,7 @@ export default async function HistoryPage({
       </div>
       <div className="mt-2 text-sm">
         <Link
-          href={pageHref(page.category, page.slug)}
+          href={pageHref(page)}
           className="text-gold-deep hover:underline"
         >
           ← Back to page

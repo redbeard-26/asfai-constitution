@@ -1,32 +1,41 @@
 import { prisma } from "@/lib/prisma";
 
-/** Presentation (constitution) articles, ordered for the sidebar/nav. */
-export async function getArticles() {
-  return prisma.page.findMany({
-    where: { category: "PRESENTATION" },
-    orderBy: { sortOrder: "asc" },
-    select: {
-      id: true,
-      slug: true,
-      title: true,
-      linkedPage: { select: { slug: true } },
+const childSelect = {
+  select: { slug: true, title: true, type: true, sortOrder: true },
+  orderBy: { sortOrder: "asc" as const },
+};
+
+/** The Constitution root page with its Article children (ordered). */
+export async function getConstitution() {
+  return prisma.page.findFirst({
+    where: { type: "CONSTITUTION" },
+    include: {
+      currentRevision: { include: { author: true } },
+      children: childSelect,
     },
   });
 }
 
-/** A page with its current revision and (one level of) linked page. */
+/** A page with its current revision, parent chain (for breadcrumbs), and children. */
 export async function getPage(slug: string) {
   return prisma.page.findUnique({
     where: { slug },
     include: {
       currentRevision: { include: { author: true } },
-      linkedPage: { select: { slug: true, title: true, category: true } },
-      linkedFrom: { select: { slug: true, title: true, category: true } },
+      parent: {
+        select: {
+          slug: true,
+          title: true,
+          type: true,
+          parent: { select: { slug: true, title: true, type: true } },
+        },
+      },
+      children: childSelect,
     },
   });
 }
 
-/** Visible comments for a page, oldest first, with author info. */
+/** Visible + hidden comments for a page, oldest first, with author info. */
 export async function getComments(pageId: string) {
   return prisma.comment.findMany({
     where: { pageId },
@@ -44,7 +53,7 @@ export async function getPendingProposalCount() {
 export async function getRevisions(slug: string) {
   const page = await prisma.page.findUnique({
     where: { slug },
-    select: { id: true, slug: true, title: true, category: true, currentRevisionId: true },
+    select: { id: true, slug: true, title: true, type: true, currentRevisionId: true },
   });
   if (!page) return null;
   const revisions = await prisma.revision.findMany({
@@ -67,7 +76,7 @@ export async function getPendingProposals() {
         select: {
           slug: true,
           title: true,
-          category: true,
+          type: true,
           currentRevisionId: true,
           currentRevision: { select: { content: true } },
         },
@@ -82,14 +91,4 @@ export async function getAllUsers() {
     orderBy: [{ role: "asc" }, { createdAt: "asc" }],
     select: { id: true, name: true, email: true, role: true, createdAt: true },
   });
-}
-
-/** Returns the page a given page is paired with, in either direction. */
-export function pairedPage<
-  T extends {
-    linkedPage: { slug: string; title: string; category: string } | null;
-    linkedFrom: { slug: string; title: string; category: string } | null;
-  },
->(page: T) {
-  return page.linkedPage ?? page.linkedFrom ?? null;
 }

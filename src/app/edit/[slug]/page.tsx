@@ -40,7 +40,7 @@ export default async function EditPage({
 
       <div className="mt-4 text-sm">
         <Link
-          href={pageHref(page.category, page.slug)}
+          href={pageHref(page)}
           className="text-muted hover:text-ink"
         >
           ← Cancel and return to page

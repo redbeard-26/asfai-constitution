@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getPendingProposals } from "@/lib/data";
 import { getSessionUser } from "@/lib/session";
-import { isModerator, pageHref } from "@/lib/constants";
+import { isModerator, pageHref, PAGE_TYPE_LABEL, type PageType } from "@/lib/constants";
 import { approveProposal, rejectProposal } from "@/lib/actions";
 import { Diff } from "@/components/Diff";
 import { formatDateTime, displayName } from "@/lib/format";
@@ -43,7 +43,7 @@ export default async function ModerationPage() {
               <div className="flex items-center justify-between gap-2">
                 <div>
                   <Link
-                    href={pageHref(p.page.category, p.page.slug)}
+                    href={pageHref(p.page)}
                     className="font-bold text-ink hover:text-gold-deep"
                   >
                     {p.page.title}
@@ -52,7 +52,7 @@ export default async function ModerationPage() {
                     className="ml-2 border border-panel-border bg-panel px-1.5 py-0.5 text-xs text-gold-deep"
                     style={{ fontVariant: "small-caps", letterSpacing: "0.05em" }}
                   >
-                    {p.page.category === "DISCUSSION" ? "Discussion" : "Article"}
+                    {PAGE_TYPE_LABEL[p.page.type as PageType] ?? p.page.type}
                   </span>
                 </div>
                 <div className="text-xs text-muted">
