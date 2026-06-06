@@ -1,5 +1,11 @@
 import { notFound, redirect } from "next/navigation";
-import { getPage, getComments, getDocumentsForPage } from "@/lib/data";
+import {
+  getPage,
+  getComments,
+  getDocumentsForPage,
+  getVoteData,
+  getArticleOptions,
+} from "@/lib/data";
 import { getSessionUser } from "@/lib/session";
 import { isModerator } from "@/lib/constants";
 import { displayName } from "@/lib/format";
@@ -18,10 +24,13 @@ export default async function PageRoute({
   if (!page) notFound();
   if (page.type === "CONSTITUTION") redirect("/");
 
-  const [user, comments, relatedDocuments] = await Promise.all([
-    getSessionUser(),
+  const user = await getSessionUser();
+  const votable = page.type === "THESIS" || page.type === "CANDIDATE";
+  const [comments, relatedDocuments, vote, articleOptions] = await Promise.all([
     getComments(page.id),
     getDocumentsForPage(page.id),
+    votable ? getVoteData(page.id, user?.id) : Promise.resolve(null),
+    page.type === "CANDIDATE" ? getArticleOptions() : Promise.resolve([]),
   ]);
 
   const breadcrumb: { slug: string; title: string; type: string }[] = [];
@@ -54,6 +63,8 @@ export default async function PageRoute({
       currentUserId={user?.id ?? null}
       isModerator={isModerator(user?.role)}
       proposed={sp?.proposed === "1"}
+      vote={vote}
+      articleOptions={articleOptions}
     />
   );
 }

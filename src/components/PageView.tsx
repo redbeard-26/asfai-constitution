@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Markdown } from "@/components/Markdown";
 import { Sidebar } from "@/components/Sidebar";
 import { Comments, type CommentData } from "@/components/Comments";
+import { VoteWidget } from "@/components/VoteWidget";
+import { promoteCandidate, demoteCandidate } from "@/lib/actions";
 import { formatDate, toRoman } from "@/lib/format";
 import { pageHref, PAGE_TYPE_LABEL, stanceMeta, type PageType } from "@/lib/constants";
 
@@ -21,6 +23,8 @@ export function PageView({
   currentUserId,
   isModerator,
   proposed,
+  vote,
+  articleOptions = [],
 }: {
   pageId: string;
   slug: string;
@@ -44,12 +48,15 @@ export function PageView({
   currentUserId: string | null;
   isModerator: boolean;
   proposed?: boolean;
+  vote?: { score: number; userVote: number } | null;
+  articleOptions?: { id: string; slug: string; title: string }[];
 }) {
   const path = pageHref({ slug, type });
   const childType = childPages[0]?.type;
   const childHeading =
     childType === "ARTICLE" ? "Articles" : childType === "THESIS" ? "Theses" : null;
   const kicker = PAGE_TYPE_LABEL[type as PageType] ?? "Page";
+  const votable = type === "THESIS" || type === "CANDIDATE";
 
   return (
     <div className="mx-auto flex max-w-6xl gap-8 px-6 py-10">
@@ -67,22 +74,41 @@ export function PageView({
         </div>
       )}
 
-      {breadcrumb.length > 0 && (
+      {type === "CANDIDATE" ? (
         <nav className="mb-3 text-xs text-muted">
-          {breadcrumb.map((c, i) => (
+          <Link href="/candidates" className="hover:text-gold-deep">
+            Candidates
+          </Link>{" "}
+          /
+        </nav>
+      ) : breadcrumb.length > 0 ? (
+        <nav className="mb-3 text-xs text-muted">
+          {breadcrumb.map((c) => (
             <span key={c.slug}>
               <Link href={pageHref(c)} className="hover:text-gold-deep">
                 {c.title}
-              </Link>
-              {i < breadcrumb.length - 1 ? " / " : " / "}
+              </Link>{" "}
+              /{" "}
             </span>
           ))}
         </nav>
-      )}
+      ) : null}
 
-      <div className="section-rule pt-3">
-        {type !== "CONSTITUTION" && <p className="kicker text-xs">{kicker}</p>}
-        <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">{title}</h1>
+      <div className="section-rule flex items-start gap-4 pt-3">
+        {votable && vote && (
+          <div className="pt-1">
+            <VoteWidget
+              pageId={pageId}
+              score={vote.score}
+              userVote={vote.userVote}
+              canVote={currentUserId != null}
+            />
+          </div>
+        )}
+        <div className="min-w-0">
+          {type !== "CONSTITUTION" && <p className="kicker text-xs">{kicker}</p>}
+          <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">{title}</h1>
+        </div>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
@@ -108,6 +134,32 @@ export function PageView({
           History
         </Link>
       </div>
+
+      {type === "CANDIDATE" && isModerator && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 border border-rule bg-panel p-3 text-sm">
+          <span className="text-muted">Moderator:</span>
+          <form action={promoteCandidate} className="flex items-center gap-2">
+            <input type="hidden" name="pageId" value={pageId} />
+            <select name="articleId" required className="border border-rule px-2 py-1 text-sm">
+              <option value="">Promote to article…</option>
+              {articleOptions.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.title}
+                </option>
+              ))}
+            </select>
+            <button className="rounded bg-pro-head px-3 py-1 text-background hover:bg-pro">
+              Promote
+            </button>
+          </form>
+          <form action={demoteCandidate}>
+            <input type="hidden" name="pageId" value={pageId} />
+            <button className="rounded border border-con px-3 py-1 text-con-head hover:bg-con-bg">
+              Demote (remove)
+            </button>
+          </form>
+        </div>
+      )}
 
       {content && content.trim() ? (
         <article className="mt-6 border-l-4 border-gold bg-panel px-6 py-5">

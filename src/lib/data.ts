@@ -184,6 +184,63 @@ export async function getAllPagesForLink() {
   });
 }
 
+/** Net vote score for a page, plus this user's current vote (-1/0/+1). */
+export async function getVoteData(pageId: string, userId?: string | null) {
+  const agg = await prisma.vote.aggregate({ where: { pageId }, _sum: { value: true } });
+  const score = agg._sum.value ?? 0;
+  let userVote = 0;
+  if (userId) {
+    const v = await prisma.vote.findUnique({
+      where: { pageId_userId: { pageId, userId } },
+      select: { value: true },
+    });
+    userVote = v?.value ?? 0;
+  }
+  return { score, userVote };
+}
+
+/** Candidate theses with vote score + this user's vote, ordered by score desc. */
+export async function getCandidates(userId?: string | null) {
+  const pages = await prisma.page.findMany({
+    where: { type: "CANDIDATE" },
+    include: { currentRevision: { select: { content: true } } },
+  });
+  const ids = pages.map((p) => p.id);
+  const grouped = await prisma.vote.groupBy({
+    by: ["pageId"],
+    where: { pageId: { in: ids } },
+    _sum: { value: true },
+  });
+  const scoreMap = new Map(grouped.map((g) => [g.pageId, g._sum.value ?? 0]));
+  const userVotes = new Map<string, number>();
+  if (userId && ids.length) {
+    const uv = await prisma.vote.findMany({
+      where: { userId, pageId: { in: ids } },
+      select: { pageId: true, value: true },
+    });
+    for (const v of uv) userVotes.set(v.pageId, v.value);
+  }
+  return pages
+    .map((p) => ({
+      id: p.id,
+      slug: p.slug,
+      title: p.title,
+      content: p.currentRevision?.content ?? "",
+      score: scoreMap.get(p.id) ?? 0,
+      userVote: userVotes.get(p.id) ?? 0,
+    }))
+    .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title));
+}
+
+/** Articles (for the candidate-promotion selector). */
+export async function getArticleOptions() {
+  return prisma.page.findMany({
+    where: { type: "ARTICLE" },
+    orderBy: { sortOrder: "asc" },
+    select: { id: true, slug: true, title: true },
+  });
+}
+
 /** All users, for the admin role-management screen. */
 export async function getAllUsers() {
   return prisma.user.findMany({

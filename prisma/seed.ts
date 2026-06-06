@@ -96,14 +96,31 @@ async function main() {
     }
   }
 
-  // Prune thesis pages that are no longer in the seed (e.g. merged-away theses).
-  const orphans = await prisma.page.findMany({
-    where: { type: "THESIS", slug: { notIn: [...seededSlugs] } },
-    select: { id: true, slug: true },
-  });
-  for (const o of orphans) {
-    await prisma.page.delete({ where: { id: o.id } });
-    console.log(`- pruned thesis: ${o.slug}`);
+  // Seed one example candidate thesis (create-if-absent so reseeding never
+  // reverts a candidate that has since been promoted or removed).
+  const candidateSlug = "candidate-environmental-responsibility";
+  if (!(await prisma.page.findUnique({ where: { slug: candidateSlug } }))) {
+    const cand = await prisma.page.create({
+      data: {
+        slug: candidateSlug,
+        title: "Environmental Responsibility",
+        type: "CANDIDATE",
+        sortOrder: 0,
+      },
+    });
+    const crev = await prisma.revision.create({
+      data: {
+        pageId: cand.id,
+        content:
+          "AI systems should be developed and operated in a manner that minimizes environmental harm — including energy and water consumption, electronic waste, and greenhouse-gas emissions — across their full lifecycle.",
+        summary: "Seed candidate",
+      },
+    });
+    await prisma.page.update({
+      where: { id: cand.id },
+      data: { currentRevisionId: crev.id },
+    });
+    console.log(`+ candidate: ${candidateSlug}`);
   }
 
   for (const doc of [...SEED_DOCUMENTS, ...EXTERNAL_RESOURCES]) {

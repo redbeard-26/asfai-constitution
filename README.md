@@ -69,9 +69,14 @@ Local dev endpoint: `http://localhost:3000/api/mcp`.
   drawn from the project's resource list (UDHR, US/Canadian constitutions,
   EU AI Act, OECD/UNESCO/NIST frameworks, Council of Europe Convention, SEP
   philosophy entries, MIT AI Risk Repository, AI-2027, the NPT, AGORA, and more).
+- **Voting & candidate theses** — signed-in users up/down-vote theses and
+  **candidate theses** (`/candidates`), a community proposal list ordered by net
+  score. A candidate is a `Page` of type `CANDIDATE` (so it has its own text,
+  discussion, history, and resources). Moderators **promote** a candidate into an
+  article (it becomes a regular thesis) or **demote** (remove) it.
 - **Roles:** `VIEWER` (default) → `MODERATOR` (review edits, moderate comments,
-  revert, manage documents) → `ADMIN` (manage roles). Emails in `ADMIN_EMAILS`
-  are auto-promoted to admin on sign-in.
+  revert, manage documents, promote/demote candidates) → `ADMIN` (manage roles).
+  Emails in `ADMIN_EMAILS` are auto-promoted to admin on sign-in.
 
 ## Local development
 

@@ -3,13 +3,14 @@
 export const ROLES = ["VIEWER", "MODERATOR", "ADMIN"] as const;
 export type Role = (typeof ROLES)[number];
 
-export const PAGE_TYPES = ["CONSTITUTION", "ARTICLE", "THESIS"] as const;
+export const PAGE_TYPES = ["CONSTITUTION", "ARTICLE", "THESIS", "CANDIDATE"] as const;
 export type PageType = (typeof PAGE_TYPES)[number];
 
 export const PAGE_TYPE_LABEL: Record<PageType, string> = {
   CONSTITUTION: "Constitution",
   ARTICLE: "Article",
   THESIS: "Thesis",
+  CANDIDATE: "Candidate Thesis",
 };
 
 export const PROPOSAL_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;

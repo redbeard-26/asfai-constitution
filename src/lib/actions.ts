@@ -456,3 +456,133 @@ export async function setUserRole(formData: FormData) {
 
   revalidatePath("/admin/users");
 }
+
+// ---------------------------------------------------------------------------
+// Voting & candidate theses
+// ---------------------------------------------------------------------------
+
+async function uniquePageSlug(base: string): Promise<string> {
+  const root = slugify(base) || "candidate";
+  let slug = root;
+  let n = 1;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const existing = await prisma.page.findUnique({ where: { slug } });
+    if (!existing) return slug;
+    n += 1;
+    slug = `${root}-${n}`;
+  }
+}
+
+/** Cast (or toggle off) an up/down vote on a page. */
+export async function castVote(formData: FormData) {
+  const user = await requireUser();
+  const pageId = String(formData.get("pageId"));
+  const value = Number(formData.get("value")) === -1 ? -1 : 1;
+
+  const page = await prisma.page.findUnique({
+    where: { id: pageId },
+    select: { slug: true, type: true },
+  });
+  if (!page) throw new Error("Page not found.");
+
+  const existing = await prisma.vote.findUnique({
+    where: { pageId_userId: { pageId, userId: user.id } },
+  });
+  if (existing && existing.value === value) {
+    await prisma.vote.delete({ where: { id: existing.id } }); // toggle off
+  } else {
+    await prisma.vote.upsert({
+      where: { pageId_userId: { pageId, userId: user.id } },
+      update: { value },
+      create: { pageId, userId: user.id, value },
+    });
+  }
+
+  revalidatePath(pageHref(page));
+  revalidatePath("/candidates");
+}
+
+const candidateSchema = z.object({
+  title: z.string().min(1, "Title is required.").max(200),
+  text: z.string().min(1, "Text is required.").max(20000),
+});
+
+/** Any signed-in user can submit a candidate thesis (appears immediately for voting). */
+export async function createCandidate(formData: FormData) {
+  const user = await requireUser();
+  const parsed = candidateSchema.parse({
+    title: formData.get("title"),
+    text: formData.get("text"),
+  });
+
+  const slug = await uniquePageSlug(`candidate-${parsed.title}`);
+  const page = await prisma.page.create({
+    data: { slug, title: parsed.title, type: "CANDIDATE", sortOrder: 0 },
+  });
+  const rev = await prisma.revision.create({
+    data: {
+      pageId: page.id,
+      content: parsed.text,
+      summary: "Candidate proposed",
+      authorId: user.id,
+    },
+  });
+  await prisma.page.update({
+    where: { id: page.id },
+    data: { currentRevisionId: rev.id },
+  });
+  await logAudit(user.id, "CREATE_CANDIDATE", "Page", page.id);
+
+  revalidatePath("/candidates");
+  redirect(pageHref(page));
+}
+
+/** Promote a candidate into an article as a regular thesis (moderator). */
+export async function promoteCandidate(formData: FormData) {
+  const mod = await requireModerator();
+  const pageId = String(formData.get("pageId"));
+  const articleId = String(formData.get("articleId"));
+
+  const page = await prisma.page.findUnique({
+    where: { id: pageId },
+    select: { type: true, slug: true },
+  });
+  if (!page || page.type !== "CANDIDATE") throw new Error("Not a candidate.");
+  const article = await prisma.page.findUnique({
+    where: { id: articleId },
+    select: { id: true, type: true, slug: true },
+  });
+  if (!article || article.type !== "ARTICLE") throw new Error("Invalid article.");
+
+  const max = await prisma.page.aggregate({
+    where: { parentId: articleId },
+    _max: { sortOrder: true },
+  });
+  await prisma.page.update({
+    where: { id: pageId },
+    data: { type: "THESIS", parentId: articleId, sortOrder: (max._max.sortOrder ?? 0) + 1 },
+  });
+  await logAudit(mod.id, "PROMOTE_CANDIDATE", "Page", pageId, { articleId });
+
+  revalidatePath("/candidates");
+  revalidatePath(pageHref(article));
+  redirect(`/p/${page.slug}`);
+}
+
+/** Demote (remove) a candidate from the proposal list (moderator). */
+export async function demoteCandidate(formData: FormData) {
+  const mod = await requireModerator();
+  const pageId = String(formData.get("pageId"));
+  const page = await prisma.page.findUnique({
+    where: { id: pageId },
+    select: { type: true },
+  });
+  if (!page || page.type !== "CANDIDATE") throw new Error("Not a candidate.");
+
+  await prisma.page.delete({ where: { id: pageId } });
+  await logAudit(mod.id, "DEMOTE_CANDIDATE", "Page", pageId);
+
+  revalidatePath("/candidates");
+  redirect("/candidates");
+}

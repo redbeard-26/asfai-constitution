@@ -35,6 +35,7 @@ model User {
   comments  Comment[]
   auditLogs AuditLog[]
   documents Document[]
+  votes     Vote[]
 }
 
 model Account {
@@ -95,8 +96,23 @@ model Page {
   proposals       EditProposal[]
   comments        Comment[]
   documentLinks   DocumentLink[]
+  votes           Vote[]
 
   @@index([parentId])
+}
+
+model Vote {
+  id        String   @id @default(cuid())
+  pageId    String
+  userId    String
+  value     Int // +1 (up) or -1 (down)
+  createdAt DateTime @default(now())
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, userId])
+  @@index([pageId])
 }
 
 model Document {
