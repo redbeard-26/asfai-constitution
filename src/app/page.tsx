@@ -10,16 +10,14 @@ export default async function Home() {
   return (
     <div className="mx-auto max-w-4xl px-6 py-12">
       <section className="mb-12 text-center">
-        <p className="kicker text-sm">A Collaborative Draft</p>
-        <h1 className="mt-2 text-4xl font-bold tracking-tight text-ink">
+        <h1 className="text-4xl font-bold tracking-tight text-ink">
           AI Constitution
         </h1>
         <hr className="gold-rule mx-auto mt-4 w-[86%] max-w-md" />
         <p className="mx-auto mt-6 max-w-2xl leading-relaxed text-ink">
           A living set of theses on the values, rights, limitations, and
           personhood that should govern artificial intelligence — developed
-          openly by the community. Anyone may comment and propose edits;
-          moderators review every change before it is published.
+          openly by the community. Anyone may comment and propose edits.
         </p>
         <p className="mx-auto mt-6 max-w-2xl border-l-4 border-gold bg-panel px-4 py-3 text-left text-sm text-ink">
           {DISCLAIMER}
