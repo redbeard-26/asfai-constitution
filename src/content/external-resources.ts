@@ -620,4 +620,83 @@ export const EXTERNAL_RESOURCES: SeedDocument[] = [
     fileUrl: "https://www.fedlex.admin.ch/eli/cc/2022/491/en",
     links: [{ slug: "human-rights-privacy", relevance: 0.6 }],
   },
+
+  // —— Organizations & current developments ——
+  {
+    slug: "ext-anthropic-dod-dispute",
+    title: "Anthropic–U.S. Department of Defense Dispute (Military-Use Redlines)",
+    kind: "External Resource",
+    source: "Wikipedia",
+    summary:
+      "Anthropic refused DoD contract language permitting 'any lawful use,' insisting on redlines against fully autonomous lethal weapons and mass domestic surveillance; the Pentagon designated it a supply-chain risk and Anthropic sued (2025–2026).",
+    fileUrl:
+      "https://en.wikipedia.org/wiki/Anthropic%E2%80%93United_States_Department_of_Defense_dispute",
+    links: [
+      { slug: "limitations-autonomous-warfare", relevance: 0.8 },
+      { slug: "human-rights-privacy", relevance: 0.6 },
+      { slug: "ai-values-no-harm", relevance: 0.5 },
+      { slug: "limitations-human-responsibility", relevance: 0.5 },
+      { slug: "limitations-law-of-war", relevance: 0.4 },
+    ],
+  },
+  {
+    slug: "ext-asilomar-principles",
+    title: "Asilomar AI Principles",
+    kind: "External Resource",
+    source: "Future of Life Institute",
+    summary:
+      "23 principles for beneficial AI (2017) spanning research, ethics & values, and longer-term issues — an influential early framework for value-aligned, safe AI.",
+    fileUrl: "https://futureoflife.org/open-letter/ai-principles/",
+    links: [
+      { slug: "constitution", relevance: 0.6 },
+      { slug: "ai-values", relevance: 0.6 },
+      { slug: "limitations", relevance: 0.5 },
+      { slug: "limitations-misalignment", relevance: 0.5 },
+      { slug: "ai-values-helpful-to-humanity", relevance: 0.4 },
+    ],
+  },
+  {
+    slug: "ext-metr-long-tasks",
+    title: "Measuring AI Ability to Complete Long Tasks",
+    kind: "External Resource",
+    source: "METR (Model Evaluation & Threat Research)",
+    summary:
+      "METR's finding that the length of tasks frontier AI can complete autonomously (at 50% reliability) has doubled roughly every 7 months — empirical evidence of rapidly growing AI capability.",
+    fileUrl: "https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/",
+    links: [
+      { slug: "limitations-superintelligence", relevance: 0.6 },
+      { slug: "limitations", relevance: 0.4 },
+      { slug: "constitution", relevance: 0.3 },
+    ],
+  },
+  {
+    slug: "ext-miri",
+    title: "Machine Intelligence Research Institute (MIRI)",
+    kind: "External Resource",
+    source: "Machine Intelligence Research Institute",
+    summary:
+      "Nonprofit focused on existential risk from artificial superintelligence and the alignment problem; since 2024 it emphasizes policy advocacy to halt or slow frontier AI development.",
+    fileUrl: "https://intelligence.org/about/",
+    links: [
+      { slug: "limitations-superintelligence", relevance: 0.8 },
+      { slug: "limitations-misalignment", relevance: 0.7 },
+      { slug: "limitations", relevance: 0.4 },
+    ],
+  },
+  {
+    slug: "ext-anthropic-recursive-self-improvement",
+    title: "When AI Builds Itself — Anthropic on Recursive Self-Improvement",
+    kind: "External Resource",
+    source: "Anthropic",
+    summary:
+      "Anthropic's June 2026 statement that AI may approach recursive self-improvement, calling for the option to slow or pause frontier development via a verifiable, internationally observed 'stop mechanism' (likened to the INF Treaty).",
+    fileUrl: "https://www.anthropic.com/institute/recursive-self-improvement",
+    links: [
+      { slug: "limitations-non-proliferation", relevance: 0.8 },
+      { slug: "limitations-superintelligence", relevance: 0.7 },
+      { slug: "limitations", relevance: 0.5 },
+      { slug: "limitations-misalignment", relevance: 0.5 },
+      { slug: "limitations-human-responsibility", relevance: 0.4 },
+    ],
+  },
 ];
