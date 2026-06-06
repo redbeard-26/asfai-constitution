@@ -41,6 +41,12 @@
   --font-serif: Georgia, "Times New Roman", Times, serif;
 }
 
+/* Scale the whole type system up a notch (all text-* sizes are rem-based, so
+   this enlarges everything proportionally while preserving the hierarchy). */
+html {
+  font-size: 112.5%; /* ~18px base */
+}
+
 body {
   background: var(--background);
   color: var(--ink);
