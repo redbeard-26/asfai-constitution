@@ -35,7 +35,7 @@ export const SEED_DOCUMENTS: SeedDocument[] = [
       { slug: "ai-values-obey-the-law", relevance: 0.6 },
       { slug: "ai-values-helpful-to-users", relevance: 0.8 },
       { slug: "ai-values-helpful-to-humanity", relevance: 0.8 },
-      { slug: "human-rights-emotional-safety", relevance: 0.4 },
+      { slug: "human-rights-safety", relevance: 0.4 },
       { slug: "limitations", relevance: 0.6 },
       { slug: "limitations-non-proliferation", relevance: 0.5 },
       { slug: "limitations-termination", relevance: 0.85 },

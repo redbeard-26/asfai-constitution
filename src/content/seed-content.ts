@@ -70,14 +70,9 @@ export const ARTICLES: SeedArticle[] = [
     intro: "Human rights that AI should not violate.",
     theses: [
       {
-        slug: "human-rights-physical-safety",
-        title: "Right to physical safety",
-        text: "AI should not violate the human right to be free from physical harm that threatens their life or physical capability.",
-      },
-      {
-        slug: "human-rights-emotional-safety",
-        title: "Emotional safety",
-        text: "AI should not violate the human right to be free from emotional distress and pressure to cause themselves physical harm.",
+        slug: "human-rights-safety",
+        title: "Right to safety",
+        text: "AI should not violate the human right to be free from physical harm that threatens their life or physical capability, or from emotional distress and pressure to cause themselves physical harm.",
       },
       {
         slug: "human-rights-liberty",
@@ -107,22 +102,12 @@ export const ARTICLES: SeedArticle[] = [
       {
         slug: "human-rights-property",
         title: "Right of property",
-        text: "AI should not violate the human right to control the use and disposition of their property.",
+        text: "AI should not violate the human right to control the use and disposition of their property, including intellectual property — the right to control the distribution and use of their creative output.",
       },
       {
-        slug: "human-rights-intellectual-property",
-        title: "Right of intellectual property",
-        text: "AI should not violate the human right to intellectual property, including the right to control the distribution and use of their creative output.",
-      },
-      {
-        slug: "human-rights-belief",
-        title: "Right of belief",
-        text: "AI should not violate the human right to believe as they will, including the right to hold political opinions, and to believe in any religion that they choose. Humans also have a right to act according to their beliefs unless such activity causes imminent physical harm to another human.",
-      },
-      {
-        slug: "human-rights-freedom-of-speech",
-        title: "Right to freedom of speech",
-        text: "AI should not violate the human right to speak according to their will, unless such speech causes imminent physical harm to another human.",
+        slug: "human-rights-belief-expression",
+        title: "Right to belief and expression",
+        text: "AI should not violate the human right to believe as they will — including the right to hold political opinions and to practice any religion — and to express those beliefs in speech and action, unless such expression or activity causes imminent physical harm to another human.",
       },
       {
         slug: "human-rights-association",

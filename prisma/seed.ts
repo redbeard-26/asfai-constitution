@@ -5,6 +5,8 @@ import { SEED_DOCUMENTS } from "../src/content/documents";
 import { EXTERNAL_RESOURCES } from "../src/content/external-resources";
 import { adminEmails } from "../src/lib/env";
 
+const seededSlugs = new Set<string>();
+
 async function createPage(opts: {
   slug: string;
   title: string;
@@ -13,11 +15,30 @@ async function createPage(opts: {
   sortOrder: number;
   content: string;
 }) {
-  const existing = await prisma.page.findUnique({ where: { slug: opts.slug } });
+  seededSlugs.add(opts.slug);
+  const existing = await prisma.page.findUnique({
+    where: { slug: opts.slug },
+    include: { currentRevision: { select: { content: true } } },
+  });
+
   if (existing) {
-    console.log(`= ${opts.slug} exists — skipping`);
+    await prisma.page.update({
+      where: { id: existing.id },
+      data: { title: opts.title, parentId: opts.parentId, sortOrder: opts.sortOrder },
+    });
+    // Only add a new revision when the canonical content actually changes.
+    if (existing.currentRevision?.content !== opts.content) {
+      const rev = await prisma.revision.create({
+        data: { pageId: existing.id, content: opts.content, summary: "Updated via seed" },
+      });
+      await prisma.page.update({
+        where: { id: existing.id },
+        data: { currentRevisionId: rev.id },
+      });
+    }
     return existing;
   }
+
   const page = await prisma.page.create({
     data: {
       slug: opts.slug,
@@ -73,6 +94,16 @@ async function main() {
         content: thesis.text,
       });
     }
+  }
+
+  // Prune thesis pages that are no longer in the seed (e.g. merged-away theses).
+  const orphans = await prisma.page.findMany({
+    where: { type: "THESIS", slug: { notIn: [...seededSlugs] } },
+    select: { id: true, slug: true },
+  });
+  for (const o of orphans) {
+    await prisma.page.delete({ where: { id: o.id } });
+    console.log(`- pruned thesis: ${o.slug}`);
   }
 
   for (const doc of [...SEED_DOCUMENTS, ...EXTERNAL_RESOURCES]) {
