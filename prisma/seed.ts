@@ -85,9 +85,10 @@ async function main() {
         slug: doc.slug,
         title: doc.title,
         kind: doc.kind,
-        eventDate: new Date(doc.eventDate),
+        source: doc.source ?? null,
+        eventDate: doc.eventDate ? new Date(doc.eventDate) : null,
         summary: doc.summary,
-        body: doc.body,
+        body: doc.body ?? null,
         fileUrl: doc.fileUrl ?? null,
       },
     });

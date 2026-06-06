@@ -103,11 +103,12 @@ model Document {
   id          String    @id @default(cuid())
   slug        String    @unique
   title       String
-  kind        String    @default("Reference") // e.g. Panel Report, Reference, Memo
+  kind        String    @default("Reference") // Panel Report, External Resource, Reference, Memo
+  source      String? // organization or author, e.g. "Collective Intelligence Project"
   eventDate   DateTime?
   summary     String?
-  body        String // markdown
-  fileUrl     String? // optional link to the original file
+  body        String? // markdown; optional for external resources
+  fileUrl     String? // external / original URL
   createdById String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

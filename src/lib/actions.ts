@@ -259,14 +259,32 @@ export async function revertToRevision(formData: FormData) {
 // Documents (moderator-curated library)
 // ---------------------------------------------------------------------------
 
-const documentSchema = z.object({
-  title: z.string().min(1, "Title is required.").max(300),
-  kind: z.string().max(60).optional(),
-  eventDate: z.string().optional(),
-  summary: z.string().max(1000).optional(),
-  body: z.string().min(1, "Body cannot be empty."),
-  fileUrl: z.string().url().optional().or(z.literal("")),
-});
+const documentSchema = z
+  .object({
+    title: z.string().min(1, "Title is required.").max(300),
+    kind: z.string().max(60).optional(),
+    source: z.string().max(200).optional(),
+    eventDate: z.string().optional(),
+    summary: z.string().max(2000).optional(),
+    body: z.string().max(100000).optional(),
+    fileUrl: z.string().url().optional().or(z.literal("")),
+  })
+  .refine(
+    (d) => Boolean(d.body?.trim() || d.fileUrl?.trim() || d.summary?.trim()),
+    { message: "Provide a body, a URL, or a summary.", path: ["body"] },
+  );
+
+function docData(parsed: z.infer<typeof documentSchema>) {
+  return {
+    title: parsed.title,
+    kind: parsed.kind || "Reference",
+    source: parsed.source || null,
+    eventDate: parsed.eventDate ? new Date(parsed.eventDate) : null,
+    summary: parsed.summary || null,
+    body: parsed.body || null,
+    fileUrl: parsed.fileUrl || null,
+  };
+}
 
 async function uniqueDocSlug(base: string, excludeId?: string): Promise<string> {
   const root = slugify(base) || "document";
@@ -287,24 +305,16 @@ export async function createDocument(formData: FormData) {
   const parsed = documentSchema.parse({
     title: formData.get("title"),
     kind: formData.get("kind") || undefined,
+    source: formData.get("source") || undefined,
     eventDate: formData.get("eventDate") || undefined,
     summary: formData.get("summary") || undefined,
-    body: formData.get("body"),
+    body: formData.get("body") || undefined,
     fileUrl: formData.get("fileUrl") || "",
   });
 
   const slug = await uniqueDocSlug(parsed.title);
   const doc = await prisma.document.create({
-    data: {
-      slug,
-      title: parsed.title,
-      kind: parsed.kind || "Reference",
-      eventDate: parsed.eventDate ? new Date(parsed.eventDate) : null,
-      summary: parsed.summary,
-      body: parsed.body,
-      fileUrl: parsed.fileUrl || null,
-      createdById: mod.id,
-    },
+    data: { slug, ...docData(parsed), createdById: mod.id },
   });
   await logAudit(mod.id, "CREATE_DOCUMENT", "Document", doc.id);
 
@@ -318,22 +328,16 @@ export async function updateDocument(formData: FormData) {
   const parsed = documentSchema.parse({
     title: formData.get("title"),
     kind: formData.get("kind") || undefined,
+    source: formData.get("source") || undefined,
     eventDate: formData.get("eventDate") || undefined,
     summary: formData.get("summary") || undefined,
-    body: formData.get("body"),
+    body: formData.get("body") || undefined,
     fileUrl: formData.get("fileUrl") || "",
   });
 
   const doc = await prisma.document.update({
     where: { id },
-    data: {
-      title: parsed.title,
-      kind: parsed.kind || "Reference",
-      eventDate: parsed.eventDate ? new Date(parsed.eventDate) : null,
-      summary: parsed.summary,
-      body: parsed.body,
-      fileUrl: parsed.fileUrl || null,
-    },
+    data: docData(parsed),
   });
   await logAudit(mod.id, "UPDATE_DOCUMENT", "Document", doc.id);
 

@@ -22,7 +22,7 @@ export default async function DocumentPage({
     <div className="mx-auto max-w-3xl px-6 py-10">
       <div className="mb-3 text-xs text-muted">
         <Link href="/docs" className="hover:text-gold-deep">
-          Documents
+          Resources
         </Link>{" "}
         /
       </div>
@@ -32,21 +32,22 @@ export default async function DocumentPage({
         <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">{doc.title}</h1>
       </div>
       <div className="mt-2 text-xs text-muted">
-        {doc.eventDate ? formatDate(doc.eventDate) : null}
-        {doc.fileUrl && (
-          <>
-            {doc.eventDate ? " · " : ""}
-            <a
-              href={doc.fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gold-deep hover:underline"
-            >
-              Original file
-            </a>
-          </>
-        )}
+        {[doc.source, doc.eventDate ? formatDate(doc.eventDate) : null]
+          .filter(Boolean)
+          .join(" · ")}
       </div>
+      {doc.fileUrl && (
+        <p className="mt-3">
+          <a
+            href={doc.fileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block rounded bg-gold-deep px-3 py-1.5 text-sm text-background hover:bg-gold"
+          >
+            View at source ↗
+          </a>
+        </p>
+      )}
 
       {mod && (
         <div className="mt-3">
@@ -65,9 +66,11 @@ export default async function DocumentPage({
         </p>
       )}
 
-      <article className="mt-6">
-        <Markdown content={doc.body} />
-      </article>
+      {doc.body && doc.body.trim() ? (
+        <article className="mt-6">
+          <Markdown content={doc.body} />
+        </article>
+      ) : null}
 
       {doc.links.length > 0 && (
         <section className="mt-10">

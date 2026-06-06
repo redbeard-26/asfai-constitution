@@ -8,6 +8,7 @@ type Defaults = {
   id?: string;
   title?: string;
   kind?: string;
+  source?: string;
   eventDate?: string; // yyyy-mm-dd
   summary?: string;
   body?: string;
@@ -69,6 +70,19 @@ export function DocumentForm({
       </div>
 
       <div>
+        <label htmlFor="source" className={label}>
+          Source <span className="text-muted">(organization or author, optional)</span>
+        </label>
+        <input
+          id="source"
+          name="source"
+          placeholder="Collective Intelligence Project"
+          defaultValue={defaults?.source}
+          className={input}
+        />
+      </div>
+
+      <div>
         <label htmlFor="summary" className={label}>
           Summary <span className="text-muted">(optional)</span>
         </label>
@@ -77,7 +91,7 @@ export function DocumentForm({
 
       <div>
         <label htmlFor="fileUrl" className={label}>
-          Original file URL <span className="text-muted">(optional)</span>
+          External / file URL <span className="text-muted">(optional)</span>
         </label>
         <input
           id="fileUrl"
@@ -90,7 +104,9 @@ export function DocumentForm({
       </div>
 
       <div>
-        <span className={label}>Body</span>
+        <span className={label}>
+          Body <span className="text-muted">(markdown; optional for external links)</span>
+        </span>
         <div className="mt-1 flex gap-2 border-b border-rule text-sm">
           <button
             type="button"
@@ -109,7 +125,6 @@ export function DocumentForm({
         </div>
         <textarea
           name="body"
-          required
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={18}

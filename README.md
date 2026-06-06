@@ -28,10 +28,14 @@ small-caps headings; green = agreement, terracotta = tension).
   revision are flagged as stale.
 - **Comments** are threaded and first-class on every page. Authors can delete
   their own; moderators can hide/unhide.
-- **Documents** are a moderator-curated library (`/docs`) of reference materials
-  (panel reports, memos, sources) stored as markdown with an optional link to the
-  original file. Each document can be linked to many theses/articles; linked
-  pages show a "Related documents" panel and documents list the theses they inform.
+- **Resources** are a moderator-curated library (`/docs`) of materials that inform
+  the discussion: hosted documents (panel reports, memos — stored as markdown) and
+  **external resources** (links to outside work, with a *source* organization and
+  an external URL; body optional). Each resource links to many theses/articles;
+  linked pages show a "Related resources" panel and each resource lists the theses
+  it informs. Seeded with the AI Values panel report and Collective Intelligence
+  Project works (Collective Constitutional AI, Alignment Assemblies, Global
+  Dialogues, Roadmap to Democratic AI, Whitepaper).
 - **Roles:** `VIEWER` (default) → `MODERATOR` (review edits, moderate comments,
   revert, manage documents) → `ADMIN` (manage roles). Emails in `ADMIN_EMAILS`
   are auto-promoted to admin on sign-in.

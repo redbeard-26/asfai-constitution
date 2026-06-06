@@ -41,7 +41,7 @@ export default async function EditDocumentPage({
         /
       </div>
       <div className="section-rule pt-3">
-        <p className="kicker text-xs">Edit document</p>
+        <p className="kicker text-xs">Edit resource</p>
         <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">{doc.title}</h1>
       </div>
 
@@ -53,11 +53,12 @@ export default async function EditDocumentPage({
             id: doc.id,
             title: doc.title,
             kind: doc.kind,
+            source: doc.source ?? undefined,
             eventDate: doc.eventDate
               ? doc.eventDate.toISOString().slice(0, 10)
               : undefined,
             summary: doc.summary ?? undefined,
-            body: doc.body,
+            body: doc.body ?? undefined,
             fileUrl: doc.fileUrl ?? undefined,
           }}
         />

@@ -33,7 +33,14 @@ export function PageView({
   authorName?: string | null;
   breadcrumb: Crumb[];
   childPages: Child[];
-  relatedDocuments?: { slug: string; title: string; kind: string; eventDate: Date | null }[];
+  relatedDocuments?: {
+    slug: string;
+    title: string;
+    kind: string;
+    source: string | null;
+    fileUrl: string | null;
+    eventDate: Date | null;
+  }[];
   comments: CommentData[];
   currentUserId: string | null;
   isModerator: boolean;
@@ -169,7 +176,7 @@ export function PageView({
       {relatedDocuments.length > 0 && (
         <details open className="section-rule mt-10 pt-3">
           <summary className="kicker cursor-pointer text-base">
-            Related documents
+            Related resources
           </summary>
           <ul className="mt-4 space-y-2">
             {relatedDocuments.map((d) => (
@@ -180,9 +187,11 @@ export function PageView({
                 >
                   {d.title}
                 </Link>
+                {d.fileUrl && <span className="ml-1 text-xs text-gold-deep">↗</span>}
                 <div className="text-xs text-muted">
-                  {d.kind}
-                  {d.eventDate ? ` · ${formatDate(d.eventDate)}` : ""}
+                  {[d.source, d.kind, d.eventDate ? formatDate(d.eventDate) : null]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </div>
               </li>
             ))}

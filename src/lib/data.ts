@@ -119,6 +119,8 @@ export async function getDocuments() {
       slug: true,
       title: true,
       kind: true,
+      source: true,
+      fileUrl: true,
       eventDate: true,
       summary: true,
       _count: { select: { links: true } },
@@ -143,7 +145,16 @@ export async function getDocumentsForPage(pageId: string) {
   const links = await prisma.documentLink.findMany({
     where: { pageId },
     include: {
-      document: { select: { slug: true, title: true, kind: true, eventDate: true } },
+      document: {
+        select: {
+          slug: true,
+          title: true,
+          kind: true,
+          source: true,
+          fileUrl: true,
+          eventDate: true,
+        },
+      },
     },
     orderBy: { document: { eventDate: "desc" } },
   });

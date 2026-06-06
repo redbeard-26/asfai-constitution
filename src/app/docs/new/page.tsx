@@ -17,11 +17,11 @@ export default async function NewDocumentPage() {
     <div className="mx-auto max-w-3xl px-6 py-10">
       <div className="section-rule pt-3">
         <p className="kicker text-xs">Library</p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">New document</h1>
+        <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">New resource</h1>
       </div>
       <p className="mt-2 text-sm text-muted">
-        Add a reference document. After saving, you can attach it to the theses
-        and articles it informs.
+        Add a document or an external resource. After saving, you can attach it
+        to the theses and articles it informs.
       </p>
       <div className="mt-6">
         <DocumentForm action={createDocument} submitLabel="Create document" />

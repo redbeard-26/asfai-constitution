@@ -5,9 +5,10 @@ export type SeedDocument = {
   slug: string;
   title: string;
   kind: string;
-  eventDate: string; // ISO date
+  source?: string;
+  eventDate?: string; // ISO date
   summary: string;
-  body: string; // markdown
+  body?: string; // markdown
   fileUrl?: string;
   /** slugs of pages (articles/theses) this document informs */
   linkedSlugs: string[];
@@ -107,5 +108,67 @@ This panel was convened as a virtual exercise to test the subcommittee's approac
 ## Next steps
 
 These results are building blocks toward consensus and feed into the subcommittee's work ahead of the June meeting. Points of consensus are candidates for drafting into provisions; open tensions mark where further deliberation is required.`,
+  },
+  {
+    slug: "cip-whitepaper",
+    title: "Whitepaper: Collective Intelligence for Transformative Technology",
+    kind: "External Resource",
+    source: "Collective Intelligence Project",
+    summary:
+      "CIP's foundational framing: steering transformative technology (including AI) toward collective benefit by building new institutions that elicit and aggregate human values — balancing safety, progress, and participation. Background for why an AI constitution should be sourced collectively rather than declared.",
+    fileUrl: "https://www.cip.org/whitepaper",
+    linkedSlugs: ["constitution", "limitations-misalignment", "ai-values-helpful-to-humanity"],
+  },
+  {
+    slug: "cip-collective-constitutional-ai",
+    title: "Collective Constitutional AI",
+    kind: "External Resource",
+    source: "Collective Intelligence Project (with Anthropic)",
+    eventDate: "2023-10-17",
+    summary:
+      "CIP and Anthropic ran a public deliberation (~1,000 representative Americans via the Polis platform) to draft a constitution, then trained a model on it using Constitutional AI. The first language model aligned to collectively-sourced public input — it showed lower bias across nine social dimensions while matching the baseline on capability. A direct demonstration of how 'commonly agreed upon values' might be determined democratically. Paper: arXiv:2406.07814.",
+    fileUrl: "https://www.cip.org/blog/ccai",
+    linkedSlugs: [
+      "constitution",
+      "limitations-misalignment",
+      "ai-values-helpful-to-humanity",
+      "human-rights-fair-treatment",
+    ],
+  },
+  {
+    slug: "cip-alignment-assemblies",
+    title: "Alignment Assemblies",
+    kind: "External Resource",
+    source: "Collective Intelligence Project",
+    summary:
+      "Deliberative public assemblies (2023–24) gathering citizen input on AI governance, with partners including OpenAI, Anthropic, and the UK AI Safety Institute committing to take public voice into account — a working model for keeping humans, collectively, responsible for AI's direction.",
+    fileUrl: "https://www.cip.org/alignmentassemblies",
+    linkedSlugs: ["constitution", "limitations-misalignment", "limitations-human-responsibility"],
+  },
+  {
+    slug: "cip-global-dialogues",
+    title: "Global Dialogues",
+    kind: "External Resource",
+    source: "Collective Intelligence Project",
+    summary:
+      "Recurring multi-country surveys tracking public attitudes toward AI across 70+ countries. Directly addresses the 'global representation / AI privilege' concern raised in the AI Values panel by surfacing diverse, non-US/EU perspectives on how AI should behave.",
+    fileUrl: "https://www.cip.org/globaldialogues",
+    linkedSlugs: [
+      "ai-values-helpful-to-humanity",
+      "human-rights-access-ai",
+      "human-rights-fair-treatment",
+      "human-rights-transparency",
+    ],
+  },
+  {
+    slug: "cip-roadmap-democratic-ai",
+    title: "A Roadmap to Democratic AI",
+    kind: "External Resource",
+    source: "Collective Intelligence Project",
+    eventDate: "2024-01-01",
+    summary:
+      "CIP's 2024 agenda of concrete steps — to build, research, advocate for, and fund — toward a democratic AI ecosystem that is adaptive, accountable, and safeguards human wellbeing. A living document for field-building beyond the safety/progress/participation camps.",
+    fileUrl: "https://www.cip.org/research/ai-roadmap",
+    linkedSlugs: ["constitution", "limitations-human-responsibility"],
   },
 ];
