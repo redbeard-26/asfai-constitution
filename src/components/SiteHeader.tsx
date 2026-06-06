@@ -13,18 +13,12 @@ export async function SiteHeader() {
   return (
     <header className="border-b-4 border-gold bg-background">
       <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-6 py-3">
-        <Link href="/" className="flex flex-col leading-tight">
+        <Link href="/" className="flex items-baseline">
           <span
             className="text-lg font-bold text-ink"
             style={{ fontVariant: "small-caps", letterSpacing: "0.06em" }}
           >
             American Society for AI
-          </span>
-          <span
-            className="text-xs text-gold-deep"
-            style={{ fontVariant: "small-caps", letterSpacing: "0.08em" }}
-          >
-            AI Constitution
           </span>
         </Link>
 

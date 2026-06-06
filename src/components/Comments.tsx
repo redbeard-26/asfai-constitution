@@ -29,8 +29,6 @@ export function Comments({ pageId, path, comments, currentUserId, isModerator }:
     byParent.set(key, arr);
   }
 
-  const visibleCount = comments.filter((c) => c.status === "VISIBLE").length;
-
   function renderNodes(parentKey: string, depth: number): React.ReactNode {
     const nodes = byParent.get(parentKey) ?? [];
     if (nodes.length === 0) return null;
@@ -107,9 +105,7 @@ export function Comments({ pageId, path, comments, currentUserId, isModerator }:
 
   return (
     <details open className="section-rule mt-10 pt-3">
-      <summary className="kicker cursor-pointer text-base">
-        Discussion ({visibleCount})
-      </summary>
+      <summary className="kicker cursor-pointer text-base">Discussion</summary>
 
       <div className="mt-4">
         {currentUserId ? (
@@ -124,13 +120,7 @@ export function Comments({ pageId, path, comments, currentUserId, isModerator }:
         )}
       </div>
 
-      <div className="mt-6">
-        {comments.length === 0 ? (
-          <p className="text-sm text-muted">No comments yet.</p>
-        ) : (
-          renderNodes("root", 0)
-        )}
-      </div>
+      {comments.length > 0 && <div className="mt-6">{renderNodes("root", 0)}</div>}
     </details>
   );
 }

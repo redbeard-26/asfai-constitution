@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Markdown } from "@/components/Markdown";
 import { Sidebar } from "@/components/Sidebar";
 import { Comments, type CommentData } from "@/components/Comments";
-import { formatDateTime, formatDate, displayName } from "@/lib/format";
+import { formatDate, toRoman } from "@/lib/format";
 import { pageHref, PAGE_TYPE_LABEL, stanceMeta, type PageType } from "@/lib/constants";
 
 type Crumb = { slug: string; title: string; type: string };
@@ -14,8 +14,6 @@ export function PageView({
   type,
   title,
   content,
-  updatedAt,
-  authorName,
   breadcrumb,
   childPages,
   relatedDocuments = [],
@@ -83,18 +81,8 @@ export function PageView({
       )}
 
       <div className="section-rule pt-3">
-        <p className="kicker text-xs">{kicker}</p>
+        {type !== "CONSTITUTION" && <p className="kicker text-xs">{kicker}</p>}
         <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">{title}</h1>
-      </div>
-      <div className="mt-2 text-xs text-muted">
-        {updatedAt ? (
-          <>
-            Updated {formatDateTime(updatedAt)}
-            {authorName ? ` · ${authorName}` : ""}
-          </>
-        ) : (
-          "No content yet"
-        )}
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
@@ -140,7 +128,7 @@ export function PageView({
                   className="border border-panel-border border-l-4 border-l-gold bg-panel p-5"
                 >
                   <Link href={pageHref(c)} className="block">
-                    <span className="kicker text-xs">Article {i + 1}</span>
+                    <span className="kicker text-xs">Article {toRoman(i + 1)}</span>
                     <h3 className="mt-1 text-xl font-bold text-ink hover:text-gold-deep">
                       {c.title}
                     </h3>
