@@ -9,8 +9,12 @@ import { isAdminEmail } from "@/lib/env";
 const providers: NextAuthConfig["providers"] = [];
 
 // Google OAuth — only enabled when credentials are configured.
+// allowDangerousEmailAccountLinking lets a Google sign-in attach to an existing
+// user with the same (Google-verified) email — needed so pre-provisioned
+// accounts (e.g. moderators added before first login, or ADMIN_EMAILS) can use
+// Google without an OAuthAccountNotLinked error.
 if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
-  providers.push(Google);
+  providers.push(Google({ allowDangerousEmailAccountLinking: true }));
 }
 
 // Email magic link. We override sendVerificationRequest so:
