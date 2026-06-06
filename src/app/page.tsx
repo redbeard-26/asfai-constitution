@@ -1,65 +1,66 @@
-import Image from "next/image";
+import Link from "next/link";
+import { getArticles } from "@/lib/data";
+import { DISCLAIMER } from "@/content/seed-content";
 
-export default function Home() {
+export default async function Home() {
+  // Degrade gracefully if the database is unreachable (e.g. before the schema
+  // is pushed / env vars are configured) rather than throwing.
+  const articles = await getArticles().catch(() => []);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="mx-auto max-w-5xl px-4 py-10">
+      <section className="mb-10">
+        <h1 className="text-3xl font-semibold tracking-tight">An AI Constitution</h1>
+        <p className="mt-3 max-w-2xl text-muted">
+          A living set of theses on the values, rights, limitations, and
+          personhood that should govern artificial intelligence — developed
+          openly by the community. Anyone can comment and propose edits;
+          moderators review every change before it is published.
+        </p>
+        <p className="mt-4 inline-block rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          {DISCLAIMER}
+        </p>
+      </section>
+
+      <section>
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">
+          Articles
+        </h2>
+        {articles.length === 0 ? (
+          <p className="text-muted">
+            No articles yet. Run the database seed to import the initial theses.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+        ) : (
+          <ul className="grid gap-4 sm:grid-cols-2">
+            {articles.map((a, i) => (
+              <li
+                key={a.id}
+                className="rounded-lg border border-border bg-white p-5 transition hover:shadow-sm"
+              >
+                <Link href={`/p/${a.slug}`} className="block">
+                  <span className="text-xs text-muted">Article {i + 1}</span>
+                  <h3 className="mt-1 text-lg font-semibold hover:text-accent">
+                    {a.title}
+                  </h3>
+                </Link>
+                <div className="mt-3 flex gap-3 text-sm">
+                  <Link href={`/p/${a.slug}`} className="text-accent hover:underline">
+                    Read
+                  </Link>
+                  {a.linkedPage && (
+                    <Link
+                      href={`/d/${a.linkedPage.slug}`}
+                      className="text-muted hover:text-foreground"
+                    >
+                      Discuss
+                    </Link>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
