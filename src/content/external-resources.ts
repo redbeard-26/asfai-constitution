@@ -342,8 +342,8 @@ export const EXTERNAL_RESOURCES: SeedDocument[] = [
       "Yudkowsky & Soares' book arguing that building superintelligence under current conditions would be catastrophic.",
     fileUrl: "https://en.wikipedia.org/wiki/If_Anyone_Builds_It,_Everyone_Dies",
     links: [
-      { slug: "limitations-superintelligence", relevance: 0.7 },
-      { slug: "limitations-misalignment", relevance: 0.5 },
+      { slug: "limitations-superintelligence", relevance: 0.7, stance: "SUPPORTS" },
+      { slug: "limitations-misalignment", relevance: 0.5, stance: "SUPPORTS" },
     ],
   },
   {
@@ -364,7 +364,7 @@ export const EXTERNAL_RESOURCES: SeedDocument[] = [
     summary:
       "The nuclear non-proliferation regime — the most-cited analogy for a global treaty to prevent dangerous AI.",
     fileUrl: "https://en.wikipedia.org/wiki/Treaty_on_the_Non-Proliferation_of_Nuclear_Weapons",
-    links: [{ slug: "limitations-non-proliferation", relevance: 0.7 }],
+    links: [{ slug: "limitations-non-proliferation", relevance: 0.7, stance: "SUPPORTS" }],
   },
 
   // —— Legal / policy trackers ——
@@ -481,8 +481,8 @@ export const EXTERNAL_RESOURCES: SeedDocument[] = [
       "Foundational analysis of the risks of machine superintelligence and the control problem of advanced AI.",
     fileUrl: "https://en.wikipedia.org/wiki/Superintelligence:_Paths,_Dangers,_Strategies",
     links: [
-      { slug: "limitations-superintelligence", relevance: 0.85 },
-      { slug: "limitations-misalignment", relevance: 0.6 },
+      { slug: "limitations-superintelligence", relevance: 0.85, stance: "SUPPORTS" },
+      { slug: "limitations-misalignment", relevance: 0.6, stance: "SUPPORTS" },
       { slug: "limitations", relevance: 0.4 },
     ],
   },
@@ -632,11 +632,11 @@ export const EXTERNAL_RESOURCES: SeedDocument[] = [
     fileUrl:
       "https://en.wikipedia.org/wiki/Anthropic%E2%80%93United_States_Department_of_Defense_dispute",
     links: [
-      { slug: "limitations-autonomous-warfare", relevance: 0.8 },
-      { slug: "human-rights-privacy", relevance: 0.6 },
-      { slug: "ai-values-no-harm", relevance: 0.5 },
-      { slug: "limitations-human-responsibility", relevance: 0.5 },
-      { slug: "limitations-law-of-war", relevance: 0.4 },
+      { slug: "limitations-autonomous-warfare", relevance: 0.8, stance: "SUPPORTS" },
+      { slug: "human-rights-privacy", relevance: 0.6, stance: "SUPPORTS" },
+      { slug: "ai-values-no-harm", relevance: 0.5, stance: "SUPPORTS" },
+      { slug: "limitations-human-responsibility", relevance: 0.5, stance: "SUPPORTS" },
+      { slug: "limitations-law-of-war", relevance: 0.4, stance: "SUPPORTS" },
     ],
   },
   {
@@ -648,11 +648,20 @@ export const EXTERNAL_RESOURCES: SeedDocument[] = [
       "23 principles for beneficial AI (2017) spanning research, ethics & values, and longer-term issues — an influential early framework for value-aligned, safe AI.",
     fileUrl: "https://futureoflife.org/open-letter/ai-principles/",
     links: [
-      { slug: "constitution", relevance: 0.6 },
-      { slug: "ai-values", relevance: 0.6 },
-      { slug: "limitations", relevance: 0.5 },
-      { slug: "limitations-misalignment", relevance: 0.5 },
-      { slug: "ai-values-helpful-to-humanity", relevance: 0.4 },
+      { slug: "constitution", relevance: 0.6, stance: "SUPPORTS" },
+      { slug: "ai-values", relevance: 0.6, stance: "SUPPORTS" },
+      { slug: "ai-values-no-harm", relevance: 0.5, stance: "SUPPORTS" },
+      { slug: "ai-values-helpful-to-humanity", relevance: 0.5, stance: "SUPPORTS" },
+      { slug: "human-rights", relevance: 0.4, stance: "SUPPORTS" },
+      { slug: "human-rights-privacy", relevance: 0.4, stance: "SUPPORTS" },
+      { slug: "human-rights-liberty", relevance: 0.3, stance: "SUPPORTS" },
+      { slug: "limitations", relevance: 0.6, stance: "SUPPORTS" },
+      { slug: "limitations-misalignment", relevance: 0.5, stance: "SUPPORTS" },
+      { slug: "limitations-superintelligence", relevance: 0.5, stance: "SUPPORTS" },
+      { slug: "limitations-non-proliferation", relevance: 0.4, stance: "SUPPORTS" },
+      { slug: "limitations-autonomous-warfare", relevance: 0.5, stance: "SUPPORTS" },
+      { slug: "limitations-human-responsibility", relevance: 0.5, stance: "SUPPORTS" },
+      { slug: "limitations-termination", relevance: 0.3, stance: "SUPPORTS" },
     ],
   },
   {
@@ -678,8 +687,8 @@ export const EXTERNAL_RESOURCES: SeedDocument[] = [
       "Nonprofit focused on existential risk from artificial superintelligence and the alignment problem; since 2024 it emphasizes policy advocacy to halt or slow frontier AI development.",
     fileUrl: "https://intelligence.org/about/",
     links: [
-      { slug: "limitations-superintelligence", relevance: 0.8 },
-      { slug: "limitations-misalignment", relevance: 0.7 },
+      { slug: "limitations-superintelligence", relevance: 0.8, stance: "SUPPORTS" },
+      { slug: "limitations-misalignment", relevance: 0.7, stance: "SUPPORTS" },
       { slug: "limitations", relevance: 0.4 },
     ],
   },
@@ -692,11 +701,84 @@ export const EXTERNAL_RESOURCES: SeedDocument[] = [
       "Anthropic's June 2026 statement that AI may approach recursive self-improvement, calling for the option to slow or pause frontier development via a verifiable, internationally observed 'stop mechanism' (likened to the INF Treaty).",
     fileUrl: "https://www.anthropic.com/institute/recursive-self-improvement",
     links: [
-      { slug: "limitations-non-proliferation", relevance: 0.8 },
-      { slug: "limitations-superintelligence", relevance: 0.7 },
-      { slug: "limitations", relevance: 0.5 },
-      { slug: "limitations-misalignment", relevance: 0.5 },
-      { slug: "limitations-human-responsibility", relevance: 0.4 },
+      { slug: "limitations-non-proliferation", relevance: 0.8, stance: "SUPPORTS" },
+      { slug: "limitations-superintelligence", relevance: 0.7, stance: "SUPPORTS" },
+      { slug: "limitations", relevance: 0.5, stance: "SUPPORTS" },
+      { slug: "limitations-misalignment", relevance: 0.5, stance: "SUPPORTS" },
+      { slug: "limitations-human-responsibility", relevance: 0.4, stance: "SUPPORTS" },
+    ],
+  },
+
+  // —— Counterpoints & opposing views ——
+  {
+    slug: "ext-techno-optimist-manifesto",
+    title: "The Techno-Optimist Manifesto",
+    kind: "External Resource",
+    source: "Marc Andreessen (a16z)",
+    summary:
+      "A 2023 manifesto championing rapid technological progress and rejecting calls to slow or restrict AI — a leading accelerationist counterpoint to pause and limitation arguments.",
+    fileUrl: "https://a16z.com/the-techno-optimist-manifesto/",
+    links: [
+      { slug: "limitations-superintelligence", relevance: 0.6, stance: "OPPOSES" },
+      { slug: "limitations", relevance: 0.5, stance: "OPPOSES" },
+      { slug: "limitations-non-proliferation", relevance: 0.4, stance: "OPPOSES" },
+      { slug: "limitations-misalignment", relevance: 0.4, stance: "OPPOSES" },
+    ],
+  },
+  {
+    slug: "ext-effective-accelerationism",
+    title: "Effective Accelerationism (e/acc)",
+    kind: "External Resource",
+    source: "Wikipedia",
+    summary:
+      "A movement advocating unrestricted, maximally fast AI and technological development, explicitly opposing safety-driven slowdowns or moratoria.",
+    fileUrl: "https://en.wikipedia.org/wiki/Effective_accelerationism",
+    links: [
+      { slug: "limitations-superintelligence", relevance: 0.6, stance: "OPPOSES" },
+      { slug: "limitations", relevance: 0.5, stance: "OPPOSES" },
+      { slug: "limitations-non-proliferation", relevance: 0.4, stance: "OPPOSES" },
+    ],
+  },
+  {
+    slug: "ext-ai-snake-oil",
+    title: "AI Snake Oil",
+    kind: "External Resource",
+    source: "Narayanan & Kapoor (Princeton University Press)",
+    summary:
+      "A book arguing that much AI capability is overhyped and urging skepticism toward existential-risk narratives — a counterweight to superintelligence-doom framing.",
+    fileUrl: "https://press.princeton.edu/books/hardcover/9780691249131/ai-snake-oil",
+    links: [
+      { slug: "limitations-superintelligence", relevance: 0.6, stance: "OPPOSES" },
+      { slug: "limitations-misalignment", relevance: 0.3, stance: "OPPOSES" },
+    ],
+  },
+  {
+    slug: "ext-pause-giant-ai",
+    title: "Pause Giant AI Experiments: An Open Letter",
+    kind: "External Resource",
+    source: "Future of Life Institute",
+    summary:
+      "The 2023 open letter (30,000+ signatories) calling for a six-month pause on training AI systems more powerful than GPT-4 — a direct precedent for the slow-down debate.",
+    fileUrl: "https://futureoflife.org/open-letter/pause-giant-ai-experiments/",
+    links: [
+      { slug: "limitations", relevance: 0.6, stance: "SUPPORTS" },
+      { slug: "limitations-superintelligence", relevance: 0.6, stance: "SUPPORTS" },
+      { slug: "limitations-non-proliferation", relevance: 0.5, stance: "SUPPORTS" },
+      { slug: "limitations-misalignment", relevance: 0.4, stance: "SUPPORTS" },
+    ],
+  },
+  {
+    slug: "ext-stop-killer-robots",
+    title: "Stop Killer Robots",
+    kind: "External Resource",
+    source: "Stop Killer Robots (NGO coalition)",
+    summary:
+      "A global coalition campaigning for a treaty banning lethal autonomous weapons and requiring meaningful human control over the use of force.",
+    fileUrl: "https://www.stopkillerrobots.org/",
+    links: [
+      { slug: "limitations-autonomous-warfare", relevance: 0.85, stance: "SUPPORTS" },
+      { slug: "limitations-law-of-war", relevance: 0.5, stance: "SUPPORTS" },
+      { slug: "limitations-human-responsibility", relevance: 0.4, stance: "SUPPORTS" },
     ],
   },
 ];

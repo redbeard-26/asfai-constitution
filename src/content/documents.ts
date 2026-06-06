@@ -10,8 +10,12 @@ export type SeedDocument = {
   summary: string;
   body?: string; // markdown
   fileUrl?: string;
-  /** pages (articles/theses) this resource informs, with relevance 0-1 */
-  links: { slug: string; relevance: number }[];
+  /** pages (articles/theses) this resource informs, with relevance 0-1 and stance */
+  links: {
+    slug: string;
+    relevance: number;
+    stance?: "SUPPORTS" | "OPPOSES" | "NEUTRAL";
+  }[];
 };
 
 export const SEED_DOCUMENTS: SeedDocument[] = [

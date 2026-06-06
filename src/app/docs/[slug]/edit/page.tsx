@@ -2,13 +2,20 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDocument, getAllPagesForLink } from "@/lib/data";
 import { getSessionUser } from "@/lib/session";
-import { isModerator, pageHref, PAGE_TYPE_LABEL, type PageType } from "@/lib/constants";
+import {
+  isModerator,
+  pageHref,
+  PAGE_TYPE_LABEL,
+  STANCES,
+  STANCE_META,
+  type PageType,
+} from "@/lib/constants";
 import {
   updateDocument,
   deleteDocument,
   linkDocument,
   unlinkDocument,
-  setLinkRelevance,
+  updateLink,
 } from "@/lib/actions";
 import { DocumentForm } from "@/components/DocumentForm";
 
@@ -71,8 +78,9 @@ export default async function EditDocumentPage({
           <h2 className="kicker text-base">Linked theses &amp; articles</h2>
         </div>
         <p className="mt-1 text-xs text-muted">
-          Relevance (0–1) is hidden from readers; higher relevance shows first in
-          a page&apos;s &ldquo;Related resources&rdquo; list.
+          Relevance (0–1) is hidden from readers and orders a page&apos;s
+          &ldquo;Related resources&rdquo; list; stance (Supports / Discusses /
+          Challenges) is shown as a chip.
         </p>
 
         {doc.links.length === 0 ? (
@@ -88,8 +96,20 @@ export default async function EditDocumentPage({
                   </span>
                 </Link>
                 <div className="flex items-center gap-3">
-                  <form action={setLinkRelevance} className="flex items-center gap-1">
+                  <form action={updateLink} className="flex items-center gap-1">
                     <input type="hidden" name="linkId" value={l.id} />
+                    <select
+                      name="stance"
+                      defaultValue={l.stance}
+                      aria-label="Stance"
+                      className="border border-rule px-1 py-0.5 text-xs"
+                    >
+                      {STANCES.map((s) => (
+                        <option key={s} value={s}>
+                          {STANCE_META[s].label}
+                        </option>
+                      ))}
+                    </select>
                     <input
                       type="number"
                       name="relevance"
@@ -119,6 +139,18 @@ export default async function EditDocumentPage({
             {unlinked.map((p) => (
               <option key={p.id} value={p.id}>
                 [{PAGE_TYPE_LABEL[p.type as PageType]}] {p.title}
+              </option>
+            ))}
+          </select>
+          <select
+            name="stance"
+            defaultValue="NEUTRAL"
+            aria-label="Stance"
+            className="border border-rule px-2 py-1.5 text-sm"
+          >
+            {STANCES.map((s) => (
+              <option key={s} value={s}>
+                {STANCE_META[s].label}
               </option>
             ))}
           </select>

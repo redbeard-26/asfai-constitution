@@ -18,6 +18,23 @@ export type ProposalStatus = (typeof PROPOSAL_STATUSES)[number];
 export const COMMENT_STATUSES = ["VISIBLE", "HIDDEN"] as const;
 export type CommentStatus = (typeof COMMENT_STATUSES)[number];
 
+// Whether a resource supports, challenges, or merely discusses a thesis.
+export const STANCES = ["SUPPORTS", "NEUTRAL", "OPPOSES"] as const;
+export type Stance = (typeof STANCES)[number];
+
+export const STANCE_META: Record<
+  Stance,
+  { label: string; chip: string }
+> = {
+  SUPPORTS: { label: "Supports", chip: "border-pro bg-pro-bg text-pro-head" },
+  NEUTRAL: { label: "Discusses", chip: "border-rule bg-panel text-muted" },
+  OPPOSES: { label: "Challenges", chip: "border-con bg-con-bg text-con-head" },
+};
+
+export function stanceMeta(stance: string | null | undefined) {
+  return STANCE_META[(stance as Stance) in STANCE_META ? (stance as Stance) : "NEUTRAL"];
+}
+
 // Role helpers — ADMIN implies MODERATOR implies VIEWER.
 const RANK: Record<Role, number> = { VIEWER: 0, MODERATOR: 1, ADMIN: 2 };
 

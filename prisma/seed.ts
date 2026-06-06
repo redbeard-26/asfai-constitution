@@ -100,10 +100,11 @@ async function main() {
         console.log(`  ! link target not found: ${lnk.slug}`);
         continue;
       }
+      const stance = lnk.stance ?? "NEUTRAL";
       await prisma.documentLink.upsert({
         where: { documentId_pageId: { documentId: document.id, pageId: page.id } },
-        update: { relevance: lnk.relevance },
-        create: { documentId: document.id, pageId: page.id, relevance: lnk.relevance },
+        update: { relevance: lnk.relevance, stance },
+        create: { documentId: document.id, pageId: page.id, relevance: lnk.relevance, stance },
       });
       linked++;
     }

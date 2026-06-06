@@ -122,6 +122,7 @@ model DocumentLink {
   documentId String
   pageId     String
   relevance  Float    @default(0.5) // 0-1, hidden; orders related resources (desc)
+  stance     String   @default("NEUTRAL") // SUPPORTS | OPPOSES | NEUTRAL
   note       String?
   createdAt  DateTime @default(now())
 

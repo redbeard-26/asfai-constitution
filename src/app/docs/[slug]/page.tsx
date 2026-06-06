@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDocument } from "@/lib/data";
 import { getSessionUser } from "@/lib/session";
-import { isModerator, pageHref } from "@/lib/constants";
+import { isModerator, pageHref, stanceMeta } from "@/lib/constants";
 import { Markdown } from "@/components/Markdown";
 import { formatDate } from "@/lib/format";
 
@@ -79,13 +79,19 @@ export default async function DocumentPage({
           </div>
           <ul className="mt-4 space-y-1">
             {doc.links.map((l) => (
-              <li key={l.id}>
+              <li key={l.id} className="flex items-center gap-2">
                 <Link
                   href={pageHref(l.page)}
                   className="text-gold-deep hover:underline"
                 >
                   {l.page.title}
                 </Link>
+                <span
+                  className={`border px-1.5 py-0.5 text-xs ${stanceMeta(l.stance).chip}`}
+                  style={{ fontVariant: "small-caps", letterSpacing: "0.04em" }}
+                >
+                  {stanceMeta(l.stance).label}
+                </span>
               </li>
             ))}
           </ul>

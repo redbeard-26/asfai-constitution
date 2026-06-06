@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser, requireModerator, requireAdmin } from "@/lib/session";
-import { pageHref, ROLES, isModerator, type Role } from "@/lib/constants";
+import { pageHref, ROLES, STANCES, isModerator, type Role, type Stance } from "@/lib/constants";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { slugify } from "@/lib/slug";
 
@@ -361,26 +361,35 @@ function clampRelevance(value: FormDataEntryValue | null): number {
   return Math.min(1, Math.max(0, n));
 }
 
+function parseStance(value: FormDataEntryValue | null): Stance {
+  const s = String(value ?? "");
+  return STANCES.includes(s as Stance) ? (s as Stance) : "NEUTRAL";
+}
+
 export async function linkDocument(formData: FormData) {
   const mod = await requireModerator();
   const documentId = String(formData.get("documentId"));
   const pageId = String(formData.get("pageId"));
   const relevance = clampRelevance(formData.get("relevance"));
+  const stance = parseStance(formData.get("stance"));
   const doc = await prisma.document.findUnique({
     where: { id: documentId },
     select: { slug: true },
   });
   if (!doc) throw new Error("Document not found.");
 
-  // Upsert by [documentId, pageId]; re-linking updates the relevance.
+  // Upsert by [documentId, pageId]; re-linking updates relevance + stance.
   const existing = await prisma.documentLink.findUnique({
     where: { documentId_pageId: { documentId, pageId } },
   });
   if (existing) {
-    await prisma.documentLink.update({ where: { id: existing.id }, data: { relevance } });
+    await prisma.documentLink.update({
+      where: { id: existing.id },
+      data: { relevance, stance },
+    });
   } else {
-    await prisma.documentLink.create({ data: { documentId, pageId, relevance } });
-    await logAudit(mod.id, "LINK_DOCUMENT", "Document", documentId, { pageId, relevance });
+    await prisma.documentLink.create({ data: { documentId, pageId, relevance, stance } });
+    await logAudit(mod.id, "LINK_DOCUMENT", "Document", documentId, { pageId, relevance, stance });
   }
 
   const page = await prisma.page.findUnique({
@@ -392,21 +401,23 @@ export async function linkDocument(formData: FormData) {
   if (page) revalidatePath(pageHref(page));
 }
 
-export async function setLinkRelevance(formData: FormData) {
+export async function updateLink(formData: FormData) {
   const mod = await requireModerator();
   const linkId = String(formData.get("linkId"));
   const relevance = clampRelevance(formData.get("relevance"));
+  const stance = parseStance(formData.get("stance"));
   const link = await prisma.documentLink.update({
     where: { id: linkId },
-    data: { relevance },
+    data: { relevance, stance },
     include: {
       document: { select: { slug: true } },
       page: { select: { slug: true, type: true } },
     },
   });
-  await logAudit(mod.id, "SET_LINK_RELEVANCE", "Document", link.documentId, {
+  await logAudit(mod.id, "UPDATE_LINK", "Document", link.documentId, {
     pageId: link.pageId,
     relevance,
+    stance,
   });
   revalidatePath(`/docs/${link.document.slug}/edit`);
   revalidatePath(pageHref(link.page));

@@ -3,7 +3,7 @@ import { Markdown } from "@/components/Markdown";
 import { Sidebar } from "@/components/Sidebar";
 import { Comments, type CommentData } from "@/components/Comments";
 import { formatDateTime, formatDate, displayName } from "@/lib/format";
-import { pageHref, PAGE_TYPE_LABEL, type PageType } from "@/lib/constants";
+import { pageHref, PAGE_TYPE_LABEL, stanceMeta, type PageType } from "@/lib/constants";
 
 type Crumb = { slug: string; title: string; type: string };
 type Child = { slug: string; title: string; type: string };
@@ -40,6 +40,7 @@ export function PageView({
     source: string | null;
     fileUrl: string | null;
     eventDate: Date | null;
+    stance: string;
   }[];
   comments: CommentData[];
   currentUserId: string | null;
@@ -181,13 +182,23 @@ export function PageView({
           <ul className="mt-4 space-y-2">
             {relatedDocuments.map((d) => (
               <li key={d.slug} className="border border-rule border-l-4 border-l-gold bg-panel p-3">
-                <Link
-                  href={`/docs/${d.slug}`}
-                  className="font-bold text-ink hover:text-gold-deep"
-                >
-                  {d.title}
-                </Link>
-                {d.fileUrl && <span className="ml-1 text-xs text-gold-deep">↗</span>}
+                <div className="flex items-start justify-between gap-2">
+                  <span>
+                    <Link
+                      href={`/docs/${d.slug}`}
+                      className="font-bold text-ink hover:text-gold-deep"
+                    >
+                      {d.title}
+                    </Link>
+                    {d.fileUrl && <span className="ml-1 text-xs text-gold-deep">↗</span>}
+                  </span>
+                  <span
+                    className={`shrink-0 border px-1.5 py-0.5 text-xs ${stanceMeta(d.stance).chip}`}
+                    style={{ fontVariant: "small-caps", letterSpacing: "0.04em" }}
+                  >
+                    {stanceMeta(d.stance).label}
+                  </span>
+                </div>
                 <div className="text-xs text-muted">
                   {[d.source, d.kind, d.eventDate ? formatDate(d.eventDate) : null]
                     .filter(Boolean)
