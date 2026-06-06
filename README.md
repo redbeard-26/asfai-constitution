@@ -16,6 +16,36 @@ small-caps headings; green = agreement, terracotta = tension).
 - **Prisma 7** + **PostgreSQL** (Vercel Postgres / Neon), via the `@prisma/adapter-pg` driver adapter
 - **Auth.js (NextAuth v5)** — Google OAuth + email magic links
 - **Tailwind CSS v4** + `@tailwindcss/typography`
+- **MCP server** (`mcp-handler` + `@modelcontextprotocol/sdk`) at `/api/mcp` — AI-native access
+
+## MCP server (AI-native access)
+
+The project ships a **Model Context Protocol** server mounted in the same app at
+**`/api/mcp`** (Streamable HTTP), so AI clients can read the constitution, search
+resources, and contribute through the **moderated** proposal queue. Source:
+[`src/app/api/[transport]/route.ts`](src/app/api/[transport]/route.ts).
+
+**Tools**
+
+| Tool | Purpose |
+| --- | --- |
+| `get_constitution` | Preamble + the full article/thesis tree |
+| `get_article(slug)` | An article's text + its theses |
+| `get_thesis(slug)` | A thesis's text + linked resources (with stance) |
+| `search_resources(query)` | Full-text search of the resource library |
+| `list_resources_for_page(slug)` | Resources linked to a page, by relevance + stance |
+| `propose_edit(slug, proposedContent, summary?, author?)` | Submit an edit → enters moderation; **never auto-published** |
+
+Reads are public; `propose_edit` creates a `PENDING` proposal that a human
+moderator must approve.
+
+**Connect** (clients supporting Streamable HTTP, e.g. Claude):
+
+```json
+{ "mcpServers": { "ai-constitution": { "url": "https://asfai.fenix.ai/api/mcp" } } }
+```
+
+Local dev endpoint: `http://localhost:3000/api/mcp`.
 
 ## How it works
 
