@@ -28,9 +28,13 @@ small-caps headings; green = agreement, terracotta = tension).
   revision are flagged as stale.
 - **Comments** are threaded and first-class on every page. Authors can delete
   their own; moderators can hide/unhide.
+- **Documents** are a moderator-curated library (`/docs`) of reference materials
+  (panel reports, memos, sources) stored as markdown with an optional link to the
+  original file. Each document can be linked to many theses/articles; linked
+  pages show a "Related documents" panel and documents list the theses they inform.
 - **Roles:** `VIEWER` (default) → `MODERATOR` (review edits, moderate comments,
-  revert) → `ADMIN` (manage roles). Emails in `ADMIN_EMAILS` are auto-promoted
-  to admin on sign-in.
+  revert, manage documents) → `ADMIN` (manage roles). Emails in `ADMIN_EMAILS`
+  are auto-promoted to admin on sign-in.
 
 ## Local development
 

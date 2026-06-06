@@ -32,6 +32,9 @@ export async function SiteHeader() {
           <Link href="/" className="text-muted hover:text-ink">
             Articles
           </Link>
+          <Link href="/docs" className="text-muted hover:text-ink">
+            Documents
+          </Link>
           {mod && (
             <Link href="/moderation" className="text-muted hover:text-ink">
               Moderation

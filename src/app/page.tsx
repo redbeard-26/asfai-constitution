@@ -1,4 +1,4 @@
-import { getConstitution, getComments } from "@/lib/data";
+import { getConstitution, getComments, getDocumentsForPage } from "@/lib/data";
 import { getSessionUser } from "@/lib/session";
 import { isModerator } from "@/lib/constants";
 import { displayName } from "@/lib/format";
@@ -20,9 +20,10 @@ export default async function Home({
     );
   }
 
-  const [user, comments] = await Promise.all([
+  const [user, comments, relatedDocuments] = await Promise.all([
     getSessionUser(),
     getComments(page.id),
+    getDocumentsForPage(page.id),
   ]);
 
   return (
@@ -40,6 +41,7 @@ export default async function Home({
       }
       breadcrumb={[]}
       childPages={page.children}
+      relatedDocuments={relatedDocuments}
       comments={comments}
       currentUserId={user?.id ?? null}
       isModerator={isModerator(user?.role)}

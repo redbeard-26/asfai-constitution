@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser, requireModerator, requireAdmin } from "@/lib/session";
 import { pageHref, ROLES, isModerator, type Role } from "@/lib/constants";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { slugify } from "@/lib/slug";
 
 async function logAudit(
   actorId: string,
@@ -253,6 +254,150 @@ export async function revertToRevision(formData: FormData) {
 // ---------------------------------------------------------------------------
 // Roles (admin)
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Documents (moderator-curated library)
+// ---------------------------------------------------------------------------
+
+const documentSchema = z.object({
+  title: z.string().min(1, "Title is required.").max(300),
+  kind: z.string().max(60).optional(),
+  eventDate: z.string().optional(),
+  summary: z.string().max(1000).optional(),
+  body: z.string().min(1, "Body cannot be empty."),
+  fileUrl: z.string().url().optional().or(z.literal("")),
+});
+
+async function uniqueDocSlug(base: string, excludeId?: string): Promise<string> {
+  const root = slugify(base) || "document";
+  let slug = root;
+  let n = 1;
+  // Append -2, -3, … until unique.
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const existing = await prisma.document.findUnique({ where: { slug } });
+    if (!existing || existing.id === excludeId) return slug;
+    n += 1;
+    slug = `${root}-${n}`;
+  }
+}
+
+export async function createDocument(formData: FormData) {
+  const mod = await requireModerator();
+  const parsed = documentSchema.parse({
+    title: formData.get("title"),
+    kind: formData.get("kind") || undefined,
+    eventDate: formData.get("eventDate") || undefined,
+    summary: formData.get("summary") || undefined,
+    body: formData.get("body"),
+    fileUrl: formData.get("fileUrl") || "",
+  });
+
+  const slug = await uniqueDocSlug(parsed.title);
+  const doc = await prisma.document.create({
+    data: {
+      slug,
+      title: parsed.title,
+      kind: parsed.kind || "Reference",
+      eventDate: parsed.eventDate ? new Date(parsed.eventDate) : null,
+      summary: parsed.summary,
+      body: parsed.body,
+      fileUrl: parsed.fileUrl || null,
+      createdById: mod.id,
+    },
+  });
+  await logAudit(mod.id, "CREATE_DOCUMENT", "Document", doc.id);
+
+  revalidatePath("/docs");
+  redirect(`/docs/${slug}/edit`);
+}
+
+export async function updateDocument(formData: FormData) {
+  const mod = await requireModerator();
+  const id = String(formData.get("documentId"));
+  const parsed = documentSchema.parse({
+    title: formData.get("title"),
+    kind: formData.get("kind") || undefined,
+    eventDate: formData.get("eventDate") || undefined,
+    summary: formData.get("summary") || undefined,
+    body: formData.get("body"),
+    fileUrl: formData.get("fileUrl") || "",
+  });
+
+  const doc = await prisma.document.update({
+    where: { id },
+    data: {
+      title: parsed.title,
+      kind: parsed.kind || "Reference",
+      eventDate: parsed.eventDate ? new Date(parsed.eventDate) : null,
+      summary: parsed.summary,
+      body: parsed.body,
+      fileUrl: parsed.fileUrl || null,
+    },
+  });
+  await logAudit(mod.id, "UPDATE_DOCUMENT", "Document", doc.id);
+
+  revalidatePath(`/docs/${doc.slug}`);
+  revalidatePath(`/docs/${doc.slug}/edit`);
+  revalidatePath("/docs");
+}
+
+export async function deleteDocument(formData: FormData) {
+  const mod = await requireModerator();
+  const id = String(formData.get("documentId"));
+  const doc = await prisma.document.delete({ where: { id } });
+  await logAudit(mod.id, "DELETE_DOCUMENT", "Document", id);
+  revalidatePath("/docs");
+  redirect("/docs");
+}
+
+export async function linkDocument(formData: FormData) {
+  const mod = await requireModerator();
+  const documentId = String(formData.get("documentId"));
+  const pageId = String(formData.get("pageId"));
+  const doc = await prisma.document.findUnique({
+    where: { id: documentId },
+    select: { slug: true },
+  });
+  if (!doc) throw new Error("Document not found.");
+
+  // Ignore duplicates (unique constraint on [documentId, pageId]).
+  const existing = await prisma.documentLink.findUnique({
+    where: { documentId_pageId: { documentId, pageId } },
+  });
+  if (!existing) {
+    await prisma.documentLink.create({ data: { documentId, pageId } });
+    await logAudit(mod.id, "LINK_DOCUMENT", "Document", documentId, { pageId });
+  }
+
+  const page = await prisma.page.findUnique({
+    where: { id: pageId },
+    select: { slug: true, type: true },
+  });
+  revalidatePath(`/docs/${doc.slug}`);
+  revalidatePath(`/docs/${doc.slug}/edit`);
+  if (page) revalidatePath(pageHref(page));
+}
+
+export async function unlinkDocument(formData: FormData) {
+  const mod = await requireModerator();
+  const linkId = String(formData.get("linkId"));
+  const link = await prisma.documentLink.findUnique({
+    where: { id: linkId },
+    include: {
+      document: { select: { slug: true } },
+      page: { select: { slug: true, type: true } },
+    },
+  });
+  if (!link) return;
+  await prisma.documentLink.delete({ where: { id: linkId } });
+  await logAudit(mod.id, "UNLINK_DOCUMENT", "Document", link.documentId, {
+    pageId: link.pageId,
+  });
+  revalidatePath(`/docs/${link.document.slug}`);
+  revalidatePath(`/docs/${link.document.slug}/edit`);
+  revalidatePath(pageHref(link.page));
+}
 
 export async function setUserRole(formData: FormData) {
   const admin = await requireAdmin();

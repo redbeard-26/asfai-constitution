@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Markdown } from "@/components/Markdown";
 import { Sidebar } from "@/components/Sidebar";
 import { Comments, type CommentData } from "@/components/Comments";
-import { formatDateTime, displayName } from "@/lib/format";
+import { formatDateTime, formatDate, displayName } from "@/lib/format";
 import { pageHref, PAGE_TYPE_LABEL, type PageType } from "@/lib/constants";
 
 type Crumb = { slug: string; title: string; type: string };
@@ -18,6 +18,7 @@ export function PageView({
   authorName,
   breadcrumb,
   childPages,
+  relatedDocuments = [],
   comments,
   currentUserId,
   isModerator,
@@ -32,6 +33,7 @@ export function PageView({
   authorName?: string | null;
   breadcrumb: Crumb[];
   childPages: Child[];
+  relatedDocuments?: { slug: string; title: string; kind: string; eventDate: Date | null }[];
   comments: CommentData[];
   currentUserId: string | null;
   isModerator: boolean;
@@ -153,6 +155,30 @@ export function PageView({
               ))}
             </ol>
           )}
+        </section>
+      )}
+
+      {relatedDocuments.length > 0 && (
+        <section className="mt-10">
+          <div className="section-rule pt-3">
+            <h2 className="kicker text-base">Related documents</h2>
+          </div>
+          <ul className="mt-4 space-y-2">
+            {relatedDocuments.map((d) => (
+              <li key={d.slug} className="border border-rule border-l-4 border-l-gold bg-panel p-3">
+                <Link
+                  href={`/docs/${d.slug}`}
+                  className="font-bold text-ink hover:text-gold-deep"
+                >
+                  {d.title}
+                </Link>
+                <div className="text-xs text-muted">
+                  {d.kind}
+                  {d.eventDate ? ` · ${formatDate(d.eventDate)}` : ""}
+                </div>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 

@@ -34,6 +34,7 @@ model User {
   reviewed  EditProposal[] @relation("ProposalReviewer")
   comments  Comment[]
   auditLogs AuditLog[]
+  documents Document[]
 }
 
 model Account {
@@ -93,8 +94,40 @@ model Page {
   revisions       Revision[]     @relation("PageRevisions")
   proposals       EditProposal[]
   comments        Comment[]
+  documentLinks   DocumentLink[]
 
   @@index([parentId])
+}
+
+model Document {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  title       String
+  kind        String    @default("Reference") // e.g. Panel Report, Reference, Memo
+  eventDate   DateTime?
+  summary     String?
+  body        String // markdown
+  fileUrl     String? // optional link to the original file
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  createdBy User?          @relation(fields: [createdById], references: [id])
+  links     DocumentLink[]
+}
+
+model DocumentLink {
+  id         String   @id @default(cuid())
+  documentId String
+  pageId     String
+  note       String?
+  createdAt  DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  page     Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, pageId])
+  @@index([pageId])
 }
 
 model Revision {

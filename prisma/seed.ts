@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { prisma } from "../src/lib/prisma";
 import { CONSTITUTION, ARTICLES } from "../src/content/seed-content";
+import { SEED_DOCUMENTS } from "../src/content/documents";
 import { adminEmails } from "../src/lib/env";
 
 async function createPage(opts: {
@@ -71,6 +72,38 @@ async function main() {
         content: thesis.text,
       });
     }
+  }
+
+  for (const doc of SEED_DOCUMENTS) {
+    const existing = await prisma.document.findUnique({ where: { slug: doc.slug } });
+    if (existing) {
+      console.log(`= document ${doc.slug} exists — skipping`);
+      continue;
+    }
+    const created = await prisma.document.create({
+      data: {
+        slug: doc.slug,
+        title: doc.title,
+        kind: doc.kind,
+        eventDate: new Date(doc.eventDate),
+        summary: doc.summary,
+        body: doc.body,
+        fileUrl: doc.fileUrl ?? null,
+      },
+    });
+    let linked = 0;
+    for (const slug of doc.linkedSlugs) {
+      const page = await prisma.page.findUnique({ where: { slug }, select: { id: true } });
+      if (!page) {
+        console.log(`  ! link target not found: ${slug}`);
+        continue;
+      }
+      await prisma.documentLink.create({
+        data: { documentId: created.id, pageId: page.id },
+      });
+      linked++;
+    }
+    console.log(`+ document: ${doc.slug} (${linked} links)`);
   }
 
   for (const email of adminEmails) {

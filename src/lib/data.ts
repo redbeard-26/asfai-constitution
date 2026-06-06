@@ -111,6 +111,53 @@ export async function getPendingProposals() {
   });
 }
 
+/** All documents in the library, newest event first. */
+export async function getDocuments() {
+  return prisma.document.findMany({
+    orderBy: [{ eventDate: "desc" }, { createdAt: "desc" }],
+    select: {
+      slug: true,
+      title: true,
+      kind: true,
+      eventDate: true,
+      summary: true,
+      _count: { select: { links: true } },
+    },
+  });
+}
+
+/** A single document with the pages (theses/articles) it informs. */
+export async function getDocument(slug: string) {
+  return prisma.document.findUnique({
+    where: { slug },
+    include: {
+      links: {
+        include: { page: { select: { slug: true, title: true, type: true } } },
+      },
+    },
+  });
+}
+
+/** Documents linked to a given page, for the "Related documents" panel. */
+export async function getDocumentsForPage(pageId: string) {
+  const links = await prisma.documentLink.findMany({
+    where: { pageId },
+    include: {
+      document: { select: { slug: true, title: true, kind: true, eventDate: true } },
+    },
+    orderBy: { document: { eventDate: "desc" } },
+  });
+  return links.map((l) => l.document);
+}
+
+/** All pages, for the document-linking selector (ordered Constitution→Article→Thesis). */
+export async function getAllPagesForLink() {
+  return prisma.page.findMany({
+    orderBy: [{ type: "asc" }, { sortOrder: "asc" }],
+    select: { id: true, slug: true, title: true, type: true },
+  });
+}
+
 /** All users, for the admin role-management screen. */
 export async function getAllUsers() {
   return prisma.user.findMany({

@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getPage, getComments } from "@/lib/data";
+import { getPage, getComments, getDocumentsForPage } from "@/lib/data";
 import { getSessionUser } from "@/lib/session";
 import { isModerator } from "@/lib/constants";
 import { displayName } from "@/lib/format";
@@ -18,9 +18,10 @@ export default async function PageRoute({
   if (!page) notFound();
   if (page.type === "CONSTITUTION") redirect("/");
 
-  const [user, comments] = await Promise.all([
+  const [user, comments, relatedDocuments] = await Promise.all([
     getSessionUser(),
     getComments(page.id),
+    getDocumentsForPage(page.id),
   ]);
 
   const breadcrumb: { slug: string; title: string; type: string }[] = [];
@@ -48,6 +49,7 @@ export default async function PageRoute({
       }
       breadcrumb={breadcrumb}
       childPages={page.children}
+      relatedDocuments={relatedDocuments}
       comments={comments}
       currentUserId={user?.id ?? null}
       isModerator={isModerator(user?.role)}
