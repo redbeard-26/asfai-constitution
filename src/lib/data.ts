@@ -149,6 +149,7 @@ export async function getDocument(slug: string) {
     include: {
       links: {
         include: { page: { select: { slug: true, title: true, type: true } } },
+        orderBy: { relevance: "desc" },
       },
     },
   });
@@ -170,7 +171,7 @@ export async function getDocumentsForPage(pageId: string) {
         },
       },
     },
-    orderBy: { document: { eventDate: "desc" } },
+    orderBy: [{ relevance: "desc" }, { document: { eventDate: "desc" } }],
   });
   return links.map((l) => l.document);
 }

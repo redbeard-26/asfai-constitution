@@ -355,23 +355,32 @@ export async function deleteDocument(formData: FormData) {
   redirect("/docs");
 }
 
+function clampRelevance(value: FormDataEntryValue | null): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0.5;
+  return Math.min(1, Math.max(0, n));
+}
+
 export async function linkDocument(formData: FormData) {
   const mod = await requireModerator();
   const documentId = String(formData.get("documentId"));
   const pageId = String(formData.get("pageId"));
+  const relevance = clampRelevance(formData.get("relevance"));
   const doc = await prisma.document.findUnique({
     where: { id: documentId },
     select: { slug: true },
   });
   if (!doc) throw new Error("Document not found.");
 
-  // Ignore duplicates (unique constraint on [documentId, pageId]).
+  // Upsert by [documentId, pageId]; re-linking updates the relevance.
   const existing = await prisma.documentLink.findUnique({
     where: { documentId_pageId: { documentId, pageId } },
   });
-  if (!existing) {
-    await prisma.documentLink.create({ data: { documentId, pageId } });
-    await logAudit(mod.id, "LINK_DOCUMENT", "Document", documentId, { pageId });
+  if (existing) {
+    await prisma.documentLink.update({ where: { id: existing.id }, data: { relevance } });
+  } else {
+    await prisma.documentLink.create({ data: { documentId, pageId, relevance } });
+    await logAudit(mod.id, "LINK_DOCUMENT", "Document", documentId, { pageId, relevance });
   }
 
   const page = await prisma.page.findUnique({
@@ -381,6 +390,26 @@ export async function linkDocument(formData: FormData) {
   revalidatePath(`/docs/${doc.slug}`);
   revalidatePath(`/docs/${doc.slug}/edit`);
   if (page) revalidatePath(pageHref(page));
+}
+
+export async function setLinkRelevance(formData: FormData) {
+  const mod = await requireModerator();
+  const linkId = String(formData.get("linkId"));
+  const relevance = clampRelevance(formData.get("relevance"));
+  const link = await prisma.documentLink.update({
+    where: { id: linkId },
+    data: { relevance },
+    include: {
+      document: { select: { slug: true } },
+      page: { select: { slug: true, type: true } },
+    },
+  });
+  await logAudit(mod.id, "SET_LINK_RELEVANCE", "Document", link.documentId, {
+    pageId: link.pageId,
+    relevance,
+  });
+  revalidatePath(`/docs/${link.document.slug}/edit`);
+  revalidatePath(pageHref(link.page));
 }
 
 export async function unlinkDocument(formData: FormData) {

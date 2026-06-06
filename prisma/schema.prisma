@@ -121,6 +121,7 @@ model DocumentLink {
   id         String   @id @default(cuid())
   documentId String
   pageId     String
+  relevance  Float    @default(0.5) // 0-1, hidden; orders related resources (desc)
   note       String?
   createdAt  DateTime @default(now())
 

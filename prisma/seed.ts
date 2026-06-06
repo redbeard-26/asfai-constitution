@@ -75,36 +75,38 @@ async function main() {
   }
 
   for (const doc of SEED_DOCUMENTS) {
-    const existing = await prisma.document.findUnique({ where: { slug: doc.slug } });
-    if (existing) {
-      console.log(`= document ${doc.slug} exists — skipping`);
-      continue;
-    }
-    const created = await prisma.document.create({
-      data: {
-        slug: doc.slug,
-        title: doc.title,
-        kind: doc.kind,
-        source: doc.source ?? null,
-        eventDate: doc.eventDate ? new Date(doc.eventDate) : null,
-        summary: doc.summary,
-        body: doc.body ?? null,
-        fileUrl: doc.fileUrl ?? null,
-      },
+    const data = {
+      title: doc.title,
+      kind: doc.kind,
+      source: doc.source ?? null,
+      eventDate: doc.eventDate ? new Date(doc.eventDate) : null,
+      summary: doc.summary,
+      body: doc.body ?? null,
+      fileUrl: doc.fileUrl ?? null,
+    };
+    const document = await prisma.document.upsert({
+      where: { slug: doc.slug },
+      update: data,
+      create: { slug: doc.slug, ...data },
     });
     let linked = 0;
-    for (const slug of doc.linkedSlugs) {
-      const page = await prisma.page.findUnique({ where: { slug }, select: { id: true } });
+    for (const lnk of doc.links) {
+      const page = await prisma.page.findUnique({
+        where: { slug: lnk.slug },
+        select: { id: true },
+      });
       if (!page) {
-        console.log(`  ! link target not found: ${slug}`);
+        console.log(`  ! link target not found: ${lnk.slug}`);
         continue;
       }
-      await prisma.documentLink.create({
-        data: { documentId: created.id, pageId: page.id },
+      await prisma.documentLink.upsert({
+        where: { documentId_pageId: { documentId: document.id, pageId: page.id } },
+        update: { relevance: lnk.relevance },
+        create: { documentId: document.id, pageId: page.id, relevance: lnk.relevance },
       });
       linked++;
     }
-    console.log(`+ document: ${doc.slug} (${linked} links)`);
+    console.log(`~ document: ${doc.slug} (${linked} links)`);
   }
 
   for (const email of adminEmails) {

@@ -8,6 +8,7 @@ import {
   deleteDocument,
   linkDocument,
   unlinkDocument,
+  setLinkRelevance,
 } from "@/lib/actions";
 import { DocumentForm } from "@/components/DocumentForm";
 
@@ -69,29 +70,49 @@ export default async function EditDocumentPage({
         <div className="section-rule pt-3">
           <h2 className="kicker text-base">Linked theses &amp; articles</h2>
         </div>
+        <p className="mt-1 text-xs text-muted">
+          Relevance (0–1) is hidden from readers; higher relevance shows first in
+          a page&apos;s &ldquo;Related resources&rdquo; list.
+        </p>
 
         {doc.links.length === 0 ? (
           <p className="mt-4 text-sm text-muted">Not linked to any page yet.</p>
         ) : (
           <ul className="mt-4 space-y-2">
             {doc.links.map((l) => (
-              <li key={l.id} className="flex items-center justify-between gap-2">
+              <li key={l.id} className="flex flex-wrap items-center justify-between gap-2">
                 <Link href={pageHref(l.page)} className="text-sm text-gold-deep hover:underline">
                   {l.page.title}{" "}
                   <span className="text-xs text-muted">
                     ({PAGE_TYPE_LABEL[l.page.type as PageType]})
                   </span>
                 </Link>
-                <form action={unlinkDocument}>
-                  <input type="hidden" name="linkId" value={l.id} />
-                  <button className="text-xs text-con-head hover:underline">Remove</button>
-                </form>
+                <div className="flex items-center gap-3">
+                  <form action={setLinkRelevance} className="flex items-center gap-1">
+                    <input type="hidden" name="linkId" value={l.id} />
+                    <input
+                      type="number"
+                      name="relevance"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      defaultValue={l.relevance}
+                      aria-label="Relevance"
+                      className="w-16 border border-rule px-1 py-0.5 text-xs"
+                    />
+                    <button className="text-xs text-gold-deep hover:underline">Save</button>
+                  </form>
+                  <form action={unlinkDocument}>
+                    <input type="hidden" name="linkId" value={l.id} />
+                    <button className="text-xs text-con-head hover:underline">Remove</button>
+                  </form>
+                </div>
               </li>
             ))}
           </ul>
         )}
 
-        <form action={linkDocument} className="mt-4 flex items-center gap-2">
+        <form action={linkDocument} className="mt-4 flex flex-wrap items-center gap-2">
           <input type="hidden" name="documentId" value={doc.id} />
           <select name="pageId" required className="border border-rule px-2 py-1.5 text-sm">
             <option value="">Add a link…</option>
@@ -101,6 +122,17 @@ export default async function EditDocumentPage({
               </option>
             ))}
           </select>
+          <input
+            type="number"
+            name="relevance"
+            min="0"
+            max="1"
+            step="0.05"
+            defaultValue="0.5"
+            aria-label="Relevance (0–1)"
+            title="Relevance (0–1)"
+            className="w-16 border border-rule px-2 py-1.5 text-sm"
+          />
           <button className="rounded border border-rule px-3 py-1.5 text-sm hover:bg-panel">
             Link
           </button>

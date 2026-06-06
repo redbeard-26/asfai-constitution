@@ -10,8 +10,8 @@ export type SeedDocument = {
   summary: string;
   body?: string; // markdown
   fileUrl?: string;
-  /** slugs of pages (articles/theses) this document informs */
-  linkedSlugs: string[];
+  /** pages (articles/theses) this resource informs, with relevance 0-1 */
+  links: { slug: string; relevance: number }[];
 };
 
 export const SEED_DOCUMENTS: SeedDocument[] = [
@@ -22,18 +22,18 @@ export const SEED_DOCUMENTS: SeedDocument[] = [
     eventDate: "2026-05-28",
     summary:
       "AI Constitution Subcommittee on AI Values. A virtual panel examined three working theses — argued point and counterpoint — and sought a “zone of agreement” for each. Prepared under the Chatham House Rule; all views de-identified.",
-    linkedSlugs: [
-      "ai-values",
-      "ai-values-csam",
-      "ai-values-cbrn",
-      "ai-values-no-harm",
-      "ai-values-obey-the-law",
-      "ai-values-helpful-to-users",
-      "ai-values-helpful-to-humanity",
-      "limitations",
-      "limitations-autonomous-warfare",
-      "limitations-law-of-war",
-      "limitations-human-responsibility",
+    links: [
+      { slug: "ai-values", relevance: 0.7 },
+      { slug: "ai-values-csam", relevance: 0.9 },
+      { slug: "ai-values-cbrn", relevance: 0.9 },
+      { slug: "ai-values-no-harm", relevance: 0.7 },
+      { slug: "ai-values-obey-the-law", relevance: 0.6 },
+      { slug: "ai-values-helpful-to-users", relevance: 0.8 },
+      { slug: "ai-values-helpful-to-humanity", relevance: 0.8 },
+      { slug: "limitations", relevance: 0.6 },
+      { slug: "limitations-autonomous-warfare", relevance: 0.9 },
+      { slug: "limitations-law-of-war", relevance: 0.85 },
+      { slug: "limitations-human-responsibility", relevance: 0.8 },
     ],
     body: `_AI Constitution Subcommittee on AI Values · Panel held May 28, 2026 · Prepared under the Chatham House Rule (contributions are not attributed to named individuals)._
 
@@ -117,7 +117,11 @@ These results are building blocks toward consensus and feed into the subcommitte
     summary:
       "CIP's foundational framing: steering transformative technology (including AI) toward collective benefit by building new institutions that elicit and aggregate human values — balancing safety, progress, and participation. Background for why an AI constitution should be sourced collectively rather than declared.",
     fileUrl: "https://www.cip.org/whitepaper",
-    linkedSlugs: ["constitution", "limitations-misalignment", "ai-values-helpful-to-humanity"],
+    links: [
+      { slug: "constitution", relevance: 0.7 },
+      { slug: "limitations-misalignment", relevance: 0.7 },
+      { slug: "ai-values-helpful-to-humanity", relevance: 0.5 },
+    ],
   },
   {
     slug: "cip-collective-constitutional-ai",
@@ -128,11 +132,11 @@ These results are building blocks toward consensus and feed into the subcommitte
     summary:
       "CIP and Anthropic ran a public deliberation (~1,000 representative Americans via the Polis platform) to draft a constitution, then trained a model on it using Constitutional AI. The first language model aligned to collectively-sourced public input — it showed lower bias across nine social dimensions while matching the baseline on capability. A direct demonstration of how 'commonly agreed upon values' might be determined democratically. Paper: arXiv:2406.07814.",
     fileUrl: "https://www.cip.org/blog/ccai",
-    linkedSlugs: [
-      "constitution",
-      "limitations-misalignment",
-      "ai-values-helpful-to-humanity",
-      "human-rights-fair-treatment",
+    links: [
+      { slug: "constitution", relevance: 0.85 },
+      { slug: "limitations-misalignment", relevance: 0.9 },
+      { slug: "ai-values-helpful-to-humanity", relevance: 0.6 },
+      { slug: "human-rights-fair-treatment", relevance: 0.6 },
     ],
   },
   {
@@ -143,7 +147,11 @@ These results are building blocks toward consensus and feed into the subcommitte
     summary:
       "Deliberative public assemblies (2023–24) gathering citizen input on AI governance, with partners including OpenAI, Anthropic, and the UK AI Safety Institute committing to take public voice into account — a working model for keeping humans, collectively, responsible for AI's direction.",
     fileUrl: "https://www.cip.org/alignmentassemblies",
-    linkedSlugs: ["constitution", "limitations-misalignment", "limitations-human-responsibility"],
+    links: [
+      { slug: "constitution", relevance: 0.7 },
+      { slug: "limitations-misalignment", relevance: 0.7 },
+      { slug: "limitations-human-responsibility", relevance: 0.6 },
+    ],
   },
   {
     slug: "cip-global-dialogues",
@@ -153,11 +161,11 @@ These results are building blocks toward consensus and feed into the subcommitte
     summary:
       "Recurring multi-country surveys tracking public attitudes toward AI across 70+ countries. Directly addresses the 'global representation / AI privilege' concern raised in the AI Values panel by surfacing diverse, non-US/EU perspectives on how AI should behave.",
     fileUrl: "https://www.cip.org/globaldialogues",
-    linkedSlugs: [
-      "ai-values-helpful-to-humanity",
-      "human-rights-access-ai",
-      "human-rights-fair-treatment",
-      "human-rights-transparency",
+    links: [
+      { slug: "ai-values-helpful-to-humanity", relevance: 0.6 },
+      { slug: "human-rights-access-ai", relevance: 0.6 },
+      { slug: "human-rights-fair-treatment", relevance: 0.6 },
+      { slug: "human-rights-transparency", relevance: 0.5 },
     ],
   },
   {
@@ -169,6 +177,9 @@ These results are building blocks toward consensus and feed into the subcommitte
     summary:
       "CIP's 2024 agenda of concrete steps — to build, research, advocate for, and fund — toward a democratic AI ecosystem that is adaptive, accountable, and safeguards human wellbeing. A living document for field-building beyond the safety/progress/participation camps.",
     fileUrl: "https://www.cip.org/research/ai-roadmap",
-    linkedSlugs: ["constitution", "limitations-human-responsibility"],
+    links: [
+      { slug: "constitution", relevance: 0.7 },
+      { slug: "limitations-human-responsibility", relevance: 0.6 },
+    ],
   },
 ];
