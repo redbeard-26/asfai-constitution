@@ -35,6 +35,32 @@ export async function getPage(slug: string) {
   });
 }
 
+/** The full Constitution → Article → Thesis tree, for the navigation sidebar. */
+export async function getNavTree() {
+  return prisma.page.findFirst({
+    where: { type: "CONSTITUTION" },
+    select: {
+      slug: true,
+      title: true,
+      type: true,
+      children: {
+        where: { type: "ARTICLE" },
+        orderBy: { sortOrder: "asc" },
+        select: {
+          slug: true,
+          title: true,
+          type: true,
+          children: {
+            where: { type: "THESIS" },
+            orderBy: { sortOrder: "asc" },
+            select: { slug: true, title: true, type: true },
+          },
+        },
+      },
+    },
+  });
+}
+
 /** Visible + hidden comments for a page, oldest first, with author info. */
 export async function getComments(pageId: string) {
   return prisma.comment.findMany({

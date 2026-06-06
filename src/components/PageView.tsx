@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Markdown } from "@/components/Markdown";
+import { Sidebar } from "@/components/Sidebar";
 import { Comments, type CommentData } from "@/components/Comments";
 import { formatDateTime, displayName } from "@/lib/format";
 import { pageHref, PAGE_TYPE_LABEL, type PageType } from "@/lib/constants";
@@ -43,7 +44,14 @@ export function PageView({
   const kicker = PAGE_TYPE_LABEL[type as PageType] ?? "Page";
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-10">
+    <div className="mx-auto flex max-w-6xl gap-8 px-6 py-10">
+      <aside className="hidden w-60 shrink-0 lg:block">
+        <div className="sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto pr-2">
+          <Sidebar activeSlug={slug} />
+        </div>
+      </aside>
+
+      <div className="min-w-0 max-w-3xl flex-1">
       {proposed && (
         <div className="mb-6 border-l-4 border-pro bg-pro-bg px-4 py-3 text-sm text-pro-head">
           Thank you. Your edit was submitted and is awaiting moderator review.
@@ -155,6 +163,7 @@ export function PageView({
         currentUserId={currentUserId}
         isModerator={isModerator}
       />
+      </div>
     </div>
   );
 }
