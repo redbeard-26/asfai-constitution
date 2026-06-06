@@ -1,0 +1,161 @@
+// ASFAI Constitution Wiki — Prisma schema (PostgreSQL / Neon / Vercel Postgres)
+//
+// Enum-like fields (role, category, status) are stored as String and validated
+// in application code (TypeScript unions + Zod). This keeps seeding simple and
+// lets us add new values without a migration. See src/lib/constants.ts.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Prisma 7: connection URLs live in prisma.config.ts (CLI/migrations) and are
+  // provided to PrismaClient via a driver adapter at runtime (see src/lib/prisma.ts).
+}
+
+// ---------------------------------------------------------------------------
+// Auth.js (NextAuth) models
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          String    @default("VIEWER") // VIEWER | MODERATOR | ADMIN
+  createdAt     DateTime  @default(now())
+
+  accounts  Account[]
+  sessions  Session[]
+  revisions Revision[]
+  proposals EditProposal[] @relation("ProposalAuthor")
+  reviewed  EditProposal[] @relation("ProposalReviewer")
+  comments  Comment[]
+  auditLogs AuditLog[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------------------------------------------------------------------------
+// Wiki content models
+// ---------------------------------------------------------------------------
+
+model Page {
+  id                String   @id @default(cuid())
+  slug              String   @unique
+  title             String
+  category          String // PRESENTATION | DISCUSSION
+  sortOrder         Int      @default(0)
+  currentRevisionId String?  @unique
+  linkedPageId      String?  @unique // pairs a presentation page with its discussion page
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  currentRevision Revision?      @relation("CurrentRevision", fields: [currentRevisionId], references: [id])
+  linkedPage      Page?          @relation("PageLink", fields: [linkedPageId], references: [id])
+  linkedFrom      Page?          @relation("PageLink")
+  revisions       Revision[]     @relation("PageRevisions")
+  proposals       EditProposal[]
+  comments        Comment[]
+}
+
+model Revision {
+  id        String   @id @default(cuid())
+  pageId    String
+  content   String
+  summary   String?
+  authorId  String?
+  createdAt DateTime @default(now())
+
+  page             Page           @relation("PageRevisions", fields: [pageId], references: [id], onDelete: Cascade)
+  author           User?          @relation(fields: [authorId], references: [id])
+  currentOf        Page?          @relation("CurrentRevision")
+  baseForProposals EditProposal[] @relation("ProposalBase")
+}
+
+model EditProposal {
+  id              String    @id @default(cuid())
+  pageId          String
+  baseRevisionId  String?
+  proposedContent String
+  summary         String?
+  authorId        String?
+  status          String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  reviewerId      String?
+  reviewNote      String?
+  createdAt       DateTime  @default(now())
+  resolvedAt      DateTime?
+
+  page         Page      @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  baseRevision Revision? @relation("ProposalBase", fields: [baseRevisionId], references: [id])
+  author       User?     @relation("ProposalAuthor", fields: [authorId], references: [id])
+  reviewer     User?     @relation("ProposalReviewer", fields: [reviewerId], references: [id])
+
+  @@index([status])
+  @@index([pageId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  pageId    String
+  authorId  String?
+  parentId  String?
+  body      String
+  status    String   @default("VISIBLE") // VISIBLE | HIDDEN
+  createdAt DateTime @default(now())
+
+  page    Page      @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  author  User?     @relation(fields: [authorId], references: [id])
+  parent  Comment?  @relation("CommentThread", fields: [parentId], references: [id])
+  replies Comment[] @relation("CommentThread")
+
+  @@index([pageId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  targetType String?
+  targetId   String?
+  meta       String? // JSON string
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id])
+}
