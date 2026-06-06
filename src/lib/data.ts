@@ -111,9 +111,23 @@ export async function getPendingProposals() {
   });
 }
 
-/** All documents in the library, newest event first. */
-export async function getDocuments() {
+/** Documents in the library, newest event first, optionally filtered by a
+ *  case-insensitive query across title, summary, source, kind, and body. */
+export async function getDocuments(query?: string) {
+  const q = query?.trim();
+  const where = q
+    ? {
+        OR: [
+          { title: { contains: q, mode: "insensitive" as const } },
+          { summary: { contains: q, mode: "insensitive" as const } },
+          { source: { contains: q, mode: "insensitive" as const } },
+          { kind: { contains: q, mode: "insensitive" as const } },
+          { body: { contains: q, mode: "insensitive" as const } },
+        ],
+      }
+    : {};
   return prisma.document.findMany({
+    where,
     orderBy: [{ eventDate: "desc" }, { createdAt: "desc" }],
     select: {
       slug: true,

@@ -4,9 +4,15 @@ import { getSessionUser } from "@/lib/session";
 import { isModerator } from "@/lib/constants";
 import { formatDate } from "@/lib/format";
 
-export default async function DocsIndex() {
+export default async function DocsIndex({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  const query = q?.trim() ?? "";
   const [docs, user] = await Promise.all([
-    getDocuments().catch(() => []),
+    getDocuments(query).catch(() => []),
     getSessionUser(),
   ]);
   const mod = isModerator(user?.role);
@@ -32,8 +38,37 @@ export default async function DocsIndex() {
         discussion of particular theses.
       </p>
 
+      <form method="get" className="mt-6 flex gap-2">
+        <input
+          type="search"
+          name="q"
+          defaultValue={query}
+          placeholder="Search resources — title, source, text…"
+          className="w-full border border-rule bg-background p-2 text-sm focus:border-gold focus:outline-none"
+        />
+        <button className="rounded bg-gold-deep px-4 py-2 text-sm text-background hover:bg-gold">
+          Search
+        </button>
+        {query && (
+          <Link
+            href="/docs"
+            className="rounded border border-rule px-4 py-2 text-sm hover:bg-panel"
+          >
+            Clear
+          </Link>
+        )}
+      </form>
+
+      {query && (
+        <p className="mt-3 text-xs text-muted">
+          {docs.length} {docs.length === 1 ? "result" : "results"} for “{query}”
+        </p>
+      )}
+
       {docs.length === 0 ? (
-        <p className="mt-8 text-sm text-muted">No documents yet.</p>
+        <p className="mt-8 text-sm text-muted">
+          {query ? "No resources match your search." : "No resources yet."}
+        </p>
       ) : (
         <ul className="mt-6 space-y-3">
           {docs.map((d) => (
