@@ -2,6 +2,7 @@ import "dotenv/config";
 import { prisma } from "../src/lib/prisma";
 import { CONSTITUTION, ARTICLES } from "../src/content/seed-content";
 import { SEED_DOCUMENTS } from "../src/content/documents";
+import { EXTERNAL_RESOURCES } from "../src/content/external-resources";
 import { adminEmails } from "../src/lib/env";
 
 async function createPage(opts: {
@@ -74,7 +75,7 @@ async function main() {
     }
   }
 
-  for (const doc of SEED_DOCUMENTS) {
+  for (const doc of [...SEED_DOCUMENTS, ...EXTERNAL_RESOURCES]) {
     const data = {
       title: doc.title,
       kind: doc.kind,

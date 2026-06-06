@@ -33,9 +33,12 @@ small-caps headings; green = agreement, terracotta = tension).
   **external resources** (links to outside work, with a *source* organization and
   an external URL; body optional). Each resource links to many theses/articles;
   linked pages show a "Related resources" panel and each resource lists the theses
-  it informs. Seeded with the AI Values panel report and Collective Intelligence
-  Project works (Collective Constitutional AI, Alignment Assemblies, Global
-  Dialogues, Roadmap to Democratic AI, Whitepaper).
+  it informs. Each link carries a hidden **relevance score (0–1)** so the most
+  relevant resources surface first. Seeded with the AI Values panel report,
+  Collective Intelligence Project works, and a library of external references
+  drawn from the project's resource list (UDHR, US/Canadian constitutions,
+  EU AI Act, OECD/UNESCO/NIST frameworks, Council of Europe Convention, SEP
+  philosophy entries, MIT AI Risk Repository, AI-2027, the NPT, AGORA, and more).
 - **Roles:** `VIEWER` (default) → `MODERATOR` (review edits, moderate comments,
   revert, manage documents) → `ADMIN` (manage roles). Emails in `ADMIN_EMAILS`
   are auto-promoted to admin on sign-in.
