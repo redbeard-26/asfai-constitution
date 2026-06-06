@@ -1,26 +1,68 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* American Society for AI — brand tokens (see ASFAI Style Guide). */
 :root {
+  --gold: #e0a93b; /* rules, wordmark bar, accents */
+  --gold-deep: #c8902a; /* headings, kickers, emphasis */
+  --ink: #1a1a1a; /* body text */
+  --muted: #5c5c5c; /* meta, captions */
+  --rule: #d8d8d8; /* hairline dividers */
+  --panel: #faf6ec; /* cream callout fill */
+  --panel-border: #e9dcbf; /* cream box border */
+
+  /* Agreement / "pro" = green. Tension / "con" = terracotta-brown. Never red. */
+  --pro-rule: #6f9e63;
+  --pro-head: #4f7a44;
+  --pro-bg: #f1f6f0;
+  --con-rule: #c07f5f;
+  --con-head: #a55f3f;
+  --con-bg: #f8f1ee;
+
   --background: #ffffff;
-  --foreground: #1a1a1a;
-  --muted: #6b7280;
-  --border: #e5e7eb;
-  --accent: #1d4ed8;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-gold: var(--gold);
+  --color-gold-deep: var(--gold-deep);
+  --color-ink: var(--ink);
   --color-muted: var(--muted);
-  --color-border: var(--border);
-  --color-accent: var(--accent);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --color-rule: var(--rule);
+  --color-panel: var(--panel);
+  --color-panel-border: var(--panel-border);
+  --color-pro: var(--pro-rule);
+  --color-pro-head: var(--pro-head);
+  --color-pro-bg: var(--pro-bg);
+  --color-con: var(--con-rule);
+  --color-con-head: var(--con-head);
+  --color-con-bg: var(--con-bg);
+  --color-background: var(--background);
+
+  --font-serif: Georgia, "Times New Roman", Times, serif;
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
+  color: var(--ink);
+  font-family: var(--font-serif);
+}
+
+/* Small-caps kicker — the signature heading style after the gold rule. */
+.kicker {
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: var(--gold-deep);
+  font-weight: 700;
+}
+
+/* Gold wordmark rule: 6px, sits under the masthead. */
+.gold-rule {
+  height: 4px;
+  background: var(--gold);
+  border: none;
+}
+
+/* Section opener rule (3px solid gold above titles). */
+.section-rule {
+  border-top: 3px solid var(--gold);
 }

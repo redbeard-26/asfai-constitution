@@ -11,29 +11,39 @@ export async function SiteHeader() {
   const pending = mod ? await getPendingProposalCount() : 0;
 
   return (
-    <header className="border-b border-border bg-white">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
-        <Link href="/" className="flex items-baseline gap-2">
-          <span className="text-lg font-semibold tracking-tight">ASFAI</span>
-          <span className="text-sm text-muted">Constitution</span>
+    <header className="border-b-4 border-gold bg-background">
+      <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-6 py-3">
+        <Link href="/" className="flex flex-col leading-tight">
+          <span
+            className="text-lg font-bold text-ink"
+            style={{ fontVariant: "small-caps", letterSpacing: "0.06em" }}
+          >
+            American Society for AI
+          </span>
+          <span
+            className="text-xs text-gold-deep"
+            style={{ fontVariant: "small-caps", letterSpacing: "0.08em" }}
+          >
+            AI Constitution
+          </span>
         </Link>
 
-        <nav className="flex items-center gap-4 text-sm">
-          <Link href="/" className="text-muted hover:text-foreground">
+        <nav className="flex items-center gap-5 text-sm">
+          <Link href="/" className="text-muted hover:text-ink">
             Articles
           </Link>
           {mod && (
-            <Link href="/moderation" className="text-muted hover:text-foreground">
+            <Link href="/moderation" className="text-muted hover:text-ink">
               Moderation
               {pending > 0 && (
-                <span className="ml-1 rounded-full bg-accent px-1.5 py-0.5 text-xs font-medium text-white">
+                <span className="ml-1 rounded-full bg-gold px-1.5 py-0.5 text-xs font-bold text-ink">
                   {pending}
                 </span>
               )}
             </Link>
           )}
           {admin && (
-            <Link href="/admin/users" className="text-muted hover:text-foreground">
+            <Link href="/admin/users" className="text-muted hover:text-ink">
               Admin
             </Link>
           )}
@@ -43,7 +53,10 @@ export async function SiteHeader() {
               <span className="hidden text-muted sm:inline">
                 {user.name ?? user.email}
               </span>
-              <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-muted">
+              <span
+                className="rounded border border-panel-border bg-panel px-1.5 py-0.5 text-xs text-gold-deep"
+                style={{ fontVariant: "small-caps", letterSpacing: "0.05em" }}
+              >
                 {user.role}
               </span>
               <form
@@ -54,7 +67,7 @@ export async function SiteHeader() {
               >
                 <button
                   type="submit"
-                  className="rounded border border-border px-2 py-1 text-xs hover:bg-gray-50"
+                  className="rounded border border-rule px-2 py-1 text-xs hover:bg-panel"
                 >
                   Sign out
                 </button>
@@ -63,7 +76,7 @@ export async function SiteHeader() {
           ) : (
             <Link
               href="/signin"
-              className="rounded bg-accent px-3 py-1.5 text-white hover:opacity-90"
+              className="rounded bg-gold-deep px-3 py-1.5 text-background hover:bg-gold"
             >
               Sign in
             </Link>

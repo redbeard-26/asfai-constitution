@@ -26,19 +26,21 @@ export async function PageScreen({
   const isDiscussion = category === "DISCUSSION";
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
+    <div className="mx-auto max-w-3xl px-6 py-10">
       {proposed && (
-        <div className="mb-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-          Thanks! Your edit was submitted and is awaiting moderator review.
+        <div className="mb-6 border-l-4 border-pro bg-pro-bg px-4 py-3 text-sm text-pro-head">
+          Thank you. Your edit was submitted and is awaiting moderator review.
           Nothing on this page changes until a moderator approves it.
         </div>
       )}
 
-      <div className="text-xs font-semibold uppercase tracking-wide text-muted">
-        {isDiscussion ? "Discussion" : "Article"}
+      <div className="section-rule pt-3">
+        <p className="kicker text-xs">{isDiscussion ? "Discussion" : "Article"}</p>
+        <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">
+          {page.title}
+        </h1>
       </div>
-      <h1 className="mt-1 text-2xl font-semibold tracking-tight">{page.title}</h1>
-      <div className="mt-1 text-xs text-muted">
+      <div className="mt-2 text-xs text-muted">
         {page.currentRevision ? (
           <>
             Updated {formatDateTime(page.currentRevision.createdAt)}
@@ -55,35 +57,35 @@ export async function PageScreen({
         {user ? (
           <Link
             href={`/edit/${slug}`}
-            className="rounded bg-accent px-3 py-1.5 text-white hover:opacity-90"
+            className="rounded bg-gold-deep px-3 py-1.5 text-background hover:bg-gold"
           >
             Propose edit
           </Link>
         ) : (
           <Link
             href="/signin"
-            className="rounded border border-border px-3 py-1.5 hover:bg-gray-50"
+            className="rounded border border-rule px-3 py-1.5 hover:bg-panel"
           >
             Sign in to propose an edit
           </Link>
         )}
         <Link
           href={`/history/${slug}`}
-          className="rounded border border-border px-3 py-1.5 hover:bg-gray-50"
+          className="rounded border border-rule px-3 py-1.5 hover:bg-panel"
         >
           History
         </Link>
         {paired && (
           <Link
             href={pageHref(paired.category, paired.slug)}
-            className="rounded border border-border px-3 py-1.5 hover:bg-gray-50"
+            className="rounded border border-rule px-3 py-1.5 hover:bg-panel"
           >
             {paired.category === "DISCUSSION" ? "Discuss" : "Back to article"}
           </Link>
         )}
       </div>
 
-      <article className="mt-6 rounded-lg border border-border bg-white p-6">
+      <article className="mt-6 border-l-4 border-gold bg-panel px-6 py-5">
         {page.currentRevision ? (
           <Markdown content={page.currentRevision.content} />
         ) : (

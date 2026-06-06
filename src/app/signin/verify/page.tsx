@@ -1,8 +1,12 @@
 export default function VerifyRequestPage() {
   return (
-    <div className="mx-auto max-w-md px-4 py-16 text-center">
-      <h1 className="text-2xl font-semibold tracking-tight">Check your email</h1>
-      <p className="mt-3 text-sm text-muted">
+    <div className="mx-auto max-w-md px-6 py-16 text-center">
+      <p className="kicker text-xs">American Society for AI</p>
+      <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">
+        Check your email
+      </h1>
+      <hr className="gold-rule mx-auto mt-4 w-[60%]" />
+      <p className="mt-5 text-sm text-ink">
         A sign-in link has been sent to your email address. Click the link to
         finish signing in.
       </p>

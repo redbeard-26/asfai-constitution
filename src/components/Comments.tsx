@@ -35,20 +35,20 @@ export function Comments({ pageId, path, comments, currentUserId, isModerator }:
     const nodes = byParent.get(parentKey) ?? [];
     if (nodes.length === 0) return null;
     return (
-      <ul className={depth > 0 ? "ml-4 border-l border-border pl-4" : "space-y-4"}>
+      <ul className={depth > 0 ? "ml-4 border-l border-rule pl-4" : "space-y-4"}>
         {nodes.map((c) => {
           const hidden = c.status === "HIDDEN";
           const isOwner = currentUserId != null && c.authorId === currentUserId;
           return (
             <li key={c.id} className="mt-4 first:mt-0">
-              <div className="rounded-md border border-border bg-white p-3">
+              <div className="border border-rule bg-background p-3">
                 <div className="flex items-center justify-between text-xs text-muted">
-                  <span className="font-medium text-foreground">
+                  <span className="font-bold text-ink">
                     {hidden ? "—" : displayName(c.author)}
                   </span>
                   <span>{formatDateTime(c.createdAt)}</span>
                 </div>
-                <div className="mt-1 whitespace-pre-wrap text-sm">
+                <div className="mt-1 whitespace-pre-wrap text-sm text-ink">
                   {hidden ? (
                     <em className="text-muted">[removed by moderator]</em>
                   ) : (
@@ -57,10 +57,10 @@ export function Comments({ pageId, path, comments, currentUserId, isModerator }:
                 </div>
 
                 {!hidden && (
-                  <div className="mt-2 flex items-center gap-3 text-xs text-muted">
+                  <div className="mt-2 flex items-center gap-4 text-xs text-muted">
                     {currentUserId && (
                       <details>
-                        <summary className="cursor-pointer hover:text-foreground">
+                        <summary className="cursor-pointer hover:text-gold-deep">
                           Reply
                         </summary>
                         <CommentForm
@@ -75,7 +75,7 @@ export function Comments({ pageId, path, comments, currentUserId, isModerator }:
                       <form action={deleteOwnComment}>
                         <input type="hidden" name="commentId" value={c.id} />
                         <input type="hidden" name="path" value={path} />
-                        <button className="hover:text-red-600">Delete</button>
+                        <button className="hover:text-con-head">Delete</button>
                       </form>
                     )}
                     {isModerator && (
@@ -83,7 +83,7 @@ export function Comments({ pageId, path, comments, currentUserId, isModerator }:
                         <input type="hidden" name="commentId" value={c.id} />
                         <input type="hidden" name="path" value={path} />
                         <input type="hidden" name="hide" value="1" />
-                        <button className="hover:text-red-600">Hide</button>
+                        <button className="hover:text-con-head">Hide</button>
                       </form>
                     )}
                   </div>
@@ -93,7 +93,7 @@ export function Comments({ pageId, path, comments, currentUserId, isModerator }:
                     <input type="hidden" name="commentId" value={c.id} />
                     <input type="hidden" name="path" value={path} />
                     <input type="hidden" name="hide" value="0" />
-                    <button className="text-muted hover:text-foreground">Unhide</button>
+                    <button className="text-muted hover:text-ink">Unhide</button>
                   </form>
                 )}
               </div>
@@ -107,18 +107,22 @@ export function Comments({ pageId, path, comments, currentUserId, isModerator }:
 
   return (
     <section className="mt-10">
-      <h2 className="mb-4 text-lg font-semibold">Discussion ({visibleCount})</h2>
+      <div className="section-rule pt-3">
+        <h2 className="kicker text-base">Discussion ({visibleCount})</h2>
+      </div>
 
-      {currentUserId ? (
-        <CommentForm pageId={pageId} path={path} parentId={null} />
-      ) : (
-        <p className="rounded-md border border-border bg-white p-3 text-sm text-muted">
-          <Link href="/signin" className="text-accent hover:underline">
-            Sign in
-          </Link>{" "}
-          to join the discussion.
-        </p>
-      )}
+      <div className="mt-4">
+        {currentUserId ? (
+          <CommentForm pageId={pageId} path={path} parentId={null} />
+        ) : (
+          <p className="border border-rule bg-panel p-3 text-sm text-muted">
+            <Link href="/signin" className="text-gold-deep hover:underline">
+              Sign in
+            </Link>{" "}
+            to join the discussion.
+          </p>
+        )}
+      </div>
 
       <div className="mt-6">
         {comments.length === 0 ? (
@@ -152,12 +156,12 @@ function CommentForm({
         required
         rows={compact ? 2 : 3}
         placeholder={parentId ? "Write a reply…" : "Add to the discussion…"}
-        className="w-full rounded-md border border-border bg-white p-2 text-sm focus:border-accent focus:outline-none"
+        className="w-full border border-rule bg-background p-2 text-sm focus:border-gold focus:outline-none"
       />
       <div className="mt-1">
         <button
           type="submit"
-          className="rounded bg-accent px-3 py-1.5 text-sm text-white hover:opacity-90"
+          className="rounded bg-gold-deep px-3 py-1.5 text-sm text-background hover:bg-gold"
         >
           {parentId ? "Reply" : "Comment"}
         </button>

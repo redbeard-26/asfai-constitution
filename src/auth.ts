@@ -18,10 +18,27 @@ if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
 //  - without it (dev): the link is printed to the server console.
 // Because sendVerificationRequest is overridden, the `nodemailer` package is
 // never imported at runtime and does not need to be installed.
+const EMAIL_FROM =
+  process.env.EMAIL_FROM ?? "AI Constitution <onboarding@resend.dev>";
+
+function magicLinkEmailHtml(url: string): string {
+  return `<div style="font-family: Georgia, 'Times New Roman', serif; max-width: 480px; margin: 0 auto; color: #1a1a1a;">
+  <div style="text-align:center; border-bottom: 4px solid #E0A93B; padding-bottom: 12px; margin-bottom: 20px;">
+    <div style="font-variant: small-caps; letter-spacing: 0.06em; font-size: 20px; font-weight: bold;">American Society for AI</div>
+    <div style="font-variant: small-caps; letter-spacing: 0.08em; font-size: 12px; color: #C8902A;">AI Constitution</div>
+  </div>
+  <p>Click the button below to sign in to the AI Constitution.</p>
+  <p style="text-align:center; margin: 24px 0;">
+    <a href="${url}" style="background:#C8902A; color:#ffffff; text-decoration:none; padding: 10px 22px; border-radius:4px; font-weight:bold;">Sign in</a>
+  </p>
+  <p style="font-size: 12px; color:#5c5c5c;">If you did not request this, you can safely ignore this email.</p>
+</div>`;
+}
+
 providers.push(
   Nodemailer({
     server: { host: "localhost", port: 587 },
-    from: process.env.EMAIL_FROM ?? "ASFAI Constitution <onboarding@resend.dev>",
+    from: EMAIL_FROM,
     async sendVerificationRequest({ identifier, url }) {
       const key = process.env.AUTH_RESEND_KEY;
       if (!key) {
@@ -38,12 +55,10 @@ providers.push(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: process.env.EMAIL_FROM ?? "ASFAI Constitution <onboarding@resend.dev>",
+          from: EMAIL_FROM,
           to: identifier,
-          subject: "Sign in to the ASFAI Constitution",
-          html: `<p>Click the link below to sign in to the ASFAI Constitution wiki:</p>
-                 <p><a href="${url}">Sign in</a></p>
-                 <p>If you did not request this, you can ignore this email.</p>`,
+          subject: "Sign in to the AI Constitution",
+          html: magicLinkEmailHtml(url),
         }),
       });
       if (!res.ok) {

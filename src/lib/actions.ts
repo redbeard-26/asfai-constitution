@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser, requireModerator, requireAdmin } from "@/lib/session";
-import { pageHref, ROLES, type Role } from "@/lib/constants";
+import { pageHref, ROLES, isModerator, type Role } from "@/lib/constants";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 async function logAudit(
   actorId: string,
@@ -38,6 +39,13 @@ const proposeSchema = z.object({
 
 export async function proposeEdit(formData: FormData) {
   const user = await requireUser();
+  if (!isModerator(user.role)) {
+    await checkRateLimit("editProposal", user.id, {
+      windowMs: 10 * 60_000,
+      max: 5,
+      label: "edit proposals",
+    });
+  }
   const parsed = proposeSchema.parse({
     pageId: formData.get("pageId"),
     baseRevisionId: formData.get("baseRevisionId") || null,
@@ -148,6 +156,13 @@ const commentSchema = z.object({
 
 export async function postComment(formData: FormData) {
   const user = await requireUser();
+  if (!isModerator(user.role)) {
+    await checkRateLimit("comment", user.id, {
+      windowMs: 5 * 60_000,
+      max: 10,
+      label: "comments",
+    });
+  }
   const parsed = commentSchema.parse({
     pageId: formData.get("pageId"),
     parentId: formData.get("parentId") || null,

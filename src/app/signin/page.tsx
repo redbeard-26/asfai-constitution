@@ -10,13 +10,16 @@ export default async function SignInPage() {
   );
 
   return (
-    <div className="mx-auto max-w-md px-4 py-16">
-      <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
+    <div className="mx-auto max-w-md px-6 py-16">
+      <div className="section-rule pt-3">
+        <p className="kicker text-xs">American Society for AI</p>
+        <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">Sign in</h1>
+      </div>
       <p className="mt-2 text-sm text-muted">
-        Sign in to comment and propose edits to the ASFAI Constitution.
+        Sign in to comment and propose edits to the AI Constitution.
       </p>
 
-      <div className="mt-8 space-y-4 rounded-lg border border-border bg-white p-6">
+      <div className="mt-8 space-y-4 border border-rule bg-panel p-6">
         {googleEnabled && (
           <>
             <form
@@ -27,15 +30,15 @@ export default async function SignInPage() {
             >
               <button
                 type="submit"
-                className="w-full rounded border border-border px-4 py-2 text-sm font-medium hover:bg-gray-50"
+                className="w-full rounded border border-rule bg-background px-4 py-2 text-sm font-bold hover:bg-panel"
               >
                 Continue with Google
               </button>
             </form>
             <div className="flex items-center gap-3 text-xs text-muted">
-              <span className="h-px flex-1 bg-border" />
+              <span className="h-px flex-1 bg-rule" />
               or
-              <span className="h-px flex-1 bg-border" />
+              <span className="h-px flex-1 bg-rule" />
             </div>
           </>
         )}
@@ -48,7 +51,7 @@ export default async function SignInPage() {
           }}
           className="space-y-2"
         >
-          <label htmlFor="email" className="block text-sm font-medium">
+          <label htmlFor="email" className="block text-sm font-bold text-ink">
             Email address
           </label>
           <input
@@ -57,11 +60,11 @@ export default async function SignInPage() {
             type="email"
             required
             placeholder="you@example.com"
-            className="w-full rounded-md border border-border p-2 text-sm focus:border-accent focus:outline-none"
+            className="w-full border border-rule bg-background p-2 text-sm focus:border-gold focus:outline-none"
           />
           <button
             type="submit"
-            className="w-full rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+            className="w-full rounded bg-gold-deep px-4 py-2 text-sm font-bold text-background hover:bg-gold"
           >
             Email me a sign-in link
           </button>

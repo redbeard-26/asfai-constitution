@@ -24,13 +24,13 @@ export function EditProposalForm({
         <input type="hidden" name="baseRevisionId" value={baseRevisionId} />
       )}
 
-      <div className="flex gap-2 border-b border-border text-sm">
+      <div className="flex gap-2 border-b border-rule text-sm">
         <button
           type="button"
           onClick={() => setTab("write")}
           className={`-mb-px border-b-2 px-3 py-1.5 ${
             tab === "write"
-              ? "border-accent font-medium text-foreground"
+              ? "border-gold font-bold text-ink"
               : "border-transparent text-muted"
           }`}
         >
@@ -41,7 +41,7 @@ export function EditProposalForm({
           onClick={() => setTab("preview")}
           className={`-mb-px border-b-2 px-3 py-1.5 ${
             tab === "preview"
-              ? "border-accent font-medium text-foreground"
+              ? "border-gold font-bold text-ink"
               : "border-transparent text-muted"
           }`}
         >
@@ -56,12 +56,12 @@ export function EditProposalForm({
         onChange={(e) => setContent(e.target.value)}
         rows={20}
         required
-        className={`w-full rounded-md border border-border p-3 font-mono text-sm focus:border-accent focus:outline-none ${
+        className={`w-full border border-rule p-3 font-mono text-sm focus:border-gold focus:outline-none ${
           tab === "preview" ? "hidden" : ""
         }`}
       />
       {tab === "preview" && (
-        <div className="prose prose-neutral max-w-none rounded-md border border-border bg-white p-4">
+        <div className="prose prose-stone max-w-none border border-rule bg-panel p-4 font-serif prose-a:text-gold-deep prose-strong:text-ink">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {content || "*Nothing to preview.*"}
           </ReactMarkdown>
@@ -69,7 +69,7 @@ export function EditProposalForm({
       )}
 
       <div>
-        <label htmlFor="summary" className="block text-sm font-medium">
+        <label htmlFor="summary" className="block text-sm font-bold text-ink">
           Summary of your change <span className="text-muted">(optional)</span>
         </label>
         <input
@@ -78,13 +78,13 @@ export function EditProposalForm({
           type="text"
           maxLength={300}
           placeholder="e.g. Clarified the wording of thesis 4"
-          className="mt-1 w-full rounded-md border border-border p-2 text-sm focus:border-accent focus:outline-none"
+          className="mt-1 w-full border border-rule p-2 text-sm focus:border-gold focus:outline-none"
         />
       </div>
 
       <button
         type="submit"
-        className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+        className="rounded bg-gold-deep px-4 py-2 text-sm font-bold text-background hover:bg-gold"
       >
         Submit for review
       </button>

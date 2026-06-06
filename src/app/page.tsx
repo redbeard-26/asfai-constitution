@@ -8,49 +8,56 @@ export default async function Home() {
   const articles = await getArticles().catch(() => []);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
-      <section className="mb-10">
-        <h1 className="text-3xl font-semibold tracking-tight">An AI Constitution</h1>
-        <p className="mt-3 max-w-2xl text-muted">
+    <div className="mx-auto max-w-4xl px-6 py-12">
+      <section className="mb-12 text-center">
+        <p className="kicker text-sm">A Collaborative Draft</p>
+        <h1 className="mt-2 text-4xl font-bold tracking-tight text-ink">
+          AI Constitution
+        </h1>
+        <hr className="gold-rule mx-auto mt-4 w-[86%] max-w-md" />
+        <p className="mx-auto mt-6 max-w-2xl leading-relaxed text-ink">
           A living set of theses on the values, rights, limitations, and
           personhood that should govern artificial intelligence — developed
-          openly by the community. Anyone can comment and propose edits;
+          openly by the community. Anyone may comment and propose edits;
           moderators review every change before it is published.
         </p>
-        <p className="mt-4 inline-block rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <p className="mx-auto mt-6 max-w-2xl border-l-4 border-gold bg-panel px-4 py-3 text-left text-sm text-ink">
           {DISCLAIMER}
         </p>
       </section>
 
       <section>
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">
-          Articles
-        </h2>
+        <div className="section-rule pt-3">
+          <h2 className="kicker text-base">Articles</h2>
+        </div>
         {articles.length === 0 ? (
-          <p className="text-muted">
+          <p className="mt-4 text-muted">
             No articles yet. Run the database seed to import the initial theses.
           </p>
         ) : (
-          <ul className="grid gap-4 sm:grid-cols-2">
+          <ul className="mt-5 grid gap-4 sm:grid-cols-2">
             {articles.map((a, i) => (
               <li
                 key={a.id}
-                className="rounded-lg border border-border bg-white p-5 transition hover:shadow-sm"
+                className="border border-panel-border border-l-4 border-l-gold bg-panel p-5"
               >
                 <Link href={`/p/${a.slug}`} className="block">
-                  <span className="text-xs text-muted">Article {i + 1}</span>
-                  <h3 className="mt-1 text-lg font-semibold hover:text-accent">
+                  <span className="kicker text-xs">Issue {i + 1}</span>
+                  <h3 className="mt-1 text-xl font-bold text-ink hover:text-gold-deep">
                     {a.title}
                   </h3>
                 </Link>
-                <div className="mt-3 flex gap-3 text-sm">
-                  <Link href={`/p/${a.slug}`} className="text-accent hover:underline">
+                <div className="mt-3 flex gap-4 text-sm">
+                  <Link
+                    href={`/p/${a.slug}`}
+                    className="text-gold-deep hover:underline"
+                  >
                     Read
                   </Link>
                   {a.linkedPage && (
                     <Link
                       href={`/d/${a.linkedPage.slug}`}
-                      className="text-muted hover:text-foreground"
+                      className="text-muted hover:text-ink"
                     >
                       Discuss
                     </Link>

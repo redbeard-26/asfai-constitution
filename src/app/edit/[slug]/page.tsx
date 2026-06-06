@@ -18,11 +18,13 @@ export default async function EditPage({
   if (!page) notFound();
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <div className="text-xs font-semibold uppercase tracking-wide text-muted">
-        Propose an edit
+    <div className="mx-auto max-w-3xl px-6 py-10">
+      <div className="section-rule pt-3">
+        <p className="kicker text-xs">Propose an edit</p>
+        <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">
+          {page.title}
+        </h1>
       </div>
-      <h1 className="mt-1 text-2xl font-semibold tracking-tight">{page.title}</h1>
       <p className="mt-2 text-sm text-muted">
         Edit the content below and submit it for review. Your change will not be
         published until a moderator approves it.
@@ -39,7 +41,7 @@ export default async function EditPage({
       <div className="mt-4 text-sm">
         <Link
           href={pageHref(page.category, page.slug)}
-          className="text-muted hover:text-foreground"
+          className="text-muted hover:text-ink"
         >
           ← Cancel and return to page
         </Link>

@@ -1,9 +1,14 @@
-# ASFAI Constitution
+# AI Constitution
 
-A community-developed wiki for an **AI constitution**. Anyone can read, comment,
-and propose edits in the browser; **moderators approve every change before it is
-published**. Content is organized into two categories — **presentation**
-(the constitution articles) and **discussion** (deliberation pages).
+An open, community-developed draft constitution for AI, **hosted by the American
+Society for AI** (ASFAI). It is a collaborative effort — not ASFAI's official
+position. Anyone can read, comment, and propose edits in the browser;
+**moderators approve every change before it is published**. Content is organized
+into two categories — **presentation** (the constitution articles) and
+**discussion** (deliberation pages).
+
+Styling follows the ASFAI Brand & Document Style Guide (serif type, gold rules,
+small-caps headings; green = agreement, terracotta = tension).
 
 ## Stack
 
@@ -108,6 +113,36 @@ published**. Content is organized into two categories — **presentation**
    a `CNAME` record pointing to `cname.vercel-dns.com` at your DNS provider.
    Update `AUTH_URL` to that domain. If using Google OAuth, add
    `https://<your-domain>/api/auth/callback/google` as an authorized redirect URI.
+
+## Authentication setup
+
+Sign-in is handled by Auth.js. Two methods are supported; both are optional in
+dev (email links print to the console when Resend isn't configured).
+
+### Google OAuth
+
+1. In the [Google Cloud Console](https://console.cloud.google.com), create an
+   OAuth 2.0 Client ID (type: Web application).
+2. Add **Authorized redirect URIs**:
+   - `http://localhost:3000/api/auth/callback/google` (local)
+   - `https://<your-domain>/api/auth/callback/google` (production)
+3. Set `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`. The "Continue with Google"
+   button appears automatically once both are present.
+
+### Resend (emailed magic links)
+
+1. Create an API key at [resend.com](https://resend.com) and verify a sending
+   domain.
+2. Set `AUTH_RESEND_KEY` and `EMAIL_FROM` (e.g. `AI Constitution <noreply@yourdomain>`).
+   When `AUTH_RESEND_KEY` is set, links are emailed; otherwise they print to the
+   server console (handy for local dev).
+
+## Rate limiting
+
+Edit proposals and comments are rate-limited per user via database row counts
+(`src/lib/rate-limit.ts`): by default **5 proposals / 10 min** and **10 comments
+/ 5 min**. Moderators and admins are exempt. Tune the windows in
+`src/lib/actions.ts`.
 
 ## Notes
 
