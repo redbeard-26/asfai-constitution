@@ -381,4 +381,243 @@ export const EXTERNAL_RESOURCES: SeedDocument[] = [
       { slug: "limitations", relevance: 0.4 },
     ],
   },
+
+  // —— Academic papers ——
+  {
+    slug: "ext-stochastic-parrots",
+    title: "On the Dangers of Stochastic Parrots: Can Language Models Be Too Big?",
+    kind: "External Resource",
+    source: "Bender, Gebru, McMillan-Major & Mitchell (ACM FAccT 2021)",
+    summary:
+      "Influential paper warning that ever-larger language models pose environmental, financial, bias, and accountability risks.",
+    fileUrl: "https://dl.acm.org/doi/10.1145/3442188.3445922",
+    links: [
+      { slug: "human-rights-fair-treatment", relevance: 0.5 },
+      { slug: "ai-values", relevance: 0.4 },
+    ],
+  },
+  {
+    slug: "ext-doshi-velez-interpretable-ml",
+    title: "Towards a Rigorous Science of Interpretable Machine Learning",
+    kind: "External Resource",
+    source: "Doshi-Velez & Kim (arXiv, 2017)",
+    summary:
+      "Position paper proposing definitions and a taxonomy for rigorously evaluating interpretability in machine learning.",
+    fileUrl: "https://arxiv.org/abs/1702.08608",
+    links: [
+      { slug: "human-rights-transparency", relevance: 0.6 },
+      { slug: "ai-values", relevance: 0.3 },
+    ],
+  },
+  {
+    slug: "ext-hallucination-survey",
+    title: "Survey of Hallucination in Natural Language Generation",
+    kind: "External Resource",
+    source: "Ji et al. (ACM Computing Surveys, 2023)",
+    summary:
+      "Comprehensive survey of the causes, metrics, and mitigations for hallucination (false output) in language-generation systems.",
+    fileUrl: "https://dl.acm.org/doi/10.1145/3571730",
+    links: [{ slug: "ai-values-be-honest", relevance: 0.8 }],
+  },
+  {
+    slug: "ext-mythos-interpretability",
+    title: "The Mythos of Model Interpretability",
+    kind: "External Resource",
+    source: "Zachary C. Lipton (arXiv / CACM, 2018)",
+    summary:
+      "Argues that 'interpretability' conflates several distinct goals — transparency vs. post-hoc explanation — that should be teased apart.",
+    fileUrl: "https://arxiv.org/abs/1606.03490",
+    links: [{ slug: "human-rights-transparency", relevance: 0.6 }],
+  },
+  {
+    slug: "ext-rudin-interpretable-models",
+    title:
+      "Stop Explaining Black Box Machine Learning Models for High-Stakes Decisions and Use Interpretable Models Instead",
+    kind: "External Resource",
+    source: "Cynthia Rudin (Nature Machine Intelligence, 2019)",
+    summary:
+      "Argues high-stakes decisions should use inherently interpretable models rather than post-hoc explanations of black boxes.",
+    fileUrl: "https://doi.org/10.1038/s42256-019-0048-x",
+    links: [
+      { slug: "human-rights-transparency", relevance: 0.7 },
+      { slug: "ai-values", relevance: 0.3 },
+    ],
+  },
+  {
+    slug: "ext-gender-shades",
+    title:
+      "Gender Shades: Intersectional Accuracy Disparities in Commercial Gender Classification",
+    kind: "External Resource",
+    source: "Buolamwini & Gebru (PMLR / FAccT 2018)",
+    summary:
+      "Landmark audit showing commercial facial-analysis systems misclassify darker-skinned women at far higher rates than lighter-skinned men.",
+    fileUrl: "https://proceedings.mlr.press/v81/buolamwini18a.html",
+    links: [
+      { slug: "human-rights-fair-treatment", relevance: 0.85 },
+      { slug: "human-rights", relevance: 0.4 },
+    ],
+  },
+  {
+    slug: "ext-electronic-personhood",
+    title: "Robot as Legal Person: Electronic Personhood in Robotics and AI",
+    kind: "External Resource",
+    source: "Avila Negri (Frontiers in Robotics and AI, 2021)",
+    summary:
+      "Critically examines proposals to grant AI 'electronic personhood,' challenging the corporate-personhood analogy.",
+    fileUrl:
+      "https://www.frontiersin.org/journals/robotics-and-ai/articles/10.3389/frobt.2021.789327/full",
+    links: [
+      { slug: "ai-personhood-persons", relevance: 0.8 },
+      { slug: "ai-personhood", relevance: 0.6 },
+      { slug: "ai-personhood-non-person-rights", relevance: 0.5 },
+    ],
+  },
+  {
+    slug: "ext-bostrom-superintelligence",
+    title: "Superintelligence: Paths, Dangers, Strategies",
+    kind: "External Resource",
+    source: "Nick Bostrom (Oxford University Press, 2014)",
+    summary:
+      "Foundational analysis of the risks of machine superintelligence and the control problem of advanced AI.",
+    fileUrl: "https://en.wikipedia.org/wiki/Superintelligence:_Paths,_Dangers,_Strategies",
+    links: [
+      { slug: "limitations-superintelligence", relevance: 0.85 },
+      { slug: "limitations-misalignment", relevance: 0.6 },
+      { slug: "limitations", relevance: 0.4 },
+    ],
+  },
+  {
+    slug: "ext-floridi-sanders-moral-agents",
+    title: "On the Morality of Artificial Agents",
+    kind: "External Resource",
+    source: "Floridi & Sanders (Minds and Machines, 2004)",
+    summary:
+      "Argues artificial agents can be moral agents and patients without requiring free will, mental states, or responsibility.",
+    fileUrl: "https://link.springer.com/article/10.1023/B:MIND.0000035461.63578.9d",
+    links: [
+      { slug: "ai-personhood", relevance: 0.6 },
+      { slug: "ai-personhood-non-person-rights", relevance: 0.5 },
+    ],
+  },
+  {
+    slug: "ext-veale-demystifying-ai-act",
+    title: "Demystifying the Draft EU Artificial Intelligence Act",
+    kind: "External Resource",
+    source: "Veale & Zuiderveen Borgesius (Computer Law Review Int'l, 2021)",
+    summary:
+      "Critical analysis of the EU's draft AI Act, assessing its risk-based structure and legal implications.",
+    fileUrl: "https://arxiv.org/abs/2107.03721",
+    links: [
+      { slug: "limitations", relevance: 0.5 },
+      { slug: "constitution", relevance: 0.3 },
+    ],
+  },
+
+  // —— Standards, declarations & instruments ——
+  {
+    slug: "ext-iso-iec-42001",
+    title: "ISO/IEC 42001:2023 — AI Management System",
+    kind: "External Resource",
+    source: "ISO/IEC",
+    summary:
+      "The first international standard specifying requirements for establishing and operating an AI management system (AIMS).",
+    fileUrl: "https://www.iso.org/standard/81230.html",
+    links: [
+      { slug: "limitations", relevance: 0.5 },
+      { slug: "ai-values", relevance: 0.3 },
+    ],
+  },
+  {
+    slug: "ext-iso-iec-23894",
+    title: "ISO/IEC 23894:2023 — AI Risk Management Guidance",
+    kind: "External Resource",
+    source: "ISO/IEC",
+    summary:
+      "International standard giving guidance on managing risks specific to organizations developing or using AI.",
+    fileUrl: "https://www.iso.org/standard/77304.html",
+    links: [{ slug: "limitations", relevance: 0.5 }],
+  },
+  {
+    slug: "ext-hiroshima-process",
+    title:
+      "Hiroshima Process International Guiding Principles for Advanced AI Systems",
+    kind: "External Resource",
+    source: "G7 (Hiroshima AI Process, 2023)",
+    summary:
+      "G7 guiding principles for organizations developing advanced AI, promoting safe, secure, and trustworthy systems.",
+    fileUrl:
+      "https://digital-strategy.ec.europa.eu/en/library/hiroshima-process-international-guiding-principles-advanced-ai-system",
+    links: [
+      { slug: "limitations", relevance: 0.5 },
+      { slug: "constitution", relevance: 0.4 },
+      { slug: "ai-values", relevance: 0.4 },
+    ],
+  },
+  {
+    slug: "ext-bletchley-declaration",
+    title: "The Bletchley Declaration (AI Safety Summit, 2023)",
+    kind: "External Resource",
+    source: "UK Government (GOV.UK)",
+    summary:
+      "Non-binding declaration by 28 countries plus the EU committing to international cooperation on frontier-AI safety.",
+    fileUrl:
+      "https://www.gov.uk/government/publications/ai-safety-summit-2023-the-bletchley-declaration/the-bletchley-declaration-by-countries-attending-the-ai-safety-summit-1-2-november-2023",
+    links: [
+      { slug: "limitations", relevance: 0.5 },
+      { slug: "constitution", relevance: 0.5 },
+      { slug: "limitations-misalignment", relevance: 0.4 },
+    ],
+  },
+  {
+    slug: "ext-seoul-declaration",
+    title: "Seoul Declaration for Safe, Innovative and Inclusive AI (2024)",
+    kind: "External Resource",
+    source: "AI Seoul Summit (GOV.UK)",
+    summary:
+      "Leaders' declaration from the May 2024 AI Seoul Summit reaffirming cooperation on AI safety, innovation, and inclusivity.",
+    fileUrl:
+      "https://www.gov.uk/government/publications/seoul-declaration-for-safe-innovative-and-inclusive-ai-ai-seoul-summit-2024/seoul-declaration-for-safe-innovative-and-inclusive-ai-by-participants-attending-the-leaders-session-ai-seoul-summit-21-may-2024",
+    links: [
+      { slug: "limitations", relevance: 0.5 },
+      { slug: "constitution", relevance: 0.5 },
+    ],
+  },
+  {
+    slug: "ext-ep-robotics-resolution",
+    title:
+      "European Parliament Resolution on Civil Law Rules on Robotics (2017)",
+    kind: "External Resource",
+    source: "European Parliament (2015/2103(INL))",
+    summary:
+      "Resolution recommending EU civil-law rules on robotics, including the controversial idea of 'electronic personhood' for autonomous robots.",
+    fileUrl: "https://www.europarl.europa.eu/doceo/document/TA-8-2017-0051_EN.html",
+    links: [
+      { slug: "ai-personhood-persons", relevance: 0.7 },
+      { slug: "ai-personhood", relevance: 0.5 },
+    ],
+  },
+  {
+    slug: "ext-wp29-profiling-guidelines",
+    title:
+      "WP29 Guidelines on Automated Decision-Making and Profiling (GDPR)",
+    kind: "External Resource",
+    source: "Article 29 Data Protection Working Party (2018)",
+    summary:
+      "GDPR guidance clarifying the rules on profiling and solely automated decision-making under Article 22.",
+    fileUrl: "https://ec.europa.eu/newsroom/article29/items/612053/en",
+    links: [
+      { slug: "human-rights-privacy", relevance: 0.6 },
+      { slug: "human-rights-transparency", relevance: 0.5 },
+    ],
+  },
+  {
+    slug: "ext-swiss-fadp",
+    title: "Swiss Federal Act on Data Protection (FADP, SR 235.1)",
+    kind: "External Resource",
+    source: "Swiss Confederation (Fedlex)",
+    summary:
+      "Switzerland's revised data-protection statute (in force 2023), aligning Swiss law more closely with the GDPR.",
+    fileUrl: "https://www.fedlex.admin.ch/eli/cc/2022/491/en",
+    links: [{ slug: "human-rights-privacy", relevance: 0.6 }],
+  },
 ];
