@@ -23,6 +23,7 @@ export const SEED_DOCUMENTS: SeedDocument[] = [
     summary:
       "AI Constitution Subcommittee on AI Values. A virtual panel examined three working theses — argued point and counterpoint — and sought a “zone of agreement” for each. Prepared under the Chatham House Rule; all views de-identified.",
     links: [
+      { slug: "constitution", relevance: 0.6 },
       { slug: "ai-values", relevance: 0.7 },
       { slug: "ai-values-csam", relevance: 0.9 },
       { slug: "ai-values-cbrn", relevance: 0.9 },
@@ -30,7 +31,10 @@ export const SEED_DOCUMENTS: SeedDocument[] = [
       { slug: "ai-values-obey-the-law", relevance: 0.6 },
       { slug: "ai-values-helpful-to-users", relevance: 0.8 },
       { slug: "ai-values-helpful-to-humanity", relevance: 0.8 },
+      { slug: "human-rights-emotional-safety", relevance: 0.4 },
       { slug: "limitations", relevance: 0.6 },
+      { slug: "limitations-non-proliferation", relevance: 0.5 },
+      { slug: "limitations-termination", relevance: 0.85 },
       { slug: "limitations-autonomous-warfare", relevance: 0.9 },
       { slug: "limitations-law-of-war", relevance: 0.85 },
       { slug: "limitations-human-responsibility", relevance: 0.8 },
@@ -120,6 +124,7 @@ These results are building blocks toward consensus and feed into the subcommitte
     links: [
       { slug: "constitution", relevance: 0.7 },
       { slug: "limitations-misalignment", relevance: 0.7 },
+      { slug: "ai-values", relevance: 0.4 },
       { slug: "ai-values-helpful-to-humanity", relevance: 0.5 },
     ],
   },
@@ -135,7 +140,9 @@ These results are building blocks toward consensus and feed into the subcommitte
     links: [
       { slug: "constitution", relevance: 0.85 },
       { slug: "limitations-misalignment", relevance: 0.9 },
+      { slug: "ai-values", relevance: 0.5 },
       { slug: "ai-values-helpful-to-humanity", relevance: 0.6 },
+      { slug: "human-rights", relevance: 0.4 },
       { slug: "human-rights-fair-treatment", relevance: 0.6 },
     ],
   },
@@ -151,6 +158,7 @@ These results are building blocks toward consensus and feed into the subcommitte
       { slug: "constitution", relevance: 0.7 },
       { slug: "limitations-misalignment", relevance: 0.7 },
       { slug: "limitations-human-responsibility", relevance: 0.6 },
+      { slug: "ai-values-helpful-to-humanity", relevance: 0.4 },
     ],
   },
   {
@@ -162,6 +170,7 @@ These results are building blocks toward consensus and feed into the subcommitte
       "Recurring multi-country surveys tracking public attitudes toward AI across 70+ countries. Directly addresses the 'global representation / AI privilege' concern raised in the AI Values panel by surfacing diverse, non-US/EU perspectives on how AI should behave.",
     fileUrl: "https://www.cip.org/globaldialogues",
     links: [
+      { slug: "constitution", relevance: 0.5 },
       { slug: "ai-values-helpful-to-humanity", relevance: 0.6 },
       { slug: "human-rights-access-ai", relevance: 0.6 },
       { slug: "human-rights-fair-treatment", relevance: 0.6 },
@@ -179,6 +188,7 @@ These results are building blocks toward consensus and feed into the subcommitte
     fileUrl: "https://www.cip.org/research/ai-roadmap",
     links: [
       { slug: "constitution", relevance: 0.7 },
+      { slug: "limitations", relevance: 0.4 },
       { slug: "limitations-human-responsibility", relevance: 0.6 },
     ],
   },
