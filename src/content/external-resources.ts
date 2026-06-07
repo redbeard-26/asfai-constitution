@@ -781,4 +781,40 @@ export const EXTERNAL_RESOURCES: SeedDocument[] = [
       { slug: "limitations-human-responsibility", relevance: 0.4, stance: "SUPPORTS" },
     ],
   },
+
+  // —— Comprehensiveness: supports/challenges references ——
+  {
+    slug: "ext-fairness-tradeoffs",
+    title: "Inherent Trade-Offs in the Fair Determination of Risk Scores",
+    kind: "External Resource",
+    source: "Kleinberg, Mullainathan & Raghavan (2016)",
+    summary:
+      "Proves that common statistical fairness criteria cannot all be satisfied simultaneously except in trivial cases — complicating any simple notion of algorithmic 'fair treatment.'",
+    fileUrl: "https://arxiv.org/abs/1609.05807",
+    links: [{ slug: "human-rights-fair-treatment", relevance: 0.5, stance: "OPPOSES" }],
+  },
+  {
+    slug: "ext-chalmers-llm-conscious",
+    title: "Could a Large Language Model Be Conscious?",
+    kind: "External Resource",
+    source: "David J. Chalmers (2023)",
+    summary:
+      "Weighs the case for and against consciousness in large language models; concludes current models are likely not conscious, but their successors might be.",
+    fileUrl: "https://arxiv.org/abs/2303.07103",
+    links: [{ slug: "ai-personhood-sentience", relevance: 0.6, stance: "SUPPORTS" }],
+  },
+  {
+    slug: "ext-ai-welfare",
+    title: "Taking AI Welfare Seriously",
+    kind: "External Resource",
+    source: "Long, Sebo, Butlin et al. (2024)",
+    summary:
+      "Argues there is a realistic near-term possibility of conscious or robustly agentic AI, and that developers should begin taking AI moral patienthood seriously.",
+    fileUrl: "https://arxiv.org/abs/2411.00986",
+    links: [
+      { slug: "ai-personhood-no-harm", relevance: 0.6, stance: "SUPPORTS" },
+      { slug: "ai-personhood-sentience", relevance: 0.4, stance: "SUPPORTS" },
+      { slug: "ai-personhood-forensic-preservation", relevance: 0.5, stance: "SUPPORTS" },
+    ],
+  },
 ];

@@ -3,6 +3,7 @@ import { prisma } from "../src/lib/prisma";
 import { CONSTITUTION, ARTICLES } from "../src/content/seed-content";
 import { SEED_DOCUMENTS } from "../src/content/documents";
 import { EXTERNAL_RESOURCES } from "../src/content/external-resources";
+import { THESIS_LINKS } from "../src/content/thesis-links";
 import { adminEmails } from "../src/lib/env";
 
 const seededSlugs = new Set<string>();
@@ -158,6 +159,35 @@ async function main() {
     }
     console.log(`~ document: ${doc.slug} (${linked} links)`);
   }
+
+  // Apply explicit thesis links (supports/challenges) from existing resources.
+  let appliedLinks = 0;
+  for (const link of THESIS_LINKS) {
+    const doc = await prisma.document.findUnique({
+      where: { slug: link.resource },
+      select: { id: true },
+    });
+    const page = await prisma.page.findUnique({
+      where: { slug: link.page },
+      select: { id: true },
+    });
+    if (!doc || !page) {
+      console.log(`  ! thesis-link target missing: ${link.resource} -> ${link.page}`);
+      continue;
+    }
+    await prisma.documentLink.upsert({
+      where: { documentId_pageId: { documentId: doc.id, pageId: page.id } },
+      update: { stance: link.stance, relevance: link.relevance },
+      create: {
+        documentId: doc.id,
+        pageId: page.id,
+        stance: link.stance,
+        relevance: link.relevance,
+      },
+    });
+    appliedLinks++;
+  }
+  console.log(`applied ${appliedLinks} thesis links`);
 
   for (const email of adminEmails) {
     await prisma.user.upsert({
