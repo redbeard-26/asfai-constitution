@@ -1,7 +1,7 @@
 import { getAllUsers } from "@/lib/data";
 import { getSessionUser } from "@/lib/session";
 import { isAdmin, ROLES } from "@/lib/constants";
-import { setUserRole } from "@/lib/actions";
+import { setUserRole, archiveUser, unarchiveUser } from "@/lib/actions";
 import { formatDate, displayName } from "@/lib/format";
 
 export default async function AdminUsersPage() {
@@ -50,13 +50,19 @@ export default async function AdminUsersPage() {
             >
               Role
             </th>
+            <th
+              className="py-2"
+              style={{ fontVariant: "small-caps", letterSpacing: "0.05em" }}
+            >
+              Status
+            </th>
           </tr>
         </thead>
         <tbody>
           {users.map((u) => {
             const isSelf = u.id === me!.id;
             return (
-              <tr key={u.id} className="border-b border-rule">
+              <tr key={u.id} className={`border-b border-rule ${u.archivedAt ? "opacity-50" : ""}`}>
                 <td className="py-3">
                   <div className="font-bold text-ink">{displayName(u)}</div>
                   <div className="text-xs text-muted">{u.email}</div>
@@ -83,6 +89,31 @@ export default async function AdminUsersPage() {
                       </select>
                       <button className="rounded border border-rule px-2 py-1 text-xs hover:bg-panel">
                         Save
+                      </button>
+                    </form>
+                  )}
+                </td>
+                <td className="py-3">
+                  {isSelf ? (
+                    <span className="text-xs text-muted">—</span>
+                  ) : u.archivedAt ? (
+                    <form action={unarchiveUser} className="flex items-center gap-2">
+                      <input type="hidden" name="userId" value={u.id} />
+                      <span
+                        className="border border-con bg-con-bg px-1.5 py-0.5 text-xs text-con-head"
+                        style={{ fontVariant: "small-caps", letterSpacing: "0.05em" }}
+                      >
+                        Archived
+                      </span>
+                      <button className="text-xs text-gold-deep hover:underline">
+                        Unarchive
+                      </button>
+                    </form>
+                  ) : (
+                    <form action={archiveUser}>
+                      <input type="hidden" name="userId" value={u.id} />
+                      <button className="text-xs text-con-head hover:underline">
+                        Archive
                       </button>
                     </form>
                   )}

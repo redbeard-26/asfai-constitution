@@ -92,6 +92,11 @@ Local dev endpoint: `http://localhost:3000/api/mcp`.
 - **Roles:** `VIEWER` (default) → `MODERATOR` (review edits, moderate comments,
   revert, manage documents, promote/demote candidates) → `ADMIN` (manage roles).
   Emails in `ADMIN_EMAILS` are auto-promoted to admin on sign-in.
+- **Archiving users:** every personal action (vote, comment, proposal) is tied to
+  a user (required author + cascade). An admin can **archive** a user from
+  `/admin/users`, which excludes their votes from scores, hides their comments,
+  and drops their pending proposals from the queue (reversible via Unarchive).
+  Published revisions and curated resources are communal and kept.
 
 ## Local development
 

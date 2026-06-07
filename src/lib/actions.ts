@@ -457,6 +457,30 @@ export async function setUserRole(formData: FormData) {
   revalidatePath("/admin/users");
 }
 
+/** Archive a user — hides their votes, comments, and pending proposals (admin). */
+export async function archiveUser(formData: FormData) {
+  const admin = await requireAdmin();
+  const userId = String(formData.get("userId"));
+  if (userId === admin.id) throw new Error("You cannot archive yourself.");
+
+  await prisma.user.update({ where: { id: userId }, data: { archivedAt: new Date() } });
+  await logAudit(admin.id, "ARCHIVE_USER", "User", userId);
+
+  revalidatePath("/admin/users");
+  revalidatePath("/moderation");
+}
+
+export async function unarchiveUser(formData: FormData) {
+  const admin = await requireAdmin();
+  const userId = String(formData.get("userId"));
+
+  await prisma.user.update({ where: { id: userId }, data: { archivedAt: null } });
+  await logAudit(admin.id, "UNARCHIVE_USER", "User", userId);
+
+  revalidatePath("/admin/users");
+  revalidatePath("/moderation");
+}
+
 // ---------------------------------------------------------------------------
 // Voting & candidate theses
 // ---------------------------------------------------------------------------

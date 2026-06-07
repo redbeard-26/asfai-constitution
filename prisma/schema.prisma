@@ -25,6 +25,7 @@ model User {
   emailVerified DateTime?
   image         String?
   role          String    @default("VIEWER") // VIEWER | MODERATOR | ADMIN
+  archivedAt    DateTime? // soft archive — hides the user's votes/comments/pending proposals
   createdAt     DateTime  @default(now())
 
   accounts  Account[]
@@ -169,7 +170,7 @@ model EditProposal {
   baseRevisionId  String?
   proposedContent String
   summary         String?
-  authorId        String?
+  authorId        String
   status          String    @default("PENDING") // PENDING | APPROVED | REJECTED
   reviewerId      String?
   reviewNote      String?
@@ -178,7 +179,7 @@ model EditProposal {
 
   page         Page      @relation(fields: [pageId], references: [id], onDelete: Cascade)
   baseRevision Revision? @relation("ProposalBase", fields: [baseRevisionId], references: [id])
-  author       User?     @relation("ProposalAuthor", fields: [authorId], references: [id])
+  author       User      @relation("ProposalAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   reviewer     User?     @relation("ProposalReviewer", fields: [reviewerId], references: [id])
 
   @@index([status])
@@ -188,14 +189,14 @@ model EditProposal {
 model Comment {
   id        String   @id @default(cuid())
   pageId    String
-  authorId  String?
+  authorId  String
   parentId  String?
   body      String
   status    String   @default("VISIBLE") // VISIBLE | HIDDEN
   createdAt DateTime @default(now())
 
   page    Page      @relation(fields: [pageId], references: [id], onDelete: Cascade)
-  author  User?     @relation(fields: [authorId], references: [id])
+  author  User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent  Comment?  @relation("CommentThread", fields: [parentId], references: [id])
   replies Comment[] @relation("CommentThread")
 

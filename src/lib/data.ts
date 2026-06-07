@@ -64,7 +64,7 @@ export async function getNavTree() {
 /** Visible + hidden comments for a page, oldest first, with author info. */
 export async function getComments(pageId: string) {
   return prisma.comment.findMany({
-    where: { pageId },
+    where: { pageId, author: { archivedAt: null } },
     orderBy: { createdAt: "asc" },
     include: { author: { select: { name: true, email: true, image: true } } },
   });
@@ -72,7 +72,9 @@ export async function getComments(pageId: string) {
 
 /** Count of pending edit proposals — used for the moderation badge. */
 export async function getPendingProposalCount() {
-  return prisma.editProposal.count({ where: { status: "PENDING" } });
+  return prisma.editProposal.count({
+    where: { status: "PENDING", author: { archivedAt: null } },
+  });
 }
 
 /** Revision history for a page, newest first. */
@@ -93,7 +95,7 @@ export async function getRevisions(slug: string) {
 /** Pending edit proposals with the data needed to review them. */
 export async function getPendingProposals() {
   return prisma.editProposal.findMany({
-    where: { status: "PENDING" },
+    where: { status: "PENDING", author: { archivedAt: null } },
     orderBy: { createdAt: "asc" },
     include: {
       author: { select: { name: true, email: true } },
@@ -186,7 +188,10 @@ export async function getAllPagesForLink() {
 
 /** Net vote score for a page, plus this user's current vote (-1/0/+1). */
 export async function getVoteData(pageId: string, userId?: string | null) {
-  const agg = await prisma.vote.aggregate({ where: { pageId }, _sum: { value: true } });
+  const agg = await prisma.vote.aggregate({
+    where: { pageId, user: { archivedAt: null } },
+    _sum: { value: true },
+  });
   const score = agg._sum.value ?? 0;
   let userVote = 0;
   if (userId) {
@@ -208,7 +213,7 @@ export async function getCandidates(userId?: string | null) {
   const ids = pages.map((p) => p.id);
   const grouped = await prisma.vote.groupBy({
     by: ["pageId"],
-    where: { pageId: { in: ids } },
+    where: { pageId: { in: ids }, user: { archivedAt: null } },
     _sum: { value: true },
   });
   const scoreMap = new Map(grouped.map((g) => [g.pageId, g._sum.value ?? 0]));
@@ -245,6 +250,13 @@ export async function getArticleOptions() {
 export async function getAllUsers() {
   return prisma.user.findMany({
     orderBy: [{ role: "asc" }, { createdAt: "asc" }],
-    select: { id: true, name: true, email: true, role: true, createdAt: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      createdAt: true,
+      archivedAt: true,
+    },
   });
 }
