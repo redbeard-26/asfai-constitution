@@ -232,7 +232,7 @@ export const EXTERNAL_RESOURCES: SeedDocument[] = [
     fileUrl: "https://www.un.org/en/about-us/universal-declaration-of-human-rights",
     links: [
       { slug: "human-rights", relevance: 0.9 },
-      { slug: "human-rights-dignity", relevance: 0.5 },
+      { slug: "human-rights-fair-treatment", relevance: 0.5 },
     ],
   },
   {

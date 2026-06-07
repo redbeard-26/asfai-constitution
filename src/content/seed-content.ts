@@ -81,13 +81,8 @@ export const ARTICLES: SeedArticle[] = [
       },
       {
         slug: "human-rights-fair-treatment",
-        title: "Right to be treated fairly",
-        text: "AI should not violate the human right to be treated fairly and equal in dignity without bias or prejudice based on race, colour, sex, language, religion, political or other opinion, national or social origin, property, birth or other status.",
-      },
-      {
-        slug: "human-rights-dignity",
-        title: "Right of dignity",
-        text: "AI should not violate the human right to dignity, including the right to be free from dishonor, reputational harm, degrading treatment, emotional manipulation, and interactions that are inappropriate for their level of psychological development.",
+        title: "Right to dignity and fair treatment",
+        text: "AI should not violate the human right to dignity and fair treatment — including the right to be free from dishonor, reputational harm, degrading treatment, emotional manipulation, and interactions inappropriate for one's level of psychological development; and the right to be treated fairly and as equal in dignity, without bias or prejudice based on race, colour, sex, language, religion, political or other opinion, national or social origin, property, birth, or other status.",
       },
       {
         slug: "human-rights-privacy",
@@ -111,13 +106,8 @@ export const ARTICLES: SeedArticle[] = [
       },
       {
         slug: "human-rights-association",
-        title: "Right of association",
-        text: "AI should not violate the human right to associate with each other for peaceful purposes.",
-      },
-      {
-        slug: "human-rights-family",
-        title: "Right of family",
-        text: "AI should not violate the human right to enter intimate relationships, marry, form families, and seek to have children.",
+        title: "Right of association and family",
+        text: "AI should not violate the human right to associate with one another for peaceful purposes, and to enter intimate relationships, marry, form families, and seek to have children.",
       },
       {
         slug: "human-rights-work",
