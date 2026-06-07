@@ -97,7 +97,7 @@ const handler = createMcpHandler(
       {
         title: "Get a thesis",
         description:
-          "Returns a thesis's text, breadcrumb, vote score, and linked resources — each with stance (SUPPORTS/NEUTRAL/OPPOSES) and relevance (0-1).",
+          "Returns a thesis's text, the summary arguments (caseFor / caseAgainst, where caseAgainst leads with the central tradeoff), breadcrumb, vote score, and linked resources — each with stance (SUPPORTS/NEUTRAL/OPPOSES) and relevance (0-1).",
         inputSchema: { slug: z.string().describe("Thesis or candidate slug") },
       },
       async ({ slug }) => {
@@ -112,6 +112,8 @@ const handler = createMcpHandler(
           title: page.title,
           type: page.type,
           text: page.currentRevision?.content ?? null,
+          caseFor: page.caseFor,
+          caseAgainst: page.caseAgainst,
           voteScore: vote.score,
           parent: page.parent ? { slug: page.parent.slug, title: page.parent.title } : null,
           relatedResources: resources.map((r) => ({
