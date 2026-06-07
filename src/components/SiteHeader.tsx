@@ -18,7 +18,7 @@ export async function SiteHeader() {
             className="text-lg font-bold text-ink"
             style={{ fontVariant: "small-caps", letterSpacing: "0.06em" }}
           >
-            American Society for AI
+            AI Constitution
           </span>
         </Link>
 

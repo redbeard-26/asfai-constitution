@@ -25,12 +25,16 @@ export function PageView({
   proposed,
   vote,
   articleOptions = [],
+  caseFor,
+  caseAgainst,
 }: {
   pageId: string;
   slug: string;
   type: string;
   title: string;
   content: string | null;
+  caseFor?: string | null;
+  caseAgainst?: string | null;
   updatedAt?: Date | null;
   authorName?: string | null;
   breadcrumb: Crumb[];
@@ -208,6 +212,26 @@ export function PageView({
                 </li>
               ))}
             </ol>
+          )}
+        </section>
+      )}
+
+      {(caseFor || caseAgainst) && (
+        <section className="mt-10">
+          <div className="section-rule pt-3">
+            <h2 className="kicker text-base">Summary</h2>
+          </div>
+          {caseFor && (
+            <div className="mt-4 border-l-4 border-pro bg-pro-bg px-4 py-3">
+              <p className="kicker text-xs">The case for including this</p>
+              <p className="mt-1 text-sm leading-relaxed text-ink">{caseFor}</p>
+            </div>
+          )}
+          {caseAgainst && (
+            <div className="mt-3 border-l-4 border-con bg-con-bg px-4 py-3">
+              <p className="kicker text-xs">The case for changing or excluding this</p>
+              <p className="mt-1 text-sm leading-relaxed text-ink">{caseAgainst}</p>
+            </div>
           )}
         </section>
       )}

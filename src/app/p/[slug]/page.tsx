@@ -65,6 +65,8 @@ export default async function PageRoute({
       proposed={sp?.proposed === "1"}
       vote={vote}
       articleOptions={articleOptions}
+      caseFor={page.caseFor}
+      caseAgainst={page.caseAgainst}
     />
   );
 }

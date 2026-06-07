@@ -4,6 +4,7 @@ import { CONSTITUTION, ARTICLES } from "../src/content/seed-content";
 import { SEED_DOCUMENTS } from "../src/content/documents";
 import { EXTERNAL_RESOURCES } from "../src/content/external-resources";
 import { THESIS_LINKS } from "../src/content/thesis-links";
+import { THESIS_SUMMARIES } from "../src/content/thesis-summaries";
 import { adminEmails } from "../src/lib/env";
 
 const seededSlugs = new Set<string>();
@@ -188,6 +189,17 @@ async function main() {
     appliedLinks++;
   }
   console.log(`applied ${appliedLinks} thesis links`);
+
+  // Apply per-thesis summaries (case for / case against).
+  let appliedSummaries = 0;
+  for (const [slug, s] of Object.entries(THESIS_SUMMARIES)) {
+    const updated = await prisma.page.updateMany({
+      where: { slug },
+      data: { caseFor: s.caseFor, caseAgainst: s.caseAgainst },
+    });
+    appliedSummaries += updated.count;
+  }
+  console.log(`applied ${appliedSummaries} thesis summaries`);
 
   for (const email of adminEmails) {
     await prisma.user.upsert({
