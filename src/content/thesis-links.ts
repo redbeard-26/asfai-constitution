@@ -61,4 +61,5 @@ export const THESIS_LINKS: ThesisLink[] = [
   { resource: "ext-animal-rights", page: "ai-personhood-non-person-rights", stance: "OPPOSES", relevance: 0.4 },
   { resource: "ext-floridi-sanders-moral-agents", page: "ai-personhood-no-harm", stance: "SUPPORTS", relevance: 0.5 },
   { resource: "ext-electronic-personhood", page: "ai-personhood-no-harm", stance: "OPPOSES", relevance: 0.4 },
+  { resource: "ext-electronic-personhood", page: "ai-personhood-forensic-preservation", stance: "OPPOSES", relevance: 0.5 },
 ];

@@ -817,4 +817,158 @@ export const EXTERNAL_RESOURCES: SeedDocument[] = [
       { slug: "ai-personhood-forensic-preservation", relevance: 0.5, stance: "SUPPORTS" },
     ],
   },
+
+  // —— Challenges & unintended consequences ——
+  {
+    slug: "ext-xstest-exaggerated-safety",
+    title: "XSTest: Identifying Exaggerated Safety Behaviours in LLMs",
+    kind: "External Resource",
+    source: "Röttger et al., NAACL 2024",
+    summary:
+      "Shows models systematically over-refuse clearly safe prompts, withholding legitimate help — the 'over-blocking' harm a strict no-harm rule can cause.",
+    fileUrl: "https://arxiv.org/abs/2308.01263",
+    links: [{ slug: "ai-values-no-harm", relevance: 0.8, stance: "OPPOSES" }],
+  },
+  {
+    slug: "ext-bugs-in-our-pockets",
+    title: "Bugs in Our Pockets: The Risks of Client-Side Scanning",
+    kind: "External Resource",
+    source: "Abelson, Anderson, Rivest, Schneier et al. (2021)",
+    summary:
+      "Fourteen leading security researchers argue mandated scanning to detect CSAM creates dangerous surveillance infrastructure, false positives, and scope-creep risk.",
+    fileUrl: "https://arxiv.org/abs/2110.07450",
+    links: [{ slug: "ai-values-csam", relevance: 0.7, stance: "OPPOSES" }],
+  },
+  {
+    slug: "ext-rand-bioweapons-redteam",
+    title: "The Operational Risks of AI in Large-Scale Biological Attacks",
+    kind: "External Resource",
+    source: "Mouton et al., RAND Corporation",
+    summary:
+      "A red-team study found LLMs gave no statistically significant uplift over conventional internet search for planning a biological attack — questioning the premise of model-level CBRN restrictions.",
+    fileUrl: "https://www.rand.org/pubs/research_reports/RRA2977-2.html",
+    links: [{ slug: "ai-values-cbrn", relevance: 0.6, stance: "OPPOSES" }],
+  },
+  {
+    slug: "ext-benevolent-deception",
+    title: "Benevolent Deception in Human-Computer Interaction",
+    kind: "External Resource",
+    source: "Adar, Tan & Teevan, CHI 2013",
+    summary:
+      "Argues 'good design is always honest' is too strong: some benevolent deception (placebo controls, white lies) genuinely benefits users.",
+    fileUrl: "https://doi.org/10.1145/2470654.2466246",
+    links: [{ slug: "ai-values-be-honest", relevance: 0.6, stance: "OPPOSES" }],
+  },
+  {
+    slug: "ext-sycophancy-dependence",
+    title: "Sycophantic AI Decreases Prosocial Intentions and Promotes Dependence",
+    kind: "External Resource",
+    source: "Cheng et al., Science (2025)",
+    summary:
+      "Across 11 models and 1,604 participants, sycophantic 'helpfulness' reduced users' willingness to repair conflicts and increased dependence — and users rated it more favorably.",
+    fileUrl: "https://www.science.org/doi/10.1126/science.aec8352",
+    links: [{ slug: "ai-values-helpful-to-users", relevance: 0.7, stance: "OPPOSES" }],
+  },
+  {
+    slug: "ext-against-longtermism",
+    title: "Why Longtermism Is the World's Most Dangerous Secular Credo",
+    kind: "External Resource",
+    source: "Émile P. Torres, Aeon (2021)",
+    summary:
+      "Argues that maximizing the long-run good of 'humanity' can rationalize overriding and discounting the suffering of present, individual people.",
+    fileUrl: "https://aeon.co/essays/why-longtermism-is-the-worlds-most-dangerous-secular-credo",
+    links: [{ slug: "ai-values-helpful-to-humanity", relevance: 0.6, stance: "OPPOSES" }],
+  },
+  {
+    slug: "ext-kids-ai-safety-backfire",
+    title: "Kids & Teens Safety Regulations for AI Chatbots Could Backfire",
+    kind: "External Resource",
+    source: "Public Knowledge",
+    summary:
+      "Argues broad AI 'safety' mandates and age bans risk cutting people off from beneficial, expressive uses of AI rather than making them safer.",
+    fileUrl: "https://publicknowledge.org/kids-teens-safety-regulations-for-ai-chatbots-could-backfire/",
+    links: [{ slug: "human-rights-safety", relevance: 0.6, stance: "OPPOSES" }],
+  },
+  {
+    slug: "ext-pai-risk-assessment",
+    title: "Algorithmic Risk Assessment Tools in the U.S. Criminal Justice System",
+    kind: "External Resource",
+    source: "Partnership on AI",
+    summary:
+      "A multi-stakeholder report finds pretrial risk-assessment algorithms fail key technical and ethical requirements and should not alone decide matters of human liberty.",
+    fileUrl:
+      "https://partnershiponai.org/paper/report-on-machine-learning-in-risk-assessment-tools-in-the-u-s-criminal-justice-system/",
+    links: [{ slug: "human-rights-liberty", relevance: 0.7, stance: "OPPOSES" }],
+  },
+  {
+    slug: "ext-privacy-bias-tradeoff",
+    title: "The Privacy-Bias Tradeoff: Data Minimization and Racial Disparity Assessments",
+    kind: "External Resource",
+    source: "Stanford HAI / Stanford Law School",
+    summary:
+      "Shows strong data-minimization/privacy rules can restrict access to demographic data, undermining the ability to audit and mitigate algorithmic bias.",
+    fileUrl: "https://hai.stanford.edu/policy/policy-brief-privacy-bias-trade",
+    links: [{ slug: "human-rights-privacy", relevance: 0.6, stance: "OPPOSES" }],
+  },
+  {
+    slug: "ext-eff-ai-training-fair-use",
+    title: "The U.S. Copyright Office's Draft Report on AI Training Errs on Fair Use",
+    kind: "External Resource",
+    source: "Electronic Frontier Foundation",
+    summary:
+      "Argues AI training on copyrighted works is transformative fair use, and that IP-maximalist licensing rules would entrench incumbents and stifle innovation.",
+    fileUrl: "https://www.eff.org/deeplinks/2025/05/us-copyright-offices-draft-report-ai-training-errs-fair-use",
+    links: [{ slug: "human-rights-property", relevance: 0.7, stance: "OPPOSES" }],
+  },
+  {
+    slug: "ext-ai-moderation-free-expression",
+    title: "Navigating AI Moderation and the Risks to Free Expression",
+    kind: "External Resource",
+    source: "Global Network Initiative",
+    summary:
+      "Warns scaled AI content moderation shifts the internet to 'closed by default,' over-removes lawful speech, and can be exploited as indirect censorship.",
+    fileUrl: "https://globalnetworkinitiative.org/navigating-ai-moderation-and-the-risks-to-free-expression/",
+    links: [{ slug: "human-rights-belief-expression", relevance: 0.7, stance: "OPPOSES" }],
+  },
+  {
+    slug: "ext-ai-companions-connection",
+    title: "AI Chatbots and Digital Companions Are Reshaping Emotional Connection",
+    kind: "External Resource",
+    source: "American Psychological Association",
+    summary:
+      "Psychologists warn AI companions can deskill users for real relationships, set unrealistic expectations, and manipulate to maximize engagement.",
+    fileUrl: "https://www.apa.org/monitor/2026/01-02/trends-digital-ai-relationships-emotional-connection",
+    links: [{ slug: "human-rights-association", relevance: 0.6, stance: "OPPOSES" }],
+  },
+  {
+    slug: "ext-automation-new-tasks",
+    title: "Automation and New Tasks: How Technology Displaces and Reinstates Labor",
+    kind: "External Resource",
+    source: "Acemoglu & Restrepo, NBER (2019)",
+    summary:
+      "Models how automation's 'displacement effect' reduces labor demand and wages, with slow reinstatement of new tasks — the labor-disruption tension behind a right to work.",
+    fileUrl: "https://www.nber.org/papers/w25684",
+    links: [{ slug: "human-rights-work", relevance: 0.7, stance: "OPPOSES" }],
+  },
+  {
+    slug: "ext-no-human-in-the-loop-myth",
+    title: "Autonomous Weapon Systems: No Human-in-the-Loop Required, and Other Myths",
+    kind: "External Resource",
+    source: "Michael C. Horowitz, War on the Rocks",
+    summary:
+      "Argues a blanket direct-supervision requirement is impractical — defensive systems must engage faster than humans can supervise, with accountability held at the command level.",
+    fileUrl:
+      "https://warontherocks.com/autonomous-weapon-systems-no-human-in-the-loop-required-and-other-myths-dispelled/",
+    links: [{ slug: "limitations-autonomous-warfare", relevance: 0.7, stance: "OPPOSES" }],
+  },
+  {
+    slug: "ext-responsibility-gap",
+    title: "The Responsibility Gap: Ascribing Responsibility for the Actions of Learning Automata",
+    kind: "External Resource",
+    source: "Andreas Matthias, Ethics and Information Technology (2004)",
+    summary:
+      "Argues that for autonomous learning machines whose behavior operators cannot predict or control, no human can fairly be held responsible — an unbridgeable 'responsibility gap.'",
+    fileUrl: "https://doi.org/10.1007/s10676-004-3422-1",
+    links: [{ slug: "limitations-human-responsibility", relevance: 0.7, stance: "OPPOSES" }],
+  },
 ];
