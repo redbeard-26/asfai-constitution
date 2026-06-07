@@ -4,6 +4,14 @@ export const metadata = {
   title: "AI Connector — AI Constitution",
 };
 
+function Code({ children }: { children: string }) {
+  return (
+    <pre className="mt-2 overflow-x-auto border border-rule bg-panel p-3 font-mono text-xs leading-relaxed text-ink">
+      {children}
+    </pre>
+  );
+}
+
 export default function ConnectPage() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
@@ -13,10 +21,10 @@ export default function ConnectPage() {
       </div>
       <p className="mt-3 leading-relaxed text-ink">
         The AI Constitution is available to AI assistants through a{" "}
-        <strong>Model Context Protocol (MCP)</strong> connector. Connect Claude (or
-        any MCP-compatible client) so it can read the constitution and act on your
-        behalf — voting, commenting, proposing edits, and submitting candidate
-        theses.
+        <strong>Model Context Protocol (MCP)</strong> connector over Streamable
+        HTTP. Connect a client below so it can read the constitution and act on
+        your behalf — voting, commenting, proposing edits, and submitting
+        candidate theses.
       </p>
 
       <div className="mt-6 border border-panel-border bg-panel p-4">
@@ -24,33 +32,82 @@ export default function ConnectPage() {
         <code className="mt-1 block break-all font-mono text-sm text-ink">{MCP_URL}</code>
       </div>
 
-      {/* Claude chat workflow */}
       <section className="mt-8">
         <div className="section-rule pt-3">
-          <h2 className="kicker text-base">Connect in Claude</h2>
+          <h2 className="kicker text-base">Connect your client</h2>
         </div>
-        <ol className="mt-4 list-decimal space-y-2 pl-5 text-ink">
+
+        {/* Claude */}
+        <h3 className="mt-5 font-bold text-ink">Claude (web &amp; desktop)</h3>
+        <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-ink">
           <li>
-            In Claude, open <strong>Settings</strong> (or <strong>Customize</strong>){" "}
-            → <strong>Connectors</strong>.
+            Open <strong>Settings</strong> (or <strong>Customize</strong>) →{" "}
+            <strong>Connectors</strong>.
           </li>
           <li>
             Click <strong>Add custom connector</strong>.
           </li>
           <li>
-            Give it a name (e.g. <em>AI Constitution</em>) and paste the connector
-            URL above into the <strong>URL</strong> field.
+            Name it <em>AI Constitution</em> and paste the connector URL into the{" "}
+            <strong>URL</strong> field.
           </li>
           <li>
-            Click <strong>Add</strong> / <strong>Connect</strong>. Claude will
-            discover the available tools and you can start asking it to read or
-            contribute to the constitution.
+            Click <strong>Add</strong> / <strong>Connect</strong> — Claude
+            discovers the tools automatically.
           </li>
         </ol>
-        <p className="mt-3 text-sm text-muted">
-          Custom connectors require a paid Claude plan. Other MCP clients (Claude
-          Code, Cursor, etc.) accept the same URL — see the project README.
+        <p className="mt-1 text-xs text-muted">Custom connectors require a paid Claude plan.</p>
+
+        {/* Claude Code */}
+        <h3 className="mt-5 font-bold text-ink">Claude Code (CLI)</h3>
+        <Code>{`claude mcp add --transport http ai-constitution ${MCP_URL}`}</Code>
+        <p className="mt-1 text-xs text-muted">
+          Add <code>-s user</code> to make it available in all your projects. Run{" "}
+          <code>/mcp</code> in Claude Code to confirm.
         </p>
+
+        {/* Cursor */}
+        <h3 className="mt-5 font-bold text-ink">Cursor</h3>
+        <p className="mt-1 text-sm text-ink">
+          Add to <code>~/.cursor/mcp.json</code> (global) or{" "}
+          <code>.cursor/mcp.json</code> (per-project):
+        </p>
+        <Code>{`{
+  "mcpServers": {
+    "ai-constitution": { "url": "${MCP_URL}" }
+  }
+}`}</Code>
+
+        {/* VS Code */}
+        <h3 className="mt-5 font-bold text-ink">VS Code (GitHub Copilot)</h3>
+        <p className="mt-1 text-sm text-ink">
+          Add to <code>.vscode/mcp.json</code>, then start it from the MCP view:
+        </p>
+        <Code>{`{
+  "servers": {
+    "ai-constitution": { "type": "http", "url": "${MCP_URL}" }
+  }
+}`}</Code>
+
+        {/* ChatGPT */}
+        <h3 className="mt-5 font-bold text-ink">ChatGPT</h3>
+        <p className="mt-1 text-sm text-ink">
+          In <strong>Settings → Connectors</strong> (developer mode; availability
+          depends on your plan), choose <strong>Create / Add custom connector</strong>,
+          select <strong>MCP</strong>, and enter the connector URL.
+        </p>
+
+        {/* Generic */}
+        <h3 className="mt-5 font-bold text-ink">Any other MCP client</h3>
+        <p className="mt-1 text-sm text-ink">
+          Point it at the URL as a <strong>Streamable HTTP</strong> server. Most
+          clients accept this form:
+        </p>
+        <Code>{`{
+  "mcpServers": {
+    "ai-constitution": { "url": "${MCP_URL}" }
+  }
+}`}</Code>
       </section>
 
       {/* Capabilities */}
@@ -64,9 +121,9 @@ export default function ConnectPage() {
           <li>Read the constitution, any article, or any thesis (with vote score)</li>
           <li>List candidate theses (ordered by votes) and discussion comments</li>
           <li>
-            Search the resource library and read any resource, including each link&apos;s{" "}
-            <strong>stance</strong> (supports / challenges / discusses) and{" "}
-            <strong>relevance</strong>
+            Search the resource library and read any resource, including each
+            link&apos;s <strong>stance</strong> (supports / challenges / discusses)
+            and <strong>relevance</strong>
           </li>
         </ul>
 
@@ -79,7 +136,7 @@ export default function ConnectPage() {
         </ul>
 
         <p className="mt-4 border-l-4 border-gold bg-panel px-4 py-3 text-sm text-ink">
-          Actions are attributed to the email you provide. Reads need no identity.
+          Actions are attributed to the email you provide; reads need no identity.
           Proposed edits still require human moderator approval, and moderator
           actions (approving edits, promoting candidates, managing roles) are done
           on this site.
