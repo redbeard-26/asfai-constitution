@@ -173,7 +173,7 @@ export async function getDocumentsForPage(pageId: string) {
     },
     orderBy: [{ relevance: "desc" }, { document: { eventDate: "desc" } }],
   });
-  return links.map((l) => ({ ...l.document, stance: l.stance }));
+  return links.map((l) => ({ ...l.document, stance: l.stance, relevance: l.relevance }));
 }
 
 /** All pages, for the document-linking selector (ordered Constitution→Article→Thesis). */

@@ -25,19 +25,32 @@ The project ships a **Model Context Protocol** server mounted in the same app at
 resources, and contribute through the **moderated** proposal queue. Source:
 [`src/app/api/[transport]/route.ts`](src/app/api/[transport]/route.ts).
 
-**Tools**
+**Read tools** (open, no identity needed)
 
 | Tool | Purpose |
 | --- | --- |
 | `get_constitution` | Preamble + the full article/thesis tree |
 | `get_article(slug)` | An article's text + its theses |
-| `get_thesis(slug)` | A thesis's text + linked resources (with stance) |
+| `get_thesis(slug)` | A thesis's text, vote score + linked resources (stance + relevance) |
+| `list_candidates` | Candidate theses, ordered by net vote score |
 | `search_resources(query)` | Full-text search of the resource library |
-| `list_resources_for_page(slug)` | Resources linked to a page, by relevance + stance |
-| `propose_edit(slug, proposedContent, summary?, author?)` | Submit an edit → enters moderation; **never auto-published** |
+| `get_resource(slug)` | A resource + the pages it informs (stance + relevance) |
+| `list_resources_for_page(slug)` | Resources linked to a page (stance + relevance) |
+| `list_comments(slug)` | Visible discussion comments on a page |
 
-Reads are public; `propose_edit` creates a `PENDING` proposal that a human
-moderator must approve.
+**User-action tools** (require an `email` to attribute the action)
+
+| Tool | Purpose |
+| --- | --- |
+| `vote(slug, direction, email)` | Up/down vote a thesis or candidate (re-vote to remove) |
+| `post_comment(slug, body, email, parentId?)` | Add a discussion comment |
+| `propose_edit(slug, proposedContent, summary?, email)` | Submit an edit → enters moderation; **never auto-published** |
+| `create_candidate(title, text, email)` | Submit a candidate thesis for voting |
+
+Reads are open. User actions are attributed to the supplied email (find-or-create
+by email). Edits still require human moderator approval, and **moderator actions
+(approve/reject, promote/demote, roles) are done on the website**, not over MCP.
+End-user connection instructions live at **`/connect`** (the "AI Connector" tab).
 
 **Connect** (clients supporting Streamable HTTP, e.g. Claude):
 

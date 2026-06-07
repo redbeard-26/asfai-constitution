@@ -32,6 +32,9 @@ export async function SiteHeader() {
           <Link href="/docs" className="text-muted hover:text-ink">
             Resources
           </Link>
+          <Link href="/connect" className="text-muted hover:text-ink">
+            AI Connector
+          </Link>
           {mod && (
             <Link href="/moderation" className="text-muted hover:text-ink">
               Moderation
