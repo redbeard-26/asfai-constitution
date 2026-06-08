@@ -75,6 +75,10 @@ providers.push(
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "database" },
+  // Auth runs behind Vercel's proxy on a single canonical host (see
+  // src/middleware.ts). trustHost lets Auth.js read the forwarded host so the
+  // OAuth callback URL resolves correctly instead of throwing UntrustedHost.
+  trustHost: true,
   providers,
   pages: { signIn: "/signin", verifyRequest: "/signin/verify" },
   callbacks: {
