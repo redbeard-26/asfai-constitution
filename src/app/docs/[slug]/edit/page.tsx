@@ -16,6 +16,7 @@ import {
   linkDocument,
   unlinkDocument,
   updateLink,
+  approveDocument,
 } from "@/lib/actions";
 import { DocumentForm } from "@/components/DocumentForm";
 
@@ -52,6 +53,22 @@ export default async function EditDocumentPage({
         <p className="kicker text-xs">Edit resource</p>
         <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">{doc.title}</h1>
       </div>
+
+      {doc.relevance < 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 border-l-4 border-gold bg-panel px-4 py-3">
+          <span className="text-sm text-ink">
+            <strong>Pending review.</strong> Hidden from the public library and
+            page panels until approved. Add links and a relevance below, then
+            approve to publish.
+          </span>
+          <form action={approveDocument}>
+            <input type="hidden" name="documentId" value={doc.id} />
+            <button className="rounded bg-pro-head px-3 py-1.5 text-sm font-bold text-background hover:bg-pro">
+              Approve &amp; publish
+            </button>
+          </form>
+        </div>
+      )}
 
       <div className="mt-6">
         <DocumentForm

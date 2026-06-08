@@ -128,6 +128,9 @@ model Document {
   summary     String?
   body        String? // markdown; optional for external resources
   fileUrl     String? // external / original URL
+  // Moderation gate: -1 = newly added, pending moderator review (hidden from
+  // the public library, search, and page panels); >= 0 = reviewed/published.
+  relevance   Float     @default(-1)
   createdById String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

@@ -313,13 +313,31 @@ export async function createDocument(formData: FormData) {
   });
 
   const slug = await uniqueDocSlug(parsed.title);
+  // New resources start pending (relevance -1) until a moderator reviews them.
   const doc = await prisma.document.create({
-    data: { slug, ...docData(parsed), createdById: mod.id },
+    data: { slug, ...docData(parsed), relevance: -1, createdById: mod.id },
   });
   await logAudit(mod.id, "CREATE_DOCUMENT", "Document", doc.id);
 
   revalidatePath("/docs");
+  revalidatePath("/moderation");
   redirect(`/docs/${slug}/edit`);
+}
+
+/** Publish a pending resource — clears the review gate (relevance -1 -> 1). */
+export async function approveDocument(formData: FormData) {
+  const mod = await requireModerator();
+  const id = String(formData.get("documentId"));
+  const doc = await prisma.document.update({
+    where: { id },
+    data: { relevance: 1 },
+  });
+  await logAudit(mod.id, "APPROVE_DOCUMENT", "Document", id);
+
+  revalidatePath("/moderation");
+  revalidatePath("/docs");
+  revalidatePath(`/docs/${doc.slug}`);
+  revalidatePath(`/docs/${doc.slug}/edit`);
 }
 
 export async function updateDocument(formData: FormData) {

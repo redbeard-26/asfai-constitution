@@ -76,7 +76,7 @@ export function DocumentForm({
         <input
           id="source"
           name="source"
-          placeholder="Collective Intelligence Project"
+          placeholder="Organization or author"
           defaultValue={defaults?.source}
           className={input}
         />

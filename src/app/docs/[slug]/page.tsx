@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getDocument } from "@/lib/data";
 import { getSessionUser } from "@/lib/session";
 import { isModerator, pageHref, stanceMeta } from "@/lib/constants";
+import { approveDocument } from "@/lib/actions";
 import { Markdown } from "@/components/Markdown";
 import { formatDate } from "@/lib/format";
 
@@ -17,6 +18,9 @@ export default async function DocumentPage({
 
   const user = await getSessionUser();
   const mod = isModerator(user?.role);
+  const pending = doc.relevance < 0;
+  // Pending resources are hidden from the public until a moderator reviews them.
+  if (pending && !mod) notFound();
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
@@ -47,6 +51,21 @@ export default async function DocumentPage({
             View at source ↗
           </a>
         </p>
+      )}
+
+      {mod && pending && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 border-l-4 border-gold bg-panel px-4 py-3">
+          <span className="text-sm text-ink">
+            <strong>Pending review.</strong> This resource is hidden from the
+            public until approved.
+          </span>
+          <form action={approveDocument}>
+            <input type="hidden" name="documentId" value={doc.id} />
+            <button className="rounded bg-pro-head px-3 py-1.5 text-sm font-bold text-background hover:bg-pro">
+              Approve &amp; publish
+            </button>
+          </form>
+        </div>
       )}
 
       {mod && (

@@ -117,17 +117,21 @@ export async function getPendingProposals() {
  *  case-insensitive query across title, summary, source, kind, and body. */
 export async function getDocuments(query?: string) {
   const q = query?.trim();
-  const where = q
-    ? {
-        OR: [
-          { title: { contains: q, mode: "insensitive" as const } },
-          { summary: { contains: q, mode: "insensitive" as const } },
-          { source: { contains: q, mode: "insensitive" as const } },
-          { kind: { contains: q, mode: "insensitive" as const } },
-          { body: { contains: q, mode: "insensitive" as const } },
-        ],
-      }
-    : {};
+  // relevance >= 0 hides resources still pending moderator review (relevance -1).
+  const where = {
+    relevance: { gte: 0 },
+    ...(q
+      ? {
+          OR: [
+            { title: { contains: q, mode: "insensitive" as const } },
+            { summary: { contains: q, mode: "insensitive" as const } },
+            { source: { contains: q, mode: "insensitive" as const } },
+            { kind: { contains: q, mode: "insensitive" as const } },
+            { body: { contains: q, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+  };
   return prisma.document.findMany({
     where,
     orderBy: [{ eventDate: "desc" }, { createdAt: "desc" }],
@@ -157,10 +161,35 @@ export async function getDocument(slug: string) {
   });
 }
 
+/** Resources awaiting moderator review (relevance < 0), newest first. */
+export async function getPendingDocuments() {
+  return prisma.document.findMany({
+    where: { relevance: { lt: 0 } },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      kind: true,
+      source: true,
+      fileUrl: true,
+      summary: true,
+      createdAt: true,
+      _count: { select: { links: true } },
+    },
+  });
+}
+
+/** Count of resources awaiting review — used for the moderation badge. */
+export async function getPendingDocumentCount() {
+  return prisma.document.count({ where: { relevance: { lt: 0 } } });
+}
+
 /** Documents linked to a given page, for the "Related documents" panel. */
 export async function getDocumentsForPage(pageId: string) {
   const links = await prisma.documentLink.findMany({
-    where: { pageId },
+    // Skip resources still pending moderator review (document relevance -1).
+    where: { pageId, document: { relevance: { gte: 0 } } },
     include: {
       document: {
         select: {

@@ -134,6 +134,7 @@ async function main() {
       summary: doc.summary,
       body: doc.body ?? null,
       fileUrl: doc.fileUrl ?? null,
+      relevance: 1, // seeded resources are trusted/published (not pending review)
     };
     const document = await prisma.document.upsert({
       where: { slug: doc.slug },

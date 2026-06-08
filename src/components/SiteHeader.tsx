@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
-import { getPendingProposalCount } from "@/lib/data";
+import { getPendingProposalCount, getPendingDocumentCount } from "@/lib/data";
 import { isModerator, isAdmin } from "@/lib/constants";
 
 export async function SiteHeader() {
@@ -8,7 +8,9 @@ export async function SiteHeader() {
   const user = session?.user;
   const mod = isModerator(user?.role);
   const admin = isAdmin(user?.role);
-  const pending = mod ? await getPendingProposalCount() : 0;
+  const pending = mod
+    ? (await getPendingProposalCount()) + (await getPendingDocumentCount())
+    : 0;
 
   return (
     <header className="border-b-4 border-gold bg-background">
