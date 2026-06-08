@@ -250,7 +250,11 @@ export function PageView({
             Related resources
           </summary>
           <ul className="mt-4 space-y-2">
-            {relatedDocuments.map((d) => (
+            {relatedDocuments.map((d) => {
+              // The constitution as a whole is too broad for a meaningful
+              // pro/con stance, so every resource here reads as "Discusses".
+              const stance = stanceMeta(type === "CONSTITUTION" ? "NEUTRAL" : d.stance);
+              return (
               <li key={d.slug} className="border border-rule border-l-4 border-l-gold bg-panel p-3">
                 <div className="flex items-start justify-between gap-2">
                   <span>
@@ -263,10 +267,10 @@ export function PageView({
                     {d.fileUrl && <span className="ml-1 text-xs text-gold-deep">↗</span>}
                   </span>
                   <span
-                    className={`shrink-0 border px-1.5 py-0.5 text-xs ${stanceMeta(d.stance).chip}`}
+                    className={`shrink-0 border px-1.5 py-0.5 text-xs ${stance.chip}`}
                     style={{ fontVariant: "small-caps", letterSpacing: "0.04em" }}
                   >
-                    {stanceMeta(d.stance).label}
+                    {stance.label}
                   </span>
                 </div>
                 <div className="text-xs text-muted">
@@ -275,7 +279,8 @@ export function PageView({
                     .join(" · ")}
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         </details>
       )}
