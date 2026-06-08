@@ -66,6 +66,22 @@ export const EXTERNAL_RESOURCES: SeedDocument[] = [
     ],
   },
   {
+    slug: "ext-openai-democratic-inputs",
+    title: "Democratic Inputs to AI",
+    kind: "External Resource",
+    source: "OpenAI",
+    eventDate: "2023-05-25",
+    summary:
+      "OpenAI's grant program funding ten teams to prototype democratic processes for deciding the rules that govern AI behavior — surveys, deliberation platforms, and citizen assemblies. A second source (independent of CIP) for the premise that an AI constitution's values should be elicited from the public rather than declared by its builders.",
+    fileUrl: "https://openai.com/index/democratic-inputs-to-ai/",
+    links: [
+      { slug: "constitution", relevance: 0.8, stance: "SUPPORTS" },
+      { slug: "limitations-misalignment", relevance: 0.6 },
+      { slug: "ai-values-helpful-to-humanity", relevance: 0.5 },
+      { slug: "human-rights-fair-treatment", relevance: 0.4 },
+    ],
+  },
+  {
     slug: "ext-three-laws-of-robotics",
     title: "Three Laws of Robotics",
     kind: "External Resource",

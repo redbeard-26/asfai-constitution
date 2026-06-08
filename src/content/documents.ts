@@ -159,7 +159,7 @@ These results are building blocks toward consensus and feed into the subcommitte
       "Deliberative public assemblies (2023–24) gathering citizen input on AI governance, with partners including OpenAI, Anthropic, and the UK AI Safety Institute committing to take public voice into account — a working model for keeping humans, collectively, responsible for AI's direction.",
     fileUrl: "https://www.cip.org/alignmentassemblies",
     links: [
-      { slug: "constitution", relevance: 0.7 },
+      { slug: "constitution", relevance: 0.45 },
       { slug: "limitations-misalignment", relevance: 0.7 },
       { slug: "limitations-human-responsibility", relevance: 0.6 },
       { slug: "ai-values-helpful-to-humanity", relevance: 0.4 },
@@ -191,7 +191,7 @@ These results are building blocks toward consensus and feed into the subcommitte
       "CIP's 2024 agenda of concrete steps — to build, research, advocate for, and fund — toward a democratic AI ecosystem that is adaptive, accountable, and safeguards human wellbeing. A living document for field-building beyond the safety/progress/participation camps.",
     fileUrl: "https://www.cip.org/research/ai-roadmap",
     links: [
-      { slug: "constitution", relevance: 0.7 },
+      { slug: "constitution", relevance: 0.45 },
       { slug: "limitations", relevance: 0.4 },
       { slug: "limitations-human-responsibility", relevance: 0.6 },
     ],
