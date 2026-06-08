@@ -22,7 +22,7 @@ export default async function PageRoute({
   const sp = await searchParams;
   const page = await getPage(slug);
   if (!page) notFound();
-  if (page.type === "CONSTITUTION") redirect("/");
+  if (page.type === "CONSTITUTION") redirect("/articles");
 
   const user = await getSessionUser();
   const votable = page.type === "THESIS" || page.type === "CANDIDATE";

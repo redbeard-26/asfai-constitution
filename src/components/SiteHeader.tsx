@@ -24,10 +24,10 @@ export async function SiteHeader() {
 
         <nav className="flex items-center gap-5 text-sm">
           <Link href="/" className="text-muted hover:text-ink">
-            Articles
-          </Link>
-          <Link href="/about" className="text-muted hover:text-ink">
             About
+          </Link>
+          <Link href="/articles" className="text-muted hover:text-ink">
+            Articles
           </Link>
           <Link href="/candidates" className="text-muted hover:text-ink">
             Candidates
