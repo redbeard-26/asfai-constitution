@@ -18,9 +18,14 @@ export default function RootLayout({
         <main className="flex-1">{children}</main>
         <footer className="border-t border-rule">
           <div className="mx-auto max-w-4xl px-6 py-6 text-xs text-muted">
-            American Society for AI — hosting an open, collaborative draft.
-            Content reflects topics for discussion, not the official position of
-            ASFAI.
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/asfai-wordmark.png"
+              alt="American Society for AI"
+              className="mb-2 h-5 w-auto"
+            />
+            Hosting an open, collaborative draft. Content reflects topics for
+            discussion, not the official position of ASFAI.
           </div>
         </footer>
       </body>
