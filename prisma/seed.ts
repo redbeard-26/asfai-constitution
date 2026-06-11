@@ -125,6 +125,40 @@ async function main() {
     console.log(`+ candidate: ${candidateSlug}`);
   }
 
+  // Additional candidate proposals (create-if-absent).
+  const SEED_CANDIDATES: { slug: string; title: string; text: string }[] = [
+    {
+      slug: "candidate-membership-adherence",
+      title: "Membership by Adherence to the Principles",
+      text: "The AI Constitution is the founding document of an organization composed of member organizations that agree to adhere to all of the principles therein.",
+    },
+    {
+      slug: "candidate-expel-nonadhering-members",
+      title: "Expel Non-Adhering Member Organizations",
+      text: "Member organizations who do not adhere to the principles of the AI Constitution should be expelled from the organization.",
+    },
+    {
+      slug: "candidate-rename-not-constitution",
+      title: "Rename Away from “Constitution”",
+      text: "The AI Constitution should be renamed “AI Principles” or another name that does not imply it is the founding document of a sovereign nation.",
+    },
+  ];
+  for (const c of SEED_CANDIDATES) {
+    if (!(await prisma.page.findUnique({ where: { slug: c.slug } }))) {
+      const page = await prisma.page.create({
+        data: { slug: c.slug, title: c.title, type: "CANDIDATE", sortOrder: 0 },
+      });
+      const rev = await prisma.revision.create({
+        data: { pageId: page.id, content: c.text, summary: "Seed candidate" },
+      });
+      await prisma.page.update({
+        where: { id: page.id },
+        data: { currentRevisionId: rev.id },
+      });
+      console.log(`+ candidate: ${c.slug}`);
+    }
+  }
+
   for (const doc of [...SEED_DOCUMENTS, ...EXTERNAL_RESOURCES]) {
     const data = {
       title: doc.title,

@@ -196,4 +196,51 @@ These results are building blocks toward consensus and feed into the subcommitte
       { slug: "limitations-human-responsibility", relevance: 0.6 },
     ],
   },
+  {
+    slug: "asfai-naming-memo",
+    title: "What’s in a Name? Evaluating Names for the AI Constitution",
+    kind: "Memo",
+    source: "American Society for AI",
+    summary:
+      "An ASFAI memo weighing whether “Constitution” is the right name for the effort. It judges nine candidate names against three criteria — accuracy, power, and uncontroversiality — and notes that “Constitution” is powerful but controversial because its best-known examples are founding documents of sovereign states. Concludes the strongest candidates are Constitution, Covenant, and Charter.",
+    links: [
+      { slug: "candidate-rename-not-constitution", relevance: 0.95, stance: "NEUTRAL" },
+    ],
+    body: `_American Society for AI · internal memo on naming the effort._
+
+ASFAI is coordinating a coalition of organizations to agree on guiding principles for developing and deploying AI. Internally the document has been called the **AI Constitution**, but not everyone agrees that "Constitution" is appropriate. This memo evaluates the name against alternatives.
+
+## Criteria
+
+A name should be:
+
+1. **Accurate** — its definition and connotations reflect the goals of the effort.
+2. **Powerful** — it carries historical and emotional significance.
+3. **Uncontroversial** — it is acceptable to the largest number of member organizations.
+
+There is inherent tension between (2) power and (3) uncontroversiality.
+
+Accuracy assumes the goal is a document that:
+
+- Creates a new organization composed of member organizations
+- Outlines principles for guiding that organization
+- Is self-authorizing (rather than claiming power from another authority)
+- Is **not** a sovereign state, nor composed of sovereign states
+
+## Candidate names
+
+- **Constitution** — mostly accurate; powerful but controversial. Meets the first three accuracy aspects, but carries the connotation of creating a sovereign state; its most famous examples are founding documents of nations.
+- **Articles** — accurate; neither powerful nor controversial (e.g. Articles of Confederation, Articles of Incorporation). May not convey a lasting legacy.
+- **Charter** — mostly accurate; neither powerful nor controversial. Sometimes implies external authorization (Virginia colony, British East India Company), though the UN Charter and Earth Charter are counterexamples.
+- **Council** — partially accurate; refers more to the organization than the founding document.
+- **Covenant** — mostly accurate; powerful but controversial due to strong religious connotations.
+- **Declaration** — partially accurate; powerful but controversial; usually a statement of principles, not a founding document.
+- **Manifesto** — partially accurate; powerful but controversial; prominent examples are extremist (Communist, Fascist, Unabomber).
+- **Principles** — partially accurate; neither powerful nor controversial; usually a statement of principles, not a founding document (Asilomar AI Principles, OECD Principles on AI).
+- **Treaty** — not particularly accurate; connotes agreements among sovereign states.
+
+## Conclusion
+
+The strongest candidates are **Constitution**, **Covenant**, and **Charter**.`,
+  },
 ];
