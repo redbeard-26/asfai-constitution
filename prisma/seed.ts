@@ -142,6 +142,11 @@ async function main() {
       title: "Rename Away from “Constitution”",
       text: "The AI Constitution should be renamed “AI Principles” or another name that does not imply it is the founding document of a sovereign nation.",
     },
+    {
+      slug: "candidate-output-confidence-levels",
+      title: "Output Confidence Levels",
+      text: "AI models should output confidence levels for all outputs.",
+    },
   ];
   for (const c of SEED_CANDIDATES) {
     if (!(await prisma.page.findUnique({ where: { slug: c.slug } }))) {
