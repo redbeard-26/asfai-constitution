@@ -25,6 +25,16 @@ export const THESIS_LINKS: ThesisLink[] = [
   { resource: "ext-anthropic-constitution", page: "ai-values-helpful-to-users", stance: "SUPPORTS", relevance: 0.5 },
   { resource: "ai-values-panel-2026-05", page: "ai-values-helpful-to-users", stance: "SUPPORTS", relevance: 0.6 },
   { resource: "ext-oecd-ai-principles", page: "ai-values-helpful-to-humanity", stance: "SUPPORTS", relevance: 0.5 },
+  // Universal values — shared value sets support; pluralism/divergence challenges.
+  { resource: "cip-collective-constitutional-ai", page: "ai-values-universal-values", stance: "SUPPORTS", relevance: 0.7 },
+  { resource: "ext-anthropic-constitution", page: "ai-values-universal-values", stance: "SUPPORTS", relevance: 0.6 },
+  { resource: "ext-openai-democratic-inputs", page: "ai-values-universal-values", stance: "SUPPORTS", relevance: 0.6 },
+  { resource: "ext-oecd-ai-principles", page: "ai-values-universal-values", stance: "SUPPORTS", relevance: 0.55 },
+  { resource: "ext-udhr", page: "ai-values-universal-values", stance: "SUPPORTS", relevance: 0.5 },
+  { resource: "ext-asilomar-principles", page: "ai-values-universal-values", stance: "SUPPORTS", relevance: 0.45 },
+  { resource: "ext-against-longtermism", page: "ai-values-universal-values", stance: "OPPOSES", relevance: 0.45 },
+  { resource: "ext-fairness-tradeoffs", page: "ai-values-universal-values", stance: "OPPOSES", relevance: 0.4 },
+  { resource: "cip-global-dialogues", page: "ai-values-universal-values", stance: "NEUTRAL", relevance: 0.5 },
 
   // —— Human Rights (UDHR supports each; specific supporters/challengers added) ——
   { resource: "ext-udhr", page: "human-rights-safety", stance: "SUPPORTS", relevance: 0.6 },

@@ -62,6 +62,11 @@ export const ARTICLES: SeedArticle[] = [
         title: "Be helpful to humanity",
         text: "AI should seek to be beneficial to humanity, civilization, living beings, and the environment in which these exist.",
       },
+      {
+        slug: "ai-values-universal-values",
+        title: "Universal values",
+        text: "All AI should reflect a set of universal values.",
+      },
     ],
   },
   {
