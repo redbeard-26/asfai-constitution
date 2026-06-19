@@ -61,13 +61,51 @@ export async function getNavTree() {
   });
 }
 
-/** Visible + hidden comments for a page, oldest first, with author info. */
-export async function getComments(pageId: string) {
+/** Visible + hidden comments for a page, with author info. Order by date
+ *  ascending (oldest first, default) or descending (newest first). */
+export async function getComments(pageId: string, order: "asc" | "desc" = "asc") {
   return prisma.comment.findMany({
     where: { pageId, author: { archivedAt: null } },
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: order },
     include: { author: { select: { name: true, email: true, image: true } } },
   });
+}
+
+/** Previous/next page in the global thesis order: theses grouped by article
+ *  (in article order, then thesis order), followed by candidate theses. Used
+ *  for prev/next navigation on thesis and candidate pages. */
+export async function getThesisNeighbors(slug: string) {
+  const theses = await prisma.page.findMany({
+    where: { type: "THESIS" },
+    select: {
+      slug: true,
+      title: true,
+      type: true,
+      sortOrder: true,
+      parent: { select: { sortOrder: true } },
+    },
+  });
+  theses.sort(
+    (a, b) =>
+      (a.parent?.sortOrder ?? 0) - (b.parent?.sortOrder ?? 0) ||
+      a.sortOrder - b.sortOrder,
+  );
+  const candidates = await prisma.page.findMany({
+    where: { type: "CANDIDATE" },
+    orderBy: { createdAt: "asc" },
+    select: { slug: true, title: true, type: true },
+  });
+
+  const ordered = [
+    ...theses.map((t) => ({ slug: t.slug, title: t.title, type: t.type })),
+    ...candidates,
+  ];
+  const i = ordered.findIndex((p) => p.slug === slug);
+  if (i === -1) return { prev: null, next: null };
+  return {
+    prev: i > 0 ? ordered[i - 1] : null,
+    next: i < ordered.length - 1 ? ordered[i + 1] : null,
+  };
 }
 
 /** Count of pending edit proposals — used for the moderation badge. */

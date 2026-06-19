@@ -16,11 +16,19 @@ type Props = {
   pageId: string;
   path: string;
   comments: CommentData[];
+  order?: "asc" | "desc";
   currentUserId: string | null;
   isModerator: boolean;
 };
 
-export function Comments({ pageId, path, comments, currentUserId, isModerator }: Props) {
+export function Comments({
+  pageId,
+  path,
+  comments,
+  order = "asc",
+  currentUserId,
+  isModerator,
+}: Props) {
   const byParent = new Map<string, CommentData[]>();
   for (const c of comments) {
     const key = c.parentId ?? "root";
@@ -103,9 +111,23 @@ export function Comments({ pageId, path, comments, currentUserId, isModerator }:
     );
   }
 
+  const otherOrder = order === "asc" ? "desc" : "asc";
+
   return (
-    <details open className="section-rule mt-10 pt-3">
+    <details open id="discussion" className="section-rule mt-10 pt-3">
       <summary className="kicker cursor-pointer text-base">Discussion</summary>
+
+      {comments.length > 1 && (
+        <div className="mt-3 flex items-center gap-2 text-xs text-muted">
+          <span>{order === "asc" ? "Oldest first" : "Newest first"}</span>
+          <Link
+            href={`${path}?comments=${otherOrder}#discussion`}
+            className="text-gold-deep hover:underline"
+          >
+            Show {otherOrder === "asc" ? "oldest first" : "newest first"}
+          </Link>
+        </div>
+      )}
 
       <div className="mt-4">
         {currentUserId ? (

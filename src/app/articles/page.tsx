@@ -7,7 +7,7 @@ import { PageView } from "@/components/PageView";
 export default async function ArticlesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ proposed?: string }>;
+  searchParams: Promise<{ proposed?: string; comments?: string }>;
 }) {
   const sp = await searchParams;
   const page = await getConstitution().catch(() => null);
@@ -20,9 +20,10 @@ export default async function ArticlesPage({
     );
   }
 
+  const commentOrder = sp?.comments === "desc" ? "desc" : "asc";
   const [user, comments, relatedDocuments] = await Promise.all([
     getSessionUser(),
-    getComments(page.id),
+    getComments(page.id, commentOrder),
     getDocumentsForPage(page.id),
   ]);
 
@@ -43,6 +44,7 @@ export default async function ArticlesPage({
       childPages={page.children}
       relatedDocuments={relatedDocuments}
       comments={comments}
+      commentOrder={commentOrder}
       currentUserId={user?.id ?? null}
       isModerator={isModerator(user?.role)}
       proposed={sp?.proposed === "1"}

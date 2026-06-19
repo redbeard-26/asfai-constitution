@@ -14,7 +14,7 @@ export async function SiteHeader() {
 
   return (
     <header className="border-b-4 border-gold bg-background">
-      <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-6 py-3">
+      <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
         <Link href="/" className="flex items-baseline">
           <span
             className="text-lg font-bold text-ink"
@@ -24,7 +24,7 @@ export async function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="flex items-center gap-5 text-sm">
+        <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
           <Link href="/" className="text-muted hover:text-ink">
             About
           </Link>

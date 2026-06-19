@@ -372,14 +372,31 @@ const handler = createMcpHandler(
         inputSchema: {
           title: z.string().min(1).max(200),
           text: z.string().min(1).max(20000),
+          caseFor: z
+            .string()
+            .max(4000)
+            .optional()
+            .describe("Optional: the case for including this thesis"),
+          caseAgainst: z
+            .string()
+            .max(4000)
+            .optional()
+            .describe("Optional: the case for changing or excluding this thesis"),
           email: z.string().email().describe("Email identifying the proposer"),
         },
       },
-      async ({ title, text, email }) => {
+      async ({ title, text, caseFor, caseAgainst, email }) => {
         const user = await resolveUser(email);
         const slug = await uniqueCandidateSlug(title);
         const page = await prisma.page.create({
-          data: { slug, title, type: "CANDIDATE", sortOrder: 0 },
+          data: {
+            slug,
+            title,
+            type: "CANDIDATE",
+            sortOrder: 0,
+            caseFor: caseFor ?? null,
+            caseAgainst: caseAgainst ?? null,
+          },
         });
         const rev = await prisma.revision.create({
           data: { pageId: page.id, content: text, summary: "Candidate proposed via MCP", authorId: user.id },

@@ -20,6 +20,7 @@ export function PageView({
   childPages,
   relatedDocuments = [],
   comments,
+  commentOrder = "asc",
   currentUserId,
   isModerator,
   proposed,
@@ -27,6 +28,8 @@ export function PageView({
   articleOptions = [],
   caseFor,
   caseAgainst,
+  prevPage,
+  nextPage,
 }: {
   pageId: string;
   slug: string;
@@ -49,11 +52,14 @@ export function PageView({
     stance: string;
   }[];
   comments: CommentData[];
+  commentOrder?: "asc" | "desc";
   currentUserId: string | null;
   isModerator: boolean;
   proposed?: boolean;
   vote?: { score: number; userVote: number } | null;
   articleOptions?: { id: string; slug: string; title: string }[];
+  prevPage?: { slug: string; title: string; type: string } | null;
+  nextPage?: { slug: string; title: string; type: string } | null;
 }) {
   const path = pageHref({ slug, type });
   const childType = childPages[0]?.type;
@@ -63,7 +69,7 @@ export function PageView({
   const votable = type === "THESIS" || type === "CANDIDATE";
 
   return (
-    <div className="mx-auto flex max-w-6xl gap-8 px-6 py-10">
+    <div className="mx-auto flex max-w-6xl gap-8 px-4 py-8 sm:px-6 sm:py-10">
       <aside className="hidden w-60 shrink-0 lg:block">
         <div className="sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto pr-2">
           <Sidebar activeSlug={slug} />
@@ -240,6 +246,7 @@ export function PageView({
         pageId={pageId}
         path={path}
         comments={comments}
+        order={commentOrder}
         currentUserId={currentUserId}
         isModerator={isModerator}
       />
@@ -283,6 +290,37 @@ export function PageView({
             })}
           </ul>
         </details>
+      )}
+
+      {votable && (prevPage || nextPage) && (
+        <nav className="section-rule mt-10 flex items-stretch justify-between gap-3 pt-4 text-sm">
+          {prevPage ? (
+            <Link
+              href={pageHref(prevPage)}
+              className="group flex max-w-[48%] flex-col border border-rule p-3 hover:bg-panel"
+            >
+              <span className="kicker text-xs text-muted">← Previous</span>
+              <span className="mt-1 font-bold text-ink group-hover:text-gold-deep">
+                {prevPage.title}
+              </span>
+            </Link>
+          ) : (
+            <span />
+          )}
+          {nextPage ? (
+            <Link
+              href={pageHref(nextPage)}
+              className="group flex max-w-[48%] flex-col items-end border border-rule p-3 text-right hover:bg-panel"
+            >
+              <span className="kicker text-xs text-muted">Next →</span>
+              <span className="mt-1 font-bold text-ink group-hover:text-gold-deep">
+                {nextPage.title}
+              </span>
+            </Link>
+          ) : (
+            <span />
+          )}
+        </nav>
       )}
       </div>
     </div>
