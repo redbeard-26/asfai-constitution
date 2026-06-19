@@ -548,6 +548,8 @@ export async function castVote(formData: FormData) {
 const candidateSchema = z.object({
   title: z.string().min(1, "Title is required.").max(200),
   text: z.string().min(1, "Text is required.").max(20000),
+  caseFor: z.string().max(4000).optional(),
+  caseAgainst: z.string().max(4000).optional(),
 });
 
 /** Any signed-in user can submit a candidate thesis (appears immediately for voting). */
@@ -556,11 +558,20 @@ export async function createCandidate(formData: FormData) {
   const parsed = candidateSchema.parse({
     title: formData.get("title"),
     text: formData.get("text"),
+    caseFor: formData.get("caseFor") || undefined,
+    caseAgainst: formData.get("caseAgainst") || undefined,
   });
 
   const slug = await uniquePageSlug(`candidate-${parsed.title}`);
   const page = await prisma.page.create({
-    data: { slug, title: parsed.title, type: "CANDIDATE", sortOrder: 0 },
+    data: {
+      slug,
+      title: parsed.title,
+      type: "CANDIDATE",
+      sortOrder: 0,
+      caseFor: parsed.caseFor ?? null,
+      caseAgainst: parsed.caseAgainst ?? null,
+    },
   });
   const rev = await prisma.revision.create({
     data: {

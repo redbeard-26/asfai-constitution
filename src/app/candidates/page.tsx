@@ -42,6 +42,20 @@ export default async function CandidatesPage() {
                 placeholder="The proposed thesis text…"
                 className="w-full border border-rule bg-background p-2 text-sm focus:border-gold focus:outline-none"
               />
+              <textarea
+                name="caseFor"
+                rows={3}
+                maxLength={4000}
+                placeholder="The case for including this (optional)"
+                className="w-full border border-rule bg-background p-2 text-sm focus:border-gold focus:outline-none"
+              />
+              <textarea
+                name="caseAgainst"
+                rows={3}
+                maxLength={4000}
+                placeholder="The case for changing or excluding this (optional)"
+                className="w-full border border-rule bg-background p-2 text-sm focus:border-gold focus:outline-none"
+              />
               <button
                 type="submit"
                 className="rounded bg-gold-deep px-3 py-1.5 text-sm font-bold text-background hover:bg-gold"
