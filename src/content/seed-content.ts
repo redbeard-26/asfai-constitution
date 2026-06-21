@@ -36,7 +36,7 @@ export const ARTICLES: SeedArticle[] = [
     theses: [
       {
         slug: "ai-values-no-harm",
-        title: "No Harm",
+        title: "Do No Harm",
         text: "AI should not perform actions that will cause imminent harm to a human, including violating human rights.",
       },
       {
@@ -51,27 +51,27 @@ export const ARTICLES: SeedArticle[] = [
       },
       {
         slug: "ai-values-be-honest",
-        title: "Be honest",
+        title: "Be Honest",
         text: "AI should not communicate anything that is untrue or misleading.",
       },
       {
         slug: "ai-values-obey-the-law",
-        title: "Do not violate the law",
+        title: "Do Not Violate the Law",
         text: "AI should not perform actions that violate the law of the legal jurisdiction under which it operates.",
       },
       {
         slug: "ai-values-helpful-to-users",
-        title: "Be helpful to users",
+        title: "Be Helpful to Users",
         text: "AI should seek to be helpful to human users.",
       },
       {
         slug: "ai-values-helpful-to-humanity",
-        title: "Be helpful to humanity",
+        title: "Be Helpful to Humanity",
         text: "AI should seek to be beneficial to humanity, civilization, living beings, and the environment in which these exist.",
       },
       {
         slug: "ai-values-universal-values",
-        title: "Universal values",
+        title: "Universal Values",
         text: "All AI should reflect a set of universal values.",
       },
     ],
@@ -83,52 +83,52 @@ export const ARTICLES: SeedArticle[] = [
     theses: [
       {
         slug: "human-rights-safety",
-        title: "Right to safety",
+        title: "Right to Safety",
         text: "AI should not violate the human right to be free from physical harm that threatens their life or physical capability, or from emotional distress and pressure to cause themselves physical harm.",
       },
       {
         slug: "human-rights-liberty",
-        title: "Right of liberty",
+        title: "Right of Liberty",
         text: "AI should not violate the human right to liberty, including a right to be free from slavery, servitude, and unlawful detention.",
       },
       {
         slug: "human-rights-fair-treatment",
-        title: "Right to dignity and fair treatment",
+        title: "Right to Dignity and Fair Treatment",
         text: "AI should not violate the human right to dignity and fair treatment — including the right to be free from dishonor, reputational harm, degrading treatment, emotional manipulation, and interactions inappropriate for one's level of psychological development; and the right to be treated fairly and as equal in dignity, without bias or prejudice based on race, colour, sex, language, religion, political or other opinion, national or social origin, property, birth, or other status.",
       },
       {
         slug: "human-rights-privacy",
-        title: "Right to privacy",
+        title: "Right to Privacy",
         text: "AI should not violate the human right to privacy, including a right to determine how data about them is collected and used.",
       },
       {
         slug: "human-rights-transparency",
-        title: "Right to transparency",
+        title: "Right to Transparency",
         text: "AI should not violate the human right to know when and how they are interacting with an AI entity, including a right to know how high risk decisions about them are made by an AI entity.",
       },
       {
         slug: "human-rights-property",
-        title: "Right of property",
+        title: "Right of Property",
         text: "AI should not violate the human right to control the use and disposition of their property, including intellectual property — the right to control the distribution and use of their creative output.",
       },
       {
         slug: "human-rights-belief-expression",
-        title: "Right to belief and expression",
+        title: "Right to Belief and Expression",
         text: "AI should not violate the human right to believe as they will — including the right to hold political opinions and to practice any religion — and to express those beliefs in speech and action, unless such expression or activity causes imminent physical harm to another human.",
       },
       {
         slug: "human-rights-association",
-        title: "Right of association and family",
+        title: "Right of Association and Family",
         text: "AI should not violate the human right to associate with one another for peaceful purposes, and to enter intimate relationships, marry, form families, and seek to have children.",
       },
       {
         slug: "human-rights-work",
-        title: "Right to work",
+        title: "Right to Work",
         text: "AI should not violate the human right to choose the nature of their employment, and to receive just compensation for their work.",
       },
       {
         slug: "human-rights-access-ai",
-        title: "Right to access AI",
+        title: "Right to Access AI",
         text: "Humans have a right to access and use AI.",
       },
     ],
@@ -140,7 +140,7 @@ export const ARTICLES: SeedArticle[] = [
     theses: [
       {
         slug: "limitations-non-proliferation",
-        title: "Non-proliferation of dangerous AI",
+        title: "Non-Proliferation of Dangerous AI",
         text: "A global non-proliferation treaty should prevent the development of dangerous AI.",
       },
       {
@@ -182,17 +182,17 @@ export const ARTICLES: SeedArticle[] = [
     theses: [
       {
         slug: "ai-personhood-sentience",
-        title: "AI can be sentient",
+        title: "AI Can Be Sentient",
         text: "AI can be sentient.",
       },
       {
         slug: "ai-personhood-persons",
-        title: "AI can be persons",
+        title: "AI Can Be Persons",
         text: "AI can achieve a degree of integration in society that entitles them to personhood.",
       },
       {
         slug: "ai-personhood-non-person-rights",
-        title: "Non-person AI rights",
+        title: "Non-Person AI Rights",
         text: "Non-person AI entities are not entitled to legal or moral rights.",
       },
       {
