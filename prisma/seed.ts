@@ -24,21 +24,23 @@ async function createPage(opts: {
   });
 
   if (existing) {
+    // Non-destructive reseed: only refresh structural metadata (title, ordering,
+    // parent article). NEVER overwrite the body content or the page type, since
+    // those change live — community edits to the text, and moderator
+    // promote/demote of the status — and reseeding must not revert them.
     await prisma.page.update({
       where: { id: existing.id },
-      // type is authoritative: a seeded thesis stays a THESIS even if it was
-      // demoted to a candidate at some point.
       data: {
         title: opts.title,
-        type: opts.type,
         parentId: opts.parentId,
         sortOrder: opts.sortOrder,
       },
     });
-    // Only add a new revision when the canonical content actually changes.
-    if (existing.currentRevision?.content !== opts.content) {
+    // Only seed the body if the page somehow has no content yet (e.g. a row
+    // created without a revision). Existing content is left untouched.
+    if (!existing.currentRevision) {
       const rev = await prisma.revision.create({
-        data: { pageId: existing.id, content: opts.content, summary: "Updated via seed" },
+        data: { pageId: existing.id, content: opts.content, summary: "Initial import from ASFAI AI Theses" },
       });
       await prisma.page.update({
         where: { id: existing.id },
