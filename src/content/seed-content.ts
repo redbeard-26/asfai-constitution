@@ -93,7 +93,7 @@ export const ARTICLES: SeedArticle[] = [
       },
       {
         slug: "human-rights-fair-treatment",
-        title: "Right to Dignity and Fair Treatment",
+        title: "Right to Dignity, Fair Treatment, and Non-discrimination",
         text: "AI should not violate the human right to dignity and fair treatment — including the right to be free from dishonor, reputational harm, degrading treatment, emotional manipulation, and interactions inappropriate for one's level of psychological development; and the right to be treated fairly and as equal in dignity, without bias or prejudice based on race, colour, sex, language, religion, political or other opinion, national or social origin, property, birth, or other status.",
       },
       {
