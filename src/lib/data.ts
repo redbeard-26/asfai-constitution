@@ -368,7 +368,9 @@ export async function getThesesWithVotes(userId?: string | null) {
         .sort((x, y) => x.sortOrder - y.sortOrder)
         .map(withVotes),
     })),
-    candidates: candidates.map((c) => ({ ...withVotes(c), article: c.parent })),
+    candidates: candidates
+      .map((c) => ({ ...withVotes(c), article: c.parent }))
+      .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title)),
   };
 }
 
