@@ -308,19 +308,68 @@ export async function getCandidates(userId?: string | null) {
 }
 
 /** Everything for the Theses tab: articles with their adopted theses (in
- *  order), plus candidate theses (each with its article) listed after. */
-export async function getThesesOverview() {
-  const root = await getNavTree();
-  const candidates = await prisma.page.findMany({
-    where: { type: "CANDIDATE" },
-    orderBy: [{ parent: { sortOrder: "asc" } }, { createdAt: "asc" }],
-    select: {
-      slug: true,
-      title: true,
-      parent: { select: { slug: true, title: true } },
-    },
+ *  order), plus candidate theses (each with its article) listed after — all
+ *  with net vote score and this user's current vote, for inline voting. */
+export async function getThesesWithVotes(userId?: string | null) {
+  const [articles, theses, candidates] = await Promise.all([
+    prisma.page.findMany({
+      where: { type: "ARTICLE" },
+      orderBy: { sortOrder: "asc" },
+      select: { id: true, slug: true, title: true },
+    }),
+    prisma.page.findMany({
+      where: { type: "THESIS" },
+      orderBy: { sortOrder: "asc" },
+      select: { id: true, slug: true, title: true, parentId: true, sortOrder: true },
+    }),
+    prisma.page.findMany({
+      where: { type: "CANDIDATE" },
+      orderBy: [{ parent: { sortOrder: "asc" } }, { createdAt: "asc" }],
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        parent: { select: { slug: true, title: true } },
+      },
+    }),
+  ]);
+
+  const ids = [...theses, ...candidates].map((p) => p.id);
+  const grouped = ids.length
+    ? await prisma.vote.groupBy({
+        by: ["pageId"],
+        where: { pageId: { in: ids }, user: { archivedAt: null } },
+        _sum: { value: true },
+      })
+    : [];
+  const scoreMap = new Map(grouped.map((g) => [g.pageId, g._sum.value ?? 0]));
+  const userVotes = new Map<string, number>();
+  if (userId && ids.length) {
+    const uv = await prisma.vote.findMany({
+      where: { userId, pageId: { in: ids } },
+      select: { pageId: true, value: true },
+    });
+    for (const v of uv) userVotes.set(v.pageId, v.value);
+  }
+  const withVotes = <T extends { id: string; slug: string; title: string }>(p: T) => ({
+    id: p.id,
+    slug: p.slug,
+    title: p.title,
+    score: scoreMap.get(p.id) ?? 0,
+    userVote: userVotes.get(p.id) ?? 0,
   });
-  return { root, candidates };
+
+  return {
+    articles: articles.map((a) => ({
+      slug: a.slug,
+      title: a.title,
+      theses: theses
+        .filter((t) => t.parentId === a.id)
+        .sort((x, y) => x.sortOrder - y.sortOrder)
+        .map(withVotes),
+    })),
+    candidates: candidates.map((c) => ({ ...withVotes(c), article: c.parent })),
+  };
 }
 
 /** Articles (for the candidate-promotion and candidate-article selectors). */

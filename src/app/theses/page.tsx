@@ -1,16 +1,17 @@
 import Link from "next/link";
-import { getThesesOverview, getArticleOptions } from "@/lib/data";
+import { getThesesWithVotes, getArticleOptions } from "@/lib/data";
 import { getSessionUser } from "@/lib/session";
 import { createCandidate } from "@/lib/actions";
+import { VoteWidget } from "@/components/VoteWidget";
 import { toRoman } from "@/lib/format";
 
 export default async function ThesesPage() {
   const user = await getSessionUser();
-  const [{ root, candidates }, articleOptions] = await Promise.all([
-    getThesesOverview(),
+  const [{ articles, candidates }, articleOptions] = await Promise.all([
+    getThesesWithVotes(user?.id),
     getArticleOptions(),
   ]);
-  const articles = root?.children ?? [];
+  const canVote = user != null;
 
   const field =
     "w-full border border-rule bg-background p-2 text-sm focus:border-gold focus:outline-none";
@@ -23,7 +24,7 @@ export default async function ThesesPage() {
       </div>
       <p className="mt-2 text-sm text-muted">
         Every thesis, grouped by article, followed by candidate theses proposed
-        for adoption.
+        for adoption. Vote on any thesis to register support or opposition.
       </p>
 
       <div className="mt-6">
@@ -100,13 +101,21 @@ export default async function ThesesPage() {
                 </Link>
               </h2>
             </div>
-            {article.children.length === 0 ? (
+            {article.theses.length === 0 ? (
               <p className="mt-3 text-sm text-muted">No adopted theses yet.</p>
             ) : (
-              <ol className="mt-3 space-y-2">
-                {article.children.map((t, j) => (
-                  <li key={t.slug} className="flex gap-3">
-                    <span className="text-muted">{j + 1}.</span>
+              <ul className="mt-3 space-y-2">
+                {article.theses.map((t) => (
+                  <li
+                    key={t.slug}
+                    className="flex items-center gap-3 border border-rule bg-background p-2"
+                  >
+                    <VoteWidget
+                      pageId={t.id}
+                      score={t.score}
+                      userVote={t.userVote}
+                      canVote={canVote}
+                    />
                     <Link
                       href={`/p/${t.slug}`}
                       className="font-bold text-gold-deep hover:underline"
@@ -115,7 +124,7 @@ export default async function ThesesPage() {
                     </Link>
                   </li>
                 ))}
-              </ol>
+              </ul>
             )}
           </section>
         ))}
@@ -126,24 +135,35 @@ export default async function ThesesPage() {
             <h2 className="mt-1 text-xl font-bold text-ink">Candidate Theses</h2>
           </div>
           <p className="mt-1 text-sm text-muted">
-            Proposed theses not yet adopted into an article. Open each to vote;
-            moderators promote the strongest into an article or remove them.
+            Proposed theses not yet adopted into an article. Vote to surface the
+            strongest; moderators promote them into an article or remove them.
           </p>
           {candidates.length === 0 ? (
             <p className="mt-3 text-sm text-muted">No candidate theses yet.</p>
           ) : (
             <ul className="mt-3 space-y-2">
               {candidates.map((c) => (
-                <li key={c.slug} className="flex flex-wrap items-baseline gap-x-2">
-                  <Link
-                    href={`/p/${c.slug}`}
-                    className="font-bold text-gold-deep hover:underline"
-                  >
-                    {c.title}
-                  </Link>
-                  {c.parent && (
-                    <span className="text-xs text-muted">— {c.parent.title}</span>
-                  )}
+                <li
+                  key={c.slug}
+                  className="flex items-center gap-3 border border-rule bg-background p-2"
+                >
+                  <VoteWidget
+                    pageId={c.id}
+                    score={c.score}
+                    userVote={c.userVote}
+                    canVote={canVote}
+                  />
+                  <span className="min-w-0">
+                    <Link
+                      href={`/p/${c.slug}`}
+                      className="font-bold text-gold-deep hover:underline"
+                    >
+                      {c.title}
+                    </Link>
+                    {c.article && (
+                      <span className="ml-2 text-xs text-muted">— {c.article.title}</span>
+                    )}
+                  </span>
                 </li>
               ))}
             </ul>
