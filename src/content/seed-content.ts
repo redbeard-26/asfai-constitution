@@ -155,7 +155,7 @@ export const ARTICLES: SeedArticle[] = [
       },
       {
         slug: "limitations-misalignment",
-        title: "Misalignment",
+        title: "No Intentional Misalignment",
         text: "No AI system should be developed that does not hold commonly agreed upon values.",
       },
       {
