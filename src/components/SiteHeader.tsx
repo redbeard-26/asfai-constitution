@@ -28,9 +28,6 @@ export async function SiteHeader() {
           <Link href="/" className="text-muted hover:text-ink">
             About
           </Link>
-          <Link href="/articles" className="text-muted hover:text-ink">
-            Articles
-          </Link>
           <Link href="/theses" className="text-muted hover:text-ink">
             Theses
           </Link>
