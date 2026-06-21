@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma";
 
 const childSelect = {
+  // Candidates may share an article parent but must not appear in the article's
+  // adopted-thesis list (or be numbered as theses).
+  where: { type: { not: "CANDIDATE" } },
   select: { slug: true, title: true, type: true, sortOrder: true },
   orderBy: { sortOrder: "asc" as const },
 };
@@ -92,7 +95,7 @@ export async function getThesisNeighbors(slug: string) {
   );
   const candidates = await prisma.page.findMany({
     where: { type: "CANDIDATE" },
-    orderBy: { createdAt: "asc" },
+    orderBy: [{ parent: { sortOrder: "asc" } }, { createdAt: "asc" }],
     select: { slug: true, title: true, type: true },
   });
 
@@ -304,7 +307,23 @@ export async function getCandidates(userId?: string | null) {
     .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title));
 }
 
-/** Articles (for the candidate-promotion selector). */
+/** Everything for the Theses tab: articles with their adopted theses (in
+ *  order), plus candidate theses (each with its article) listed after. */
+export async function getThesesOverview() {
+  const root = await getNavTree();
+  const candidates = await prisma.page.findMany({
+    where: { type: "CANDIDATE" },
+    orderBy: [{ parent: { sortOrder: "asc" } }, { createdAt: "asc" }],
+    select: {
+      slug: true,
+      title: true,
+      parent: { select: { slug: true, title: true } },
+    },
+  });
+  return { root, candidates };
+}
+
+/** Articles (for the candidate-promotion and candidate-article selectors). */
 export async function getArticleOptions() {
   return prisma.page.findMany({
     where: { type: "ARTICLE" },

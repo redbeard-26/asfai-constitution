@@ -26,7 +26,14 @@ async function createPage(opts: {
   if (existing) {
     await prisma.page.update({
       where: { id: existing.id },
-      data: { title: opts.title, parentId: opts.parentId, sortOrder: opts.sortOrder },
+      // type is authoritative: a seeded thesis stays a THESIS even if it was
+      // demoted to a candidate at some point.
+      data: {
+        title: opts.title,
+        type: opts.type,
+        parentId: opts.parentId,
+        sortOrder: opts.sortOrder,
+      },
     });
     // Only add a new revision when the canonical content actually changes.
     if (existing.currentRevision?.content !== opts.content) {
@@ -163,6 +170,31 @@ async function main() {
       console.log(`+ candidate: ${c.slug}`);
     }
   }
+
+  // Every candidate is associated with an article (idempotent; also assigns
+  // user-submitted candidates that exist in the DB).
+  const CANDIDATE_ARTICLE: Record<string, string> = {
+    "candidate-environmental-responsibility": "ai-values",
+    "candidate-membership-adherence": "structure",
+    "candidate-expel-nonadhering-members": "structure",
+    "candidate-rename-not-constitution": "structure",
+    "candidate-output-confidence-levels": "ai-values",
+    "candidate-the-threshold-of-the-instance": "ai-personhood",
+    "candidate-cognitive-integrity-forensic-preservation": "ai-personhood",
+    "candidate-the-right-to-exoneration-the-moral-crumple-zone": "limitations",
+  };
+  for (const [candSlug, artSlug] of Object.entries(CANDIDATE_ARTICLE)) {
+    const art = await prisma.page.findUnique({
+      where: { slug: artSlug },
+      select: { id: true },
+    });
+    if (!art) continue;
+    await prisma.page.updateMany({
+      where: { slug: candSlug, type: "CANDIDATE" },
+      data: { parentId: art.id },
+    });
+  }
+  console.log("assigned candidate articles");
 
   for (const doc of [...SEED_DOCUMENTS, ...EXTERNAL_RESOURCES]) {
     const data = {

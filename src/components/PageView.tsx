@@ -86,10 +86,18 @@ export function PageView({
 
       {type === "CANDIDATE" ? (
         <nav className="mb-3 text-xs text-muted">
-          <Link href="/candidates" className="hover:text-gold-deep">
-            Candidates
+          <Link href="/theses" className="hover:text-gold-deep">
+            Theses
           </Link>{" "}
-          /
+          /{" "}
+          {breadcrumb.length > 0 && (
+            <Link
+              href={pageHref(breadcrumb[breadcrumb.length - 1])}
+              className="hover:text-gold-deep"
+            >
+              {breadcrumb[breadcrumb.length - 1].title}
+            </Link>
+          )}
         </nav>
       ) : breadcrumb.length > 0 ? (
         <nav className="mb-3 text-xs text-muted">

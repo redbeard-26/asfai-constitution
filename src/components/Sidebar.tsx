@@ -15,7 +15,7 @@ export async function Sidebar({ activeSlug }: { activeSlug: string }) {
 
   return (
     <nav className="text-sm leading-snug">
-      <Link href="/" className={linkCls(activeSlug === root.slug)}>
+      <Link href="/articles" className={linkCls(activeSlug === root.slug)}>
         {root.title}
       </Link>
 

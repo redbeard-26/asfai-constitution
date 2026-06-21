@@ -31,8 +31,8 @@ export async function SiteHeader() {
           <Link href="/articles" className="text-muted hover:text-ink">
             Articles
           </Link>
-          <Link href="/candidates" className="text-muted hover:text-ink">
-            Candidates
+          <Link href="/theses" className="text-muted hover:text-ink">
+            Theses
           </Link>
           <Link href="/docs" className="text-muted hover:text-ink">
             Resources

@@ -23,6 +23,13 @@ export type SeedArticle = {
 
 export const ARTICLES: SeedArticle[] = [
   {
+    slug: "structure",
+    title: "Structure",
+    intro:
+      "How the constitution and its governing organization are structured, adopted, amended, and enforced.",
+    theses: [],
+  },
+  {
     slug: "ai-values",
     title: "AI Values",
     intro: "Foundational values that AI should uphold.",

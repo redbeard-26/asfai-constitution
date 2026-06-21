@@ -542,12 +542,13 @@ export async function castVote(formData: FormData) {
   }
 
   revalidatePath(pageHref(page));
-  revalidatePath("/candidates");
+  revalidatePath("/theses");
 }
 
 const candidateSchema = z.object({
   title: z.string().min(1, "Title is required.").max(200),
   text: z.string().min(1, "Text is required.").max(20000),
+  articleId: z.string().min(1, "Choose an article."),
   caseFor: z.string().max(4000).optional(),
   caseAgainst: z.string().max(4000).optional(),
 });
@@ -558,9 +559,16 @@ export async function createCandidate(formData: FormData) {
   const parsed = candidateSchema.parse({
     title: formData.get("title"),
     text: formData.get("text"),
+    articleId: formData.get("articleId"),
     caseFor: formData.get("caseFor") || undefined,
     caseAgainst: formData.get("caseAgainst") || undefined,
   });
+
+  const article = await prisma.page.findUnique({
+    where: { id: parsed.articleId },
+    select: { id: true, type: true },
+  });
+  if (!article || article.type !== "ARTICLE") throw new Error("Invalid article.");
 
   const slug = await uniquePageSlug(`candidate-${parsed.title}`);
   const page = await prisma.page.create({
@@ -568,6 +576,7 @@ export async function createCandidate(formData: FormData) {
       slug,
       title: parsed.title,
       type: "CANDIDATE",
+      parentId: article.id,
       sortOrder: 0,
       caseFor: parsed.caseFor ?? null,
       caseAgainst: parsed.caseAgainst ?? null,
@@ -587,7 +596,7 @@ export async function createCandidate(formData: FormData) {
   });
   await logAudit(user.id, "CREATE_CANDIDATE", "Page", page.id);
 
-  revalidatePath("/candidates");
+  revalidatePath("/theses");
   redirect(pageHref(page));
 }
 
@@ -618,7 +627,7 @@ export async function promoteCandidate(formData: FormData) {
   });
   await logAudit(mod.id, "PROMOTE_CANDIDATE", "Page", pageId, { articleId });
 
-  revalidatePath("/candidates");
+  revalidatePath("/theses");
   revalidatePath(pageHref(article));
   redirect(`/p/${page.slug}`);
 }
@@ -636,13 +645,15 @@ export async function demoteThesis(formData: FormData) {
     throw new Error("Only a thesis can be demoted to a candidate.");
   }
 
+  // Keep the article association — a demoted thesis becomes a candidate within
+  // the same article.
   await prisma.page.update({
     where: { id: pageId },
-    data: { type: "CANDIDATE", parentId: null, sortOrder: 0 },
+    data: { type: "CANDIDATE", sortOrder: 0 },
   });
   await logAudit(mod.id, "DEMOTE_THESIS", "Page", pageId);
 
-  revalidatePath("/candidates");
+  revalidatePath("/theses");
   if (page.parent) revalidatePath(pageHref(page.parent));
   redirect(`/p/${page.slug}`);
 }

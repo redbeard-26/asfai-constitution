@@ -107,9 +107,12 @@ export default function Home() {
           <Link href="/articles" className="text-gold-deep hover:underline">
             Articles
           </Link>
-          . The broader effort also considers the constitution&apos;s own
-          structure and governing institution; that work is out of scope for this
-          site for now.
+          , or browse every thesis under{" "}
+          <Link href="/theses" className="text-gold-deep hover:underline">
+            Theses
+          </Link>
+          . The constitution&apos;s own structure and governing institution are
+          taken up separately in Article I.
         </p>
       </section>
     </div>

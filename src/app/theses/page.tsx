@@ -1,0 +1,155 @@
+import Link from "next/link";
+import { getThesesOverview, getArticleOptions } from "@/lib/data";
+import { getSessionUser } from "@/lib/session";
+import { createCandidate } from "@/lib/actions";
+import { toRoman } from "@/lib/format";
+
+export default async function ThesesPage() {
+  const user = await getSessionUser();
+  const [{ root, candidates }, articleOptions] = await Promise.all([
+    getThesesOverview(),
+    getArticleOptions(),
+  ]);
+  const articles = root?.children ?? [];
+
+  const field =
+    "w-full border border-rule bg-background p-2 text-sm focus:border-gold focus:outline-none";
+
+  return (
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
+      <div className="section-rule pt-3">
+        <p className="kicker text-xs">All theses</p>
+        <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">Theses</h1>
+      </div>
+      <p className="mt-2 text-sm text-muted">
+        Every thesis, grouped by article, followed by candidate theses proposed
+        for adoption.
+      </p>
+
+      <div className="mt-6">
+        {user ? (
+          <details className="border border-rule bg-panel p-3">
+            <summary className="cursor-pointer text-sm font-bold text-ink">
+              Propose a candidate thesis
+            </summary>
+            <form action={createCandidate} className="mt-3 space-y-2">
+              <input
+                name="title"
+                required
+                maxLength={200}
+                placeholder="Short title, e.g. 'Environmental Responsibility'"
+                className={field}
+              />
+              <select name="articleId" required defaultValue="" className={field}>
+                <option value="" disabled>
+                  Choose an article…
+                </option>
+                {articleOptions.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.title}
+                  </option>
+                ))}
+              </select>
+              <textarea
+                name="text"
+                required
+                rows={4}
+                placeholder="The proposed thesis text…"
+                className={field}
+              />
+              <textarea
+                name="caseFor"
+                rows={3}
+                maxLength={4000}
+                placeholder="The case for including this (optional)"
+                className={field}
+              />
+              <textarea
+                name="caseAgainst"
+                rows={3}
+                maxLength={4000}
+                placeholder="The case for changing or excluding this (optional)"
+                className={field}
+              />
+              <button
+                type="submit"
+                className="rounded bg-gold-deep px-3 py-1.5 text-sm font-bold text-background hover:bg-gold"
+              >
+                Submit candidate
+              </button>
+            </form>
+          </details>
+        ) : (
+          <p className="border border-rule bg-panel p-3 text-sm text-muted">
+            <Link href="/signin" className="text-gold-deep hover:underline">
+              Sign in
+            </Link>{" "}
+            to propose a candidate thesis or vote.
+          </p>
+        )}
+      </div>
+
+      <div className="mt-8 space-y-8">
+        {articles.map((article, i) => (
+          <section key={article.slug}>
+            <div className="section-rule pt-3">
+              <p className="kicker text-xs">Article {toRoman(i + 1)}</p>
+              <h2 className="mt-1 text-xl font-bold text-ink">
+                <Link href={`/p/${article.slug}`} className="hover:text-gold-deep">
+                  {article.title}
+                </Link>
+              </h2>
+            </div>
+            {article.children.length === 0 ? (
+              <p className="mt-3 text-sm text-muted">No adopted theses yet.</p>
+            ) : (
+              <ol className="mt-3 space-y-2">
+                {article.children.map((t, j) => (
+                  <li key={t.slug} className="flex gap-3">
+                    <span className="text-muted">{j + 1}.</span>
+                    <Link
+                      href={`/p/${t.slug}`}
+                      className="font-bold text-gold-deep hover:underline"
+                    >
+                      {t.title}
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+        ))}
+
+        <section>
+          <div className="section-rule pt-3">
+            <p className="kicker text-xs">Candidates</p>
+            <h2 className="mt-1 text-xl font-bold text-ink">Candidate Theses</h2>
+          </div>
+          <p className="mt-1 text-sm text-muted">
+            Proposed theses not yet adopted into an article. Open each to vote;
+            moderators promote the strongest into an article or remove them.
+          </p>
+          {candidates.length === 0 ? (
+            <p className="mt-3 text-sm text-muted">No candidate theses yet.</p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {candidates.map((c) => (
+                <li key={c.slug} className="flex flex-wrap items-baseline gap-x-2">
+                  <Link
+                    href={`/p/${c.slug}`}
+                    className="font-bold text-gold-deep hover:underline"
+                  >
+                    {c.title}
+                  </Link>
+                  {c.parent && (
+                    <span className="text-xs text-muted">— {c.parent.title}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}

@@ -368,10 +368,13 @@ const handler = createMcpHandler(
       {
         title: "Propose a candidate thesis",
         description:
-          "Submit a new candidate thesis (uncategorized). It appears immediately on the candidates list for community voting. Acts as the user identified by email.",
+          "Submit a new candidate thesis associated with an article. It appears immediately on the Theses list for community voting. Acts as the user identified by email.",
         inputSchema: {
           title: z.string().min(1).max(200),
           text: z.string().min(1).max(20000),
+          article: z
+            .string()
+            .describe("Slug of the article this candidate belongs to (see get_constitution)"),
           caseFor: z
             .string()
             .max(4000)
@@ -385,7 +388,14 @@ const handler = createMcpHandler(
           email: z.string().email().describe("Email identifying the proposer"),
         },
       },
-      async ({ title, text, caseFor, caseAgainst, email }) => {
+      async ({ title, text, article, caseFor, caseAgainst, email }) => {
+        const articlePage = await prisma.page.findUnique({
+          where: { slug: article },
+          select: { id: true, type: true },
+        });
+        if (!articlePage || articlePage.type !== "ARTICLE") {
+          return err(`No article '${article}'. Use get_constitution to list article slugs.`);
+        }
         const user = await resolveUser(email);
         const slug = await uniqueCandidateSlug(title);
         const page = await prisma.page.create({
@@ -393,6 +403,7 @@ const handler = createMcpHandler(
             slug,
             title,
             type: "CANDIDATE",
+            parentId: articlePage.id,
             sortOrder: 0,
             caseFor: caseFor ?? null,
             caseAgainst: caseAgainst ?? null,
