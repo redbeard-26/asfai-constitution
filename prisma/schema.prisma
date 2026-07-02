@@ -219,3 +219,20 @@ model AuditLog {
 
   actor User? @relation(fields: [actorId], references: [id])
 }
+
+// AI Personhood Tracker — scored questions across two axes (SOCIAL integration
+// and CONSCIOUSNESS likelihood). Each axis score is the quadratic mean of its
+// questions' ratings; the pair plots against the "personhood horizon".
+model TrackerQuestion {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  category    String // SOCIAL | CONSCIOUSNESS
+  sortOrder   Int      @default(0)
+  question    String
+  rating      Int      @default(0) // 0-100
+  explanation String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+}

@@ -5,6 +5,7 @@ import { SEED_DOCUMENTS } from "../src/content/documents";
 import { EXTERNAL_RESOURCES } from "../src/content/external-resources";
 import { THESIS_LINKS } from "../src/content/thesis-links";
 import { THESIS_SUMMARIES } from "../src/content/thesis-summaries";
+import { TRACKER_QUESTIONS } from "../src/content/personhood-tracker";
 import { adminEmails } from "../src/lib/env";
 
 const seededSlugs = new Set<string>();
@@ -274,6 +275,25 @@ async function main() {
     appliedSummaries += updated.count;
   }
   console.log(`applied ${appliedSummaries} thesis summaries`);
+
+  // Personhood tracker questions (create-if-absent so live rating edits persist).
+  let trackerCreated = 0;
+  for (const [i, q] of TRACKER_QUESTIONS.entries()) {
+    if (!(await prisma.trackerQuestion.findUnique({ where: { key: q.key } }))) {
+      await prisma.trackerQuestion.create({
+        data: {
+          key: q.key,
+          category: q.category,
+          sortOrder: i,
+          question: q.question,
+          rating: q.rating,
+          explanation: q.explanation,
+        },
+      });
+      trackerCreated++;
+    }
+  }
+  console.log(`+ tracker questions created: ${trackerCreated}`);
 
   for (const email of adminEmails) {
     await prisma.user.upsert({

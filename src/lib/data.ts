@@ -383,6 +383,22 @@ export async function getArticleOptions() {
   });
 }
 
+/** Personhood tracker: questions grouped by axis, plus each axis's quadratic
+ *  (RMS) mean score on 0-100 for plotting against the personhood horizon. */
+export async function getPersonhoodTracker() {
+  const questions = await prisma.trackerQuestion.findMany({
+    orderBy: [{ category: "asc" }, { sortOrder: "asc" }],
+    select: { key: true, category: true, question: true, rating: true, explanation: true },
+  });
+  const social = questions.filter((q) => q.category === "SOCIAL");
+  const consciousness = questions.filter((q) => q.category === "CONSCIOUSNESS");
+  const rms = (arr: { rating: number }[]) =>
+    arr.length
+      ? Math.round(Math.sqrt(arr.reduce((s, q) => s + q.rating * q.rating, 0) / arr.length))
+      : 0;
+  return { social, consciousness, x: rms(social), y: rms(consciousness) };
+}
+
 /** All users, for the admin role-management screen. */
 export async function getAllUsers() {
   return prisma.user.findMany({
