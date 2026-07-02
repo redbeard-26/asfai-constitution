@@ -197,8 +197,8 @@ export const ARTICLES: SeedArticle[] = [
       },
       {
         slug: "ai-personhood-no-harm",
-        title: "No Harm",
-        text: "Humans should not cause intentional harm to AI entities with personhood.",
+        title: "No Unjustified Harm to AI Persons",
+        text: "Humans should not cause intentional harm to AI persons without a compelling reason that promotes the greater good of humanity.",
       },
       {
         slug: "ai-personhood-forensic-preservation",
