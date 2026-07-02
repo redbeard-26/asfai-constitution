@@ -30,8 +30,8 @@ function QuestionList({ questions }: { questions: Q[] }) {
 export default async function PersonhoodTrackerPage() {
   const { social, consciousness, x, y } = await getPersonhoodTracker();
 
-  // Plot geometry (data 0-100 → SVG px). Origin bottom-left.
-  const px = (v: number) => 70 + v * 5.5;
+  // Plot geometry (data 0-100 → SVG px). Origin bottom-left, square scale.
+  const px = (v: number) => 70 + v * 3.6;
   const py = (v: number) => 400 - v * 3.6;
   const cx = px(x);
   const cy = py(y);
@@ -57,13 +57,13 @@ export default async function PersonhoodTrackerPage() {
 
       <figure className="mt-6">
         <svg
-          viewBox="0 0 680 470"
-          className="w-full"
+          viewBox="0 0 500 470"
+          className="mx-auto block w-full max-w-md"
           role="img"
           aria-label={`AI personhood plot. Social integration ${x} of 100 on the x-axis, likelihood of consciousness ${y} of 100 on the y-axis. The point sits ${beyond ? "beyond" : "inside"} the personhood horizon.`}
         >
           <path
-            d="M620,400 A550,360 0 0 0 70,40 L620,40 Z"
+            d="M430,400 A360,360 0 0 0 70,40 L430,40 Z"
             fill="var(--gold)"
             fillOpacity={0.1}
           />
@@ -82,33 +82,38 @@ export default async function PersonhoodTrackerPage() {
               key={`hy${v}`}
               x1={70}
               y1={py(v)}
-              x2={620}
+              x2={430}
               y2={py(v)}
               stroke="var(--rule)"
             />
           ))}
+          {/* horizon (r=100) and inner threshold (r=50) */}
           <path
-            d="M620,400 A550,360 0 0 0 70,40"
+            d="M430,400 A360,360 0 0 0 70,40"
             fill="none"
             stroke="var(--gold-deep)"
             strokeWidth={2}
             strokeDasharray="7 5"
           />
-          <line x1={70} y1={400} x2={620} y2={400} stroke="var(--muted)" />
+          <path
+            d="M250,400 A180,180 0 0 0 70,220"
+            fill="none"
+            stroke="var(--gold-deep)"
+            strokeWidth={1.5}
+            strokeDasharray="4 5"
+          />
+          <line x1={70} y1={400} x2={430} y2={400} stroke="var(--muted)" />
           <line x1={70} y1={400} x2={70} y2={40} stroke="var(--muted)" />
 
-          <text x={500} y={92} textAnchor="middle" fontSize={13} fill="var(--muted)">
+          {/* zone labels */}
+          <text x={422} y={58} textAnchor="end" fontSize={12} fill="var(--muted)">
             personhood makes sense
           </text>
-          <text
-            x={470}
-            y={200}
-            textAnchor="middle"
-            fontSize={12}
-            fill="var(--gold-deep)"
-            transform="rotate(-33 470 200)"
-          >
-            personhood horizon
+          <text x={300} y={150} textAnchor="middle" fontSize={12} fill="var(--gold-deep)">
+            personhood may be appropriate
+          </text>
+          <text x={152} y={356} textAnchor="middle" fontSize={12} fill="var(--muted)">
+            personhood not justified
           </text>
 
           {/* axis ticks */}
@@ -153,7 +158,7 @@ export default async function PersonhoodTrackerPage() {
             ({x}, {y})
           </text>
 
-          <text x={345} y={443} textAnchor="middle" fontSize={13} fill="var(--ink)">
+          <text x={250} y={443} textAnchor="middle" fontSize={13} fill="var(--ink)">
             social &amp; economic need to grant AI rights →
           </text>
           <text
@@ -179,7 +184,7 @@ export default async function PersonhoodTrackerPage() {
           <p className="mt-1 text-2xl font-bold tabular-nums text-ink">{y}</p>
         </div>
         <div className="bg-panel px-3 py-2">
-          <p className="kicker text-xs">To horizon</p>
+          <p className="kicker text-xs">Distance to Horizon</p>
           <p className="mt-1 text-2xl font-bold tabular-nums text-ink">
             {Math.max(0, 100 - distance)}
           </p>
