@@ -108,8 +108,8 @@ export default async function PersonhoodTrackerPage() {
             d="M250,400 A180,180 0 0 0 70,220"
             fill="none"
             stroke="var(--gold-deep)"
-            strokeWidth={1.5}
-            strokeDasharray="4 5"
+            strokeWidth={2}
+            strokeDasharray="7 5"
           />
           <line x1={70} y1={400} x2={430} y2={400} stroke="var(--muted)" />
           <line x1={70} y1={400} x2={70} y2={40} stroke="var(--muted)" />
@@ -118,7 +118,7 @@ export default async function PersonhoodTrackerPage() {
           <text x={422} y={58} textAnchor="end" fontSize={12} fill="var(--ink)">
             personhood makes sense
           </text>
-          <text x={px(30)} y={py(50)} textAnchor="start" fontSize={12} fill="var(--ink)">
+          <text x={px(28)} y={py(52)} textAnchor="start" fontSize={12} fill="var(--ink)">
             personhood may be appropriate
           </text>
           <text x={152} y={356} textAnchor="middle" fontSize={12} fill="var(--ink)">
@@ -160,11 +160,8 @@ export default async function PersonhoodTrackerPage() {
             stroke="var(--background)"
             strokeWidth={2}
           />
-          <text x={cx + 14} y={cy - 3} fontSize={13} fill="var(--ink)">
+          <text x={cx - 14} y={cy + 4} textAnchor="end" fontSize={13} fill="var(--ink)">
             today
-          </text>
-          <text x={cx + 14} y={cy + 13} fontSize={12} fill="var(--muted)">
-            ({x}, {y})
           </text>
 
           <text x={250} y={443} textAnchor="middle" fontSize={13} fill="var(--ink)">
@@ -178,7 +175,7 @@ export default async function PersonhoodTrackerPage() {
             fill="var(--ink)"
             transform="rotate(-90 26 220)"
           >
-            confidence AI is a sentient moral patient →
+            AI is a sentient moral patient →
           </text>
         </svg>
       </figure>
