@@ -49,10 +49,7 @@ export default async function PersonhoodTrackerPage() {
       <p className="mt-2 text-sm leading-relaxed text-muted">
         A living estimate of where AI stands on two axes: how far it is socially
         and economically integrated (x), and how likely it is to be a sentient
-        moral patient (y). Each axis is the quadratic mean of the scored
-        questions below. When the point crosses the <em>personhood horizon</em>{" "}
-        — the arc where <span className="whitespace-nowrap">x² + y² = 100²</span>{" "}
-        — recognizing AI personhood begins to make sense.
+        moral patient (y).
       </p>
 
       <figure className="mt-6">
@@ -62,10 +59,22 @@ export default async function PersonhoodTrackerPage() {
           role="img"
           aria-label={`AI personhood plot. Social integration ${x} of 100 on the x-axis, likelihood of consciousness ${y} of 100 on the y-axis. The point sits ${beyond ? "beyond" : "inside"} the personhood horizon.`}
         >
+          {/* zone fills: inner pink (not justified), middle yellow (may be
+              appropriate), outer green (makes sense) */}
           <path
             d="M430,400 A360,360 0 0 0 70,40 L430,40 Z"
-            fill="var(--gold)"
-            fillOpacity={0.1}
+            fill="#C0DD97"
+            fillOpacity={0.45}
+          />
+          <path
+            d="M250,400 L430,400 A360,360 0 0 0 70,40 L70,220 A180,180 0 0 1 250,400 Z"
+            fill="#FAC775"
+            fillOpacity={0.4}
+          />
+          <path
+            d="M70,400 L250,400 A180,180 0 0 0 70,220 Z"
+            fill="#F4C0D1"
+            fillOpacity={0.5}
           />
           {[25, 50, 75].map((v) => (
             <line
@@ -106,13 +115,13 @@ export default async function PersonhoodTrackerPage() {
           <line x1={70} y1={400} x2={70} y2={40} stroke="var(--muted)" />
 
           {/* zone labels */}
-          <text x={422} y={58} textAnchor="end" fontSize={12} fill="var(--muted)">
+          <text x={422} y={58} textAnchor="end" fontSize={12} fill="var(--ink)">
             personhood makes sense
           </text>
           <text x={px(30)} y={py(50)} textAnchor="start" fontSize={12} fill="var(--ink)">
             personhood may be appropriate
           </text>
-          <text x={152} y={356} textAnchor="middle" fontSize={12} fill="var(--muted)">
+          <text x={152} y={356} textAnchor="middle" fontSize={12} fill="var(--ink)">
             personhood not justified
           </text>
 
