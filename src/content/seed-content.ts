@@ -188,7 +188,7 @@ export const ARTICLES: SeedArticle[] = [
       {
         slug: "ai-personhood-persons",
         title: "AI Can Be Persons",
-        text: "AI can achieve a degree of integration in society that entitles them to personhood.",
+        text: "AI entities can achieve a degree of moral relevance or social integration that entitles them to personhood.",
       },
       {
         slug: "ai-personhood-non-person-rights",
