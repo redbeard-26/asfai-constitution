@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
 import { getPendingProposalCount, getPendingDocumentCount } from "@/lib/data";
-import { isModerator, isAdmin } from "@/lib/constants";
+import { isModerator } from "@/lib/constants";
 
 export async function SiteHeader() {
   const session = await auth();
   const user = session?.user;
   const mod = isModerator(user?.role);
-  const admin = isAdmin(user?.role);
   const pending = mod
     ? (await getPendingProposalCount()) + (await getPendingDocumentCount())
     : 0;
@@ -31,14 +30,8 @@ export async function SiteHeader() {
           <Link href="/theses" className="text-muted hover:text-ink">
             Theses
           </Link>
-          <Link href="/personhood-tracker" className="text-muted hover:text-ink">
-            Personhood Tracker
-          </Link>
           <Link href="/docs" className="text-muted hover:text-ink">
             Resources
-          </Link>
-          <Link href="/connect" className="text-muted hover:text-ink">
-            AI Connector
           </Link>
           {mod && (
             <Link href="/moderation" className="text-muted hover:text-ink">
@@ -48,11 +41,6 @@ export async function SiteHeader() {
                   {pending}
                 </span>
               )}
-            </Link>
-          )}
-          {admin && (
-            <Link href="/admin/users" className="text-muted hover:text-ink">
-              Admin
             </Link>
           )}
 

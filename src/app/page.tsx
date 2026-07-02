@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ConnectorGuide } from "@/components/ConnectorGuide";
 
 const TOPICS = [
   {
@@ -115,6 +116,8 @@ export default function Home() {
           taken up separately in Article I.
         </p>
       </section>
+
+      <ConnectorGuide />
     </div>
   );
 }

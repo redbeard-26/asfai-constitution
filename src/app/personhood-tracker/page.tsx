@@ -58,7 +58,7 @@ export default async function PersonhoodTrackerPage() {
       <figure className="mt-6">
         <svg
           viewBox="0 0 500 470"
-          className="mx-auto block w-full max-w-md"
+          className="mx-auto block w-full max-w-2xl"
           role="img"
           aria-label={`AI personhood plot. Social integration ${x} of 100 on the x-axis, likelihood of consciousness ${y} of 100 on the y-axis. The point sits ${beyond ? "beyond" : "inside"} the personhood horizon.`}
         >
@@ -109,7 +109,7 @@ export default async function PersonhoodTrackerPage() {
           <text x={422} y={58} textAnchor="end" fontSize={12} fill="var(--muted)">
             personhood makes sense
           </text>
-          <text x={300} y={150} textAnchor="middle" fontSize={12} fill="var(--gold-deep)">
+          <text x={px(30)} y={py(50)} textAnchor="start" fontSize={12} fill="var(--ink)">
             personhood may be appropriate
           </text>
           <text x={152} y={356} textAnchor="middle" fontSize={12} fill="var(--muted)">

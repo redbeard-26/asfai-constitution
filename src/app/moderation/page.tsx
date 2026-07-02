@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { getPendingProposals, getPendingDocuments } from "@/lib/data";
 import { getSessionUser } from "@/lib/session";
-import { isModerator, pageHref, PAGE_TYPE_LABEL, type PageType } from "@/lib/constants";
+import { isModerator, isAdmin, pageHref, PAGE_TYPE_LABEL, type PageType } from "@/lib/constants";
 import { approveProposal, rejectProposal, approveDocument, deleteDocument } from "@/lib/actions";
 import { Diff } from "@/components/Diff";
+import { AdminUsersPanel } from "@/components/AdminUsersPanel";
 import { formatDate, formatDateTime, displayName } from "@/lib/format";
 
 export default async function ModerationPage() {
@@ -191,6 +192,8 @@ export default async function ModerationPage() {
           Nothing to review right now.
         </p>
       )}
+
+      {isAdmin(user?.role) && <AdminUsersPanel meId={user!.id} />}
     </div>
   );
 }
