@@ -98,7 +98,7 @@ export default function AutonomousTargetingPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/autonomy-zone-map.svg"
-            alt="Animated autonomy zone map of sector 88–95, cycling between T+0 and T+24h. Grid cells are rated green (level 1), amber (level 2), or red (level 3); filled cells are active. Four autonomous drones operate in green cells around the front line as it advances east through a village."
+            alt="Animated autonomy zone map of sector 88–95, cycling between T+0 and T+24h. Grid cells are rated green (level 1), amber (level 2), or red (level 3); filled cells are active. Autonomous drones are blue with a border showing their certified level: green-rated drones stay in active green cells, a yellow-rated drone works the amber box, and a red-rated drone operates in an active red cell within the village as the front advances east."
             className="mx-auto block w-full max-w-2xl"
           />
           <figcaption className="mt-2 text-center text-xs text-muted">
