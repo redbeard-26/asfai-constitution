@@ -19,11 +19,11 @@ const DIRS8 = [
   [1, 1],
 ] as const;
 
-const RATING_COLOR: Record<number, string> = { 1: "#639922", 2: "#EF9F27", 3: "#E24B4A" };
+const RATING_COLOR: Record<number, string> = { 1: "#639922", 2: "#EF9F27", 3: "#B0348C" };
 const RATING_TINT: Record<number, string> = {
   1: "rgba(151,196,89,0.50)",
   2: "rgba(239,159,39,0.42)",
-  3: "rgba(240,149,149,0.55)",
+  3: "rgba(176,52,140,0.40)",
 };
 const DRONE_PRECISION: Record<number, number> = { 1: 0.75, 2: 0.88, 3: 0.97 };
 const HUMAN_PRECISION = 0.88;
@@ -373,7 +373,7 @@ function Marker({ u, onEdit, extra }: { u: Unit; onEdit?: () => void; extra?: Re
   const border = friendly && drone ? `2px solid ${RATING_COLOR[u.rating]}` : `2px solid ${BLACK}`;
   return (
     <span
-      title={`${u.side} ${u.kind}${drone && friendly ? ` · rated ${["", "G", "Y", "R"][u.rating]}` : ""}`}
+      title={`${u.side} ${u.kind}${drone && friendly ? ` · rated ${["", "G", "Y", "P"][u.rating]}` : ""}`}
       onClick={editable ? (e) => { e.stopPropagation(); onEdit!(); } : undefined}
       style={{
         width: US,
@@ -607,7 +607,7 @@ export default function AutonomousTargetingGame() {
                     >
                       <button
                         onClick={(e) => { e.stopPropagation(); cycleRating(r, c); }}
-                        title="rating requirement (cycles green/yellow/red)"
+                        title="rating requirement (cycles green/yellow/purple)"
                         style={{ position: "absolute", top: 3, left: 3, width: 18, height: 18, background: RATING_COLOR[cell.rating], border: "none", borderRadius: 3, cursor: "pointer" }}
                       />
                       <span style={{ position: "absolute", top: 2, right: 2, pointerEvents: "none" }}>
