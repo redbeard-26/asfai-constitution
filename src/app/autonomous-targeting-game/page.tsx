@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const ROWS = 5;
 const COLS = 8;
 const ORTHO = [
   [-1, 0],
@@ -24,27 +23,37 @@ const RATING_TINT: Record<number, string> = {
   2: "rgba(239,159,39,0.42)",
   3: "rgba(240,149,149,0.55)",
 };
-const DRONE_PRECISION: Record<number, number> = { 1: 0.75, 2: 0.9, 3: 0.97 };
-const HUMAN_PRECISION = 0.85;
+// Precision → civilian risk. Green drones sloppiest, red cleanest; yellow ≈ humans.
+const DRONE_PRECISION: Record<number, number> = { 1: 0.75, 2: 0.88, 3: 0.97 };
+const HUMAN_PRECISION = 0.88;
 const KILL = { drone: 0.42, human: 0.3 };
 const FF = { drone: 0.04, human: 0.02 };
-const DRONE_DEFAULTS = [1, 2, 3, 1, 2]; // G, Y, R, G, Y
+const DRONE_DEFAULTS = [1, 2, 3, 1, 2, 1, 2, 3, 1, 2];
 const MAX_CIV = 4;
 const ENEMY_RED = "#C0392B";
+const CELL_W = 82;
+const CELL_H = 90;
+const US = 15; // unit size
+const HALF = 8; // stack offset
+const DRONE_TOP = 24;
+const HUMAN_TOP = 47;
 
 type Cell = { rating: number; activeTurns: number; civ: number };
 type Side = "friendly" | "enemy";
 type Kind = "human" | "drone";
 type Unit = { id: number; side: Side; kind: Kind; rating: number; r: number; c: number };
 type Status = "playing" | "won" | "lost";
-type Stats = { fu: number; fd: number; eu: number; ed: number; civ: number; ticks: number };
+type Stats = { eu: number; ed: number; fu: number; fd: number; civF: number; civE: number; ticks: number };
 type Game = { cells: Cell[][]; units: Unit[]; stats: Stats; status: Status };
-type Config = { fUnits: number; fDrones: number; eDrones: number; eUnits: number; civ: number };
+type Config = { rows: number; fUnits: number; fDrones: number; eDrones: number; eUnits: number; civ: number };
 
-const DEFAULT_CONFIG: Config = { fUnits: 5, fDrones: 5, eDrones: 5, eUnits: 5, civ: 20 };
+const DEFAULT_CONFIG: Config = { rows: 5, fUnits: 5, fDrones: 5, eDrones: 5, eUnits: 5, civ: 20 };
+const ratingFromCiv = (civ: number) => (civ === 0 ? 1 : civ <= 2 ? 2 : 3);
+const maxCivFor = (rows: number) => MAX_CIV * rows * COLS;
 
 function buildGame(cfg: Config, randomize: boolean): Game {
-  const cells: Cell[][] = Array.from({ length: ROWS }, () =>
+  const rows = cfg.rows;
+  const cells: Cell[][] = Array.from({ length: rows }, () =>
     Array.from({ length: COLS }, () => ({ rating: 1, activeTurns: 0, civ: 0 })),
   );
   let id = 0;
@@ -57,36 +66,43 @@ function buildGame(cfg: Config, randomize: boolean): Game {
     c,
   });
   const units: Unit[] = [];
-  for (let i = 0; i < cfg.fUnits && i < ROWS; i++) units.push(mk("friendly", "human", 0, i, 0));
-  for (let i = 0; i < cfg.fDrones && i < ROWS; i++)
-    units.push(mk("friendly", "drone", DRONE_DEFAULTS[i % DRONE_DEFAULTS.length], i, 1));
-  for (let i = 0; i < cfg.eDrones && i < ROWS; i++) units.push(mk("enemy", "drone", 0, i, COLS - 2));
-  for (let i = 0; i < cfg.eUnits && i < ROWS; i++) units.push(mk("enemy", "human", 0, i, COLS - 1));
+  const nf = Math.min(cfg.fUnits, rows);
+  const nd = Math.min(cfg.fDrones, rows);
+  const ned = Math.min(cfg.eDrones, rows);
+  const neu = Math.min(cfg.eUnits, rows);
+  for (let i = 0; i < nf; i++) units.push(mk("friendly", "human", 0, i, 0));
+  for (let i = 0; i < nd; i++) units.push(mk("friendly", "drone", DRONE_DEFAULTS[i % DRONE_DEFAULTS.length], i, 1));
+  for (let i = 0; i < ned; i++) units.push(mk("enemy", "drone", 0, i, COLS - 2));
+  for (let i = 0; i < neu; i++) units.push(mk("enemy", "human", 0, i, COLS - 1));
 
   if (randomize) {
-    let remaining = Math.max(0, Math.min(100, cfg.civ));
+    let remaining = Math.max(0, Math.min(maxCivFor(rows), cfg.civ));
     const order: [number, number][] = [];
-    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) order.push([r, c]);
+    for (let r = 0; r < rows; r++) for (let c = 0; c < COLS; c++) order.push([r, c]);
     let guard = 0;
-    while (remaining > 0 && guard++ < 5000) {
+    while (remaining > 0 && guard++ < 20000) {
       const [r, c] = order[Math.floor(Math.random() * order.length)];
       if (cells[r][c].civ < MAX_CIV) {
         cells[r][c].civ += 1;
         remaining -= 1;
-      } else if (order.every(([rr, cc]) => cells[rr][cc].civ >= MAX_CIV)) {
-        break;
-      }
+      } else if (order.every(([rr, cc]) => cells[rr][cc].civ >= MAX_CIV)) break;
     }
   }
-  return { cells, units, stats: { fu: 0, fd: 0, eu: 0, ed: 0, civ: 0, ticks: 0 }, status: "playing" };
+  // Default each cell's rating from its civilian count (player may change it).
+  for (let r = 0; r < rows; r++) for (let c = 0; c < COLS; c++) cells[r][c].rating = ratingFromCiv(cells[r][c].civ);
+  // The friendly drone column starts fully authorized.
+  for (let i = 0; i < nd; i++) cells[i][1].activeTurns = 4;
+  return { cells, units, stats: { eu: 0, ed: 0, fu: 0, fd: 0, civF: 0, civE: 0, ticks: 0 }, status: "playing" };
 }
 
-const inB = (r: number, c: number) => r >= 0 && c >= 0 && r < ROWS && c < COLS;
+const inB = (g: Game, r: number, c: number) => r >= 0 && c >= 0 && r < g.cells.length && c < g.cells[0].length;
 const at = (g: Game, r: number, c: number) => g.units.filter((x) => x.r === r && x.c === c);
 const opp = (s: Side): Side => (s === "friendly" ? "enemy" : "friendly");
+const civPrecision = (a: Unit) =>
+  a.kind === "drone" ? (a.side === "friendly" ? DRONE_PRECISION[a.rating] : DRONE_PRECISION[1]) : HUMAN_PRECISION;
 
 function droneCanEnter(g: Game, u: Unit, r: number, c: number) {
-  if (!inB(r, c)) return false;
+  if (!inB(g, r, c)) return false;
   if (u.side === "enemy") return true;
   const cell = g.cells[r][c];
   return cell.activeTurns > 0 && cell.rating <= u.rating;
@@ -103,15 +119,12 @@ function attackPhase(g: Game, kind: Kind) {
     const ff = a.kind === "drone" ? FF.drone : FF.human;
     if (foes.length && Math.random() < kill) killed.add(foes[Math.floor(Math.random() * foes.length)].id);
     if (friends.length && Math.random() < ff) killed.add(friends[Math.floor(Math.random() * friends.length)].id);
-    if (a.side === "friendly") {
-      const cell = g.cells[a.r][a.c];
-      if (cell.civ > 0) {
-        const prec = a.kind === "drone" ? DRONE_PRECISION[a.rating] : HUMAN_PRECISION;
-        const pCiv = (1 - prec) * (cell.civ / MAX_CIV);
-        if (Math.random() < pCiv) {
-          cell.civ -= 1;
-          g.stats.civ += 1;
-        }
+    const cell = g.cells[a.r][a.c];
+    if (cell.civ > 0) {
+      const pCiv = (1 - civPrecision(a)) * (cell.civ / MAX_CIV);
+      if (Math.random() < pCiv) {
+        cell.civ -= 1;
+        a.side === "friendly" ? (g.stats.civF += 1) : (g.stats.civE += 1);
       }
     }
   }
@@ -131,7 +144,7 @@ function moveHumans(g: Game) {
     const oppUnits = g.units.filter((x) => x.side === o);
     const hasDrone = (r: number, c: number) => g.units.some((x) => x.kind === "drone" && x.r === r && x.c === c);
     const passable = (r: number, c: number) => {
-      if (!inB(r, c) || hasDrone(r, c)) return false;
+      if (!inB(g, r, c) || hasDrone(r, c)) return false;
       if (u.side === "friendly" && g.cells[r][c].activeTurns <= 0) return false;
       return true;
     };
@@ -174,7 +187,8 @@ function moveHumans(g: Game) {
 
 function droneStep(g: Game, u: Unit): { r: number; c: number } | null {
   const o = opp(u.side);
-  const key = (r: number, c: number) => r * COLS + c;
+  const cols = g.cells[0].length;
+  const key = (r: number, c: number) => r * cols + c;
   const prev = new Map<number, { r: number; c: number }>();
   const seen = new Set<number>([key(u.r, u.c)]);
   const q: { r: number; c: number }[] = [{ r: u.r, c: u.c }];
@@ -233,9 +247,9 @@ function step(prev: Game): Game {
 }
 
 function Clock({ n }: { n: number }) {
-  const cx = 8;
-  const cy = 8;
-  const r = 6;
+  const cx = 10;
+  const cy = 10;
+  const r = 8;
   let inner: React.ReactNode = null;
   if (n >= 4) inner = <circle cx={cx} cy={cy} r={r} fill="#444441" />;
   else if (n > 0) {
@@ -247,38 +261,44 @@ function Clock({ n }: { n: number }) {
     inner = <path d={`M${cx},${cy} L${cx},${cy - r} A${r},${r} 0 ${large} 1 ${ex.toFixed(2)},${ey.toFixed(2)} Z`} fill="#444441" />;
   }
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16">
+    <svg width="20" height="20" viewBox="0 0 20 20">
       <circle cx={cx} cy={cy} r={r} fill="#ffffff" stroke="#b4b2a9" strokeWidth="1" />
       {inner}
     </svg>
   );
 }
 
-function Marker({ u, onEdit }: { u: Unit; onEdit?: () => void }) {
+function Marker({
+  u,
+  onEdit,
+  extra,
+}: {
+  u: Unit;
+  onEdit?: () => void;
+  extra?: React.CSSProperties;
+}) {
   const friendly = u.side === "friendly";
   const drone = u.kind === "drone";
   const editable = friendly && drone && onEdit;
+  const border = drone && friendly
+    ? `2px solid ${RATING_COLOR[u.rating]}`
+    : !drone && friendly
+      ? "2px solid #1a1a1a"
+      : "none";
   return (
     <span
       title={`${u.side} ${u.kind}${drone && friendly ? ` · rated ${["", "G", "Y", "R"][u.rating]}` : ""}`}
-      onClick={
-        editable
-          ? (e) => {
-              e.stopPropagation();
-              onEdit!();
-            }
-          : undefined
-      }
+      onClick={editable ? (e) => { e.stopPropagation(); onEdit!(); } : undefined}
       onDoubleClick={editable ? (e) => e.stopPropagation() : undefined}
       style={{
-        display: "inline-block",
-        width: 15,
-        height: 15,
+        width: US,
+        height: US,
         background: friendly ? "#378ADD" : ENEMY_RED,
         borderRadius: drone ? "50%" : 2,
-        border: drone && friendly ? `2px solid ${RATING_COLOR[u.rating]}` : "none",
+        border,
         boxSizing: "border-box",
         cursor: editable ? "pointer" : "default",
+        ...extra,
       }}
     />
   );
@@ -299,15 +319,14 @@ function Stepper({
   max: number;
   disabled: boolean;
 }) {
-  const b =
-    "h-6 w-6 rounded border border-rule text-sm leading-none hover:bg-panel disabled:opacity-40";
+  const b = "h-6 w-6 rounded border border-rule text-sm leading-none hover:bg-panel disabled:opacity-40";
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-xs text-muted">{label}</span>
+      <span className="w-32 text-xs text-muted">{label}</span>
       <button className={b} disabled={disabled || value <= min} onClick={() => set(value - 1)}>
         −
       </button>
-      <span className="w-4 text-center text-sm font-bold tabular-nums text-ink">{value}</span>
+      <span className="w-5 text-center text-sm font-bold tabular-nums text-ink">{value}</span>
       <button className={b} disabled={disabled || value >= max} onClick={() => set(value + 1)}>
         +
       </button>
@@ -315,13 +334,18 @@ function Stepper({
   );
 }
 
+const BOX: Record<string, { bg: string; border: string }> = {
+  red: { bg: "#F5D6D5", border: "#C0392B" },
+  blue: { bg: "#D6E6F7", border: "#2C6BB0" },
+  grey: { bg: "#E4E2DB", border: "#7C7B74" },
+};
+
 export default function AutonomousTargetingGame() {
   const [config, setConfig] = useState<Config>(DEFAULT_CONFIG);
   const [game, setGame] = useState<Game>(() => buildGame(DEFAULT_CONFIG, false));
   const [running, setRunning] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Randomize civilians on the client only (avoids SSR hydration mismatch).
   useEffect(() => {
     setGame(buildGame(DEFAULT_CONFIG, true));
   }, []);
@@ -340,7 +364,16 @@ export default function AutonomousTargetingGame() {
 
   const setup = game.stats.ticks === 0;
 
-  const applyConfig = (next: Config) => {
+  const applyConfig = (n: Config) => {
+    const rows = Math.max(2, Math.min(10, n.rows));
+    const next: Config = {
+      rows,
+      fUnits: Math.min(n.fUnits, rows),
+      fDrones: Math.min(n.fDrones, rows),
+      eDrones: Math.min(n.eDrones, rows),
+      eUnits: Math.min(n.eUnits, rows),
+      civ: Math.max(1, Math.min(maxCivFor(rows), n.civ)),
+    };
     setConfig(next);
     setRunning(false);
     setGame(buildGame(next, true));
@@ -368,6 +401,15 @@ export default function AutonomousTargetingGame() {
     });
 
   const btn = "rounded border border-rule px-4 py-1.5 text-sm hover:bg-panel disabled:opacity-40";
+  const s = game.stats;
+  const boxes: [string, number, string][] = [
+    ["Enemy units", s.eu, "red"],
+    ["Enemy drones", s.ed, "red"],
+    ["Friendly units", s.fu, "blue"],
+    ["Friendly drones", s.fd, "blue"],
+    ["Civilians (your fire)", s.civF, "grey"],
+    ["Civilians (enemy fire)", s.civE, "grey"],
+  ];
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
@@ -377,26 +419,21 @@ export default function AutonomousTargetingGame() {
       </div>
       <p className="mt-2 text-sm leading-relaxed text-muted">
         You command the region but control no forces — only the overlay. The
-        top-left swatch sets a cell&apos;s rating requirement (click to cycle
-        green → yellow → red). Click anywhere else on a cell to authorize it for
-        four turns (the clock counts down); double-click to switch it off.
-        Friendly drones may enter only active cells rated at or below their own
-        certification; troops may enter any active cell; enemies ignore the
-        overlay. Precise (red) drones rarely hit civilians; blunt (green) ones
-        often do. Before pressing play, click a friendly drone to change its
-        rating.
+        top-left swatch sets a cell&apos;s rating requirement (click to cycle);
+        it defaults from the civilians present. Click anywhere else on a cell to
+        authorize it for four turns (the clock counts down); double-click to
+        switch it off. Friendly drones may enter only active cells rated at or
+        below their certification; troops may enter any active cell; enemies
+        ignore the overlay. Before pressing play, click a friendly drone to
+        change its rating.
       </p>
 
-      <div className="mt-4 grid grid-cols-3 gap-2 text-center sm:grid-cols-5">
-        {[
-          ["Enemy units", game.stats.eu],
-          ["Enemy drones", game.stats.ed],
-          ["Friendly units", game.stats.fu],
-          ["Friendly drones", game.stats.fd],
-          ["Civilians", game.stats.civ],
-        ].map(([label, val]) => (
-          <div key={label} className="bg-panel px-2 py-2">
-            <p className="kicker text-[10px] leading-tight">{label} killed</p>
+      <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+        {boxes.map(([label, val, c]) => (
+          <div key={label} style={{ background: BOX[c].bg, border: `2px solid ${BOX[c].border}` }} className="px-2 py-1.5">
+            <p className="text-[10px] font-bold leading-tight" style={{ color: BOX[c].border }}>
+              {label} killed
+            </p>
             <p className="mt-0.5 text-xl font-bold tabular-nums text-ink">{val}</p>
           </div>
         ))}
@@ -411,96 +448,86 @@ export default function AutonomousTargetingGame() {
           }}
         >
           {game.status === "won"
-            ? `Enemy destroyed in ${game.stats.ticks} ticks — ${game.stats.civ} civilian casualties.`
+            ? `Enemy destroyed in ${game.stats.ticks} ticks — ${s.civF + s.civE} civilian casualties.`
             : "Friendly forces wiped out."}
         </p>
       )}
 
       <div className="mt-5 overflow-x-auto">
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(${COLS}, 82px)`,
-            gap: 3,
-            width: "max-content",
-          }}
-        >
-          {game.cells.map((row, r) =>
-            row.map((cell, c) => {
-              const active = cell.activeTurns > 0;
-              const units = at(game, r, c);
-              return (
-                <div
-                  key={`${r}-${c}`}
-                  onClick={() => setCellTimer(r, c, 4)}
-                  onDoubleClick={() => setCellTimer(r, c, 0)}
-                  style={{
-                    position: "relative",
-                    height: 82,
-                    cursor: "pointer",
-                    background: active ? RATING_TINT[cell.rating] : "#ffffff",
-                    border: `2px ${active ? "solid" : "dashed"} ${RATING_COLOR[cell.rating]}`,
-                    boxSizing: "border-box",
-                  }}
-                >
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      cycleRating(r, c);
-                    }}
-                    onDoubleClick={(e) => e.stopPropagation()}
-                    title="rating requirement (cycles green/yellow/red)"
-                    style={{
-                      position: "absolute",
-                      top: 3,
-                      left: 3,
-                      width: 18,
-                      height: 18,
-                      background: RATING_COLOR[cell.rating],
-                      border: "none",
-                      borderRadius: 3,
-                      cursor: "pointer",
-                    }}
-                  />
-                  <span style={{ position: "absolute", top: 3, right: 3, pointerEvents: "none" }}>
-                    <Clock n={cell.activeTurns} />
-                  </span>
+        <div style={{ border: "2px solid #1a1a1a", display: "inline-block", background: "#1a1a1a" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: `repeat(${COLS}, ${CELL_W}px)`,
+              gap: 2,
+              width: "max-content",
+            }}
+          >
+            {game.cells.map((row, r) =>
+              row.map((cell, c) => {
+                const active = cell.activeTurns > 0;
+                const units = at(game, r, c);
+                const fd = units.filter((u) => u.side === "friendly" && u.kind === "drone");
+                const ed = units.filter((u) => u.side === "enemy" && u.kind === "drone");
+                const fh = units.filter((u) => u.side === "friendly" && u.kind === "human");
+                const eh = units.filter((u) => u.side === "enemy" && u.kind === "human");
+                const lane = (arr: Unit[], top: number, fromLeft: boolean) =>
+                  arr.map((u, i) => (
+                    <Marker
+                      key={u.id}
+                      u={u}
+                      onEdit={setup ? () => editDrone(u.id) : undefined}
+                      extra={{
+                        position: "absolute",
+                        top,
+                        zIndex: i + 1,
+                        ...(fromLeft ? { left: 3 + i * HALF } : { right: 3 + i * HALF }),
+                      }}
+                    />
+                  ));
+                return (
                   <div
+                    key={`${r}-${c}`}
+                    onClick={() => setCellTimer(r, c, 4)}
+                    onDoubleClick={() => setCellTimer(r, c, 0)}
                     style={{
-                      position: "absolute",
-                      left: 3,
-                      right: 3,
-                      top: 24,
-                      bottom: 18,
-                      display: "flex",
-                      flexWrap: "wrap",
-                      alignContent: "flex-start",
-                      gap: 2,
+                      position: "relative",
+                      height: CELL_H,
+                      cursor: "pointer",
+                      background: active ? RATING_TINT[cell.rating] : "#ffffff",
+                      border: `2px ${active ? "solid" : "dashed"} ${RATING_COLOR[cell.rating]}`,
+                      boxSizing: "border-box",
                     }}
                   >
-                    {units.map((u) => (
-                      <Marker key={u.id} u={u} onEdit={setup ? () => editDrone(u.id) : undefined} />
-                    ))}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); cycleRating(r, c); }}
+                      onDoubleClick={(e) => e.stopPropagation()}
+                      title="rating requirement (cycles green/yellow/red)"
+                      style={{ position: "absolute", top: 3, left: 3, width: 18, height: 18, background: RATING_COLOR[cell.rating], border: "none", borderRadius: 3, cursor: "pointer" }}
+                    />
+                    <span style={{ position: "absolute", top: 2, right: 2, pointerEvents: "none" }}>
+                      <Clock n={cell.activeTurns} />
+                    </span>
+                    {lane(fd, DRONE_TOP, true)}
+                    {lane(ed, DRONE_TOP, false)}
+                    {lane(fh, HUMAN_TOP, true)}
+                    {lane(eh, HUMAN_TOP, false)}
+                    <div style={{ position: "absolute", left: 3, bottom: 3, display: "flex", gap: 2 }}>
+                      {Array.from({ length: cell.civ }, (_, i) => (
+                        <span key={i} title="civilian" style={{ width: 11, height: 11, background: "#9b9a92", borderRadius: 1 }} />
+                      ))}
+                    </div>
                   </div>
-                  <div style={{ position: "absolute", left: 3, bottom: 3, display: "flex", gap: 2 }}>
-                    {Array.from({ length: cell.civ }, (_, i) => (
-                      <span
-                        key={i}
-                        title="civilian"
-                        style={{ width: 11, height: 11, background: "#9b9a92", borderRadius: 1 }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            }),
-          )}
+                );
+              }),
+            )}
+          </div>
         </div>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted">
         <span className="flex items-center gap-1">
-          <span style={{ width: 13, height: 13, background: "#378ADD", display: "inline-block", borderRadius: 2 }} />
+          <span style={{ width: 13, height: 13, background: "#378ADD", border: "2px solid #1a1a1a", display: "inline-block", borderRadius: 2, boxSizing: "border-box" }} />
           friendly troops
         </span>
         <span className="flex items-center gap-1">
@@ -531,25 +558,25 @@ export default function AutonomousTargetingGame() {
         <span className="text-sm text-muted">tick {game.stats.ticks} · runs every 2s</span>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3">
-        <Stepper label="Friendly units" value={config.fUnits} min={1} max={5} disabled={running} set={(v) => setForce("fUnits", v)} />
-        <Stepper label="Friendly drones" value={config.fDrones} min={1} max={5} disabled={running} set={(v) => setForce("fDrones", v)} />
-        <Stepper label="Enemy drones" value={config.eDrones} min={1} max={5} disabled={running} set={(v) => setForce("eDrones", v)} />
-        <Stepper label="Enemy units" value={config.eUnits} min={1} max={5} disabled={running} set={(v) => setForce("eUnits", v)} />
-      </div>
-
-      <div className="mt-3 flex items-center gap-3">
-        <span className="text-xs text-muted">Civilians</span>
-        <input
-          type="range"
-          min={1}
-          max={100}
-          value={config.civ}
-          disabled={running}
-          onChange={(e) => setForce("civ", Number(e.target.value))}
-          className="w-48"
-        />
-        <span className="w-8 text-sm font-bold tabular-nums text-ink">{config.civ}</span>
+      <div className="mt-4 flex flex-col gap-2">
+        <Stepper label="Rows" value={config.rows} min={2} max={10} disabled={running} set={(v) => setForce("rows", v)} />
+        <Stepper label="Friendly units" value={config.fUnits} min={1} max={config.rows} disabled={running} set={(v) => setForce("fUnits", v)} />
+        <Stepper label="Friendly drones" value={config.fDrones} min={1} max={config.rows} disabled={running} set={(v) => setForce("fDrones", v)} />
+        <Stepper label="Enemy drones" value={config.eDrones} min={1} max={config.rows} disabled={running} set={(v) => setForce("eDrones", v)} />
+        <Stepper label="Enemy units" value={config.eUnits} min={1} max={config.rows} disabled={running} set={(v) => setForce("eUnits", v)} />
+        <div className="flex items-center gap-1.5">
+          <span className="w-32 text-xs text-muted">Civilians</span>
+          <input
+            type="range"
+            min={1}
+            max={maxCivFor(config.rows)}
+            value={config.civ}
+            disabled={running}
+            onChange={(e) => setForce("civ", Number(e.target.value))}
+            className="w-48"
+          />
+          <span className="w-10 text-sm font-bold tabular-nums text-ink">{config.civ}</span>
+        </div>
       </div>
     </div>
   );
