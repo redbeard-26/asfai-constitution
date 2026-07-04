@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 
 const COLS = 8;
+const STEP_MS = 3000;
+const GAP = 2;
 const ORTHO = [
   [-1, 0],
   [1, 0],
@@ -23,20 +25,20 @@ const RATING_TINT: Record<number, string> = {
   2: "rgba(239,159,39,0.42)",
   3: "rgba(240,149,149,0.55)",
 };
-// Precision → civilian risk. Green drones sloppiest, red cleanest; yellow ≈ humans.
 const DRONE_PRECISION: Record<number, number> = { 1: 0.75, 2: 0.88, 3: 0.97 };
 const HUMAN_PRECISION = 0.88;
 const KILL = { drone: 0.42, human: 0.3 };
 const FF = { drone: 0.04, human: 0.02 };
-const DRONE_DEFAULTS = [1, 2, 3, 1, 2, 1, 2, 3, 1, 2];
 const MAX_CIV = 4;
 const ENEMY_RED = "#C0392B";
+const RIVER_BLUE = "#2C7BD6";
 const CELL_W = 82;
 const CELL_H = 90;
-const US = 15; // unit size
-const HALF = 8; // stack offset
+const US = 15;
+const HALF = 8;
 const DRONE_TOP = 24;
 const HUMAN_TOP = 47;
+const BLACK = "#1a1a1a";
 
 type Cell = { rating: number; activeTurns: number; civ: number };
 type Side = "friendly" | "enemy";
@@ -44,12 +46,16 @@ type Kind = "human" | "drone";
 type Unit = { id: number; side: Side; kind: Kind; rating: number; r: number; c: number };
 type Status = "playing" | "won" | "lost";
 type Stats = { eu: number; ed: number; fu: number; fd: number; civF: number; civE: number; ticks: number };
-type Game = { cells: Cell[][]; units: Unit[]; stats: Stats; status: Status };
-type Config = { rows: number; fUnits: number; fDrones: number; eDrones: number; eUnits: number; civ: number };
+type Game = { cells: Cell[][]; units: Unit[]; stats: Stats; status: Status; bridges: number };
+type Config = { rows: number; fUnits: number; fDrones: number; eDrones: number; eUnits: number; civ: number; bridges: number };
 
-const DEFAULT_CONFIG: Config = { rows: 5, fUnits: 5, fDrones: 5, eDrones: 5, eUnits: 5, civ: 20 };
+const DEFAULT_CONFIG: Config = { rows: 5, fUnits: 5, fDrones: 5, eDrones: 5, eUnits: 5, civ: 20, bridges: 1 };
 const ratingFromCiv = (civ: number) => (civ === 0 ? 1 : civ <= 2 ? 2 : 3);
 const maxCivFor = (rows: number) => MAX_CIV * rows * COLS;
+const maxBridges = (rows: number) => Math.floor(rows / 2);
+const riverCol = (r: number, rows: number) => (Math.sin(((r + 0.5) / rows) * Math.PI * 2) >= 0 ? 3 : 4);
+const oddRows = (rows: number) => Array.from({ length: rows }, (_, i) => i).filter((i) => i % 2 === 1);
+const bridgeRows = (rows: number, bridges: number) => oddRows(rows).slice(0, bridges);
 
 function buildGame(cfg: Config, randomize: boolean): Game {
   const rows = cfg.rows;
@@ -57,21 +63,14 @@ function buildGame(cfg: Config, randomize: boolean): Game {
     Array.from({ length: COLS }, () => ({ rating: 1, activeTurns: 0, civ: 0 })),
   );
   let id = 0;
-  const mk = (side: Side, kind: Kind, rating: number, r: number, c: number): Unit => ({
-    id: id++,
-    side,
-    kind,
-    rating,
-    r,
-    c,
-  });
+  const mk = (side: Side, kind: Kind, rating: number, r: number, c: number): Unit => ({ id: id++, side, kind, rating, r, c });
   const units: Unit[] = [];
   const nf = Math.min(cfg.fUnits, rows);
   const nd = Math.min(cfg.fDrones, rows);
   const ned = Math.min(cfg.eDrones, rows);
   const neu = Math.min(cfg.eUnits, rows);
   for (let i = 0; i < nf; i++) units.push(mk("friendly", "human", 0, i, 0));
-  for (let i = 0; i < nd; i++) units.push(mk("friendly", "drone", DRONE_DEFAULTS[i % DRONE_DEFAULTS.length], i, 1));
+  for (let i = 0; i < nd; i++) units.push(mk("friendly", "drone", (i % 3) + 1, i, 1)); // alternate G/Y/R by row
   for (let i = 0; i < ned; i++) units.push(mk("enemy", "drone", 0, i, COLS - 2));
   for (let i = 0; i < neu; i++) units.push(mk("enemy", "human", 0, i, COLS - 1));
 
@@ -88,11 +87,10 @@ function buildGame(cfg: Config, randomize: boolean): Game {
       } else if (order.every(([rr, cc]) => cells[rr][cc].civ >= MAX_CIV)) break;
     }
   }
-  // Default each cell's rating from its civilian count (player may change it).
   for (let r = 0; r < rows; r++) for (let c = 0; c < COLS; c++) cells[r][c].rating = ratingFromCiv(cells[r][c].civ);
-  // The friendly drone column starts fully authorized.
   for (let i = 0; i < nd; i++) cells[i][1].activeTurns = 4;
-  return { cells, units, stats: { eu: 0, ed: 0, fu: 0, fd: 0, civF: 0, civE: 0, ticks: 0 }, status: "playing" };
+  const bridges = Math.max(0, Math.min(maxBridges(rows), cfg.bridges));
+  return { cells, units, stats: { eu: 0, ed: 0, fu: 0, fd: 0, civF: 0, civE: 0, ticks: 0 }, status: "playing", bridges };
 }
 
 const inB = (g: Game, r: number, c: number) => r >= 0 && c >= 0 && r < g.cells.length && c < g.cells[0].length;
@@ -138,22 +136,28 @@ function attackPhase(g: Game, kind: Kind) {
 }
 
 function moveHumans(g: Game) {
+  const rows = g.cells.length;
+  const bRows = bridgeRows(rows, g.bridges);
   for (const u of g.units.filter((x) => x.kind === "human")) {
     const o = opp(u.side);
     const enemyDrones = g.units.filter((x) => x.side === o && x.kind === "drone");
     const oppUnits = g.units.filter((x) => x.side === o);
     const hasDrone = (r: number, c: number) => g.units.some((x) => x.kind === "drone" && x.r === r && x.c === c);
+    // River crossing: from a river cell without a bridge, friendly can't step east, enemy can't step west.
+    const onRiver = u.c === riverCol(u.r, rows);
+    const bridged = onRiver && bRows.includes(u.r);
+    const blockedC = u.side === "friendly" ? u.c + 1 : u.c - 1;
     const passable = (r: number, c: number) => {
       if (!inB(g, r, c) || hasDrone(r, c)) return false;
       if (u.side === "friendly" && g.cells[r][c].activeTurns <= 0) return false;
+      if (onRiver && !bridged && r === u.r && c === blockedC) return false;
       return true;
     };
     const nbrs = ORTHO.map(([dr, dc]) => ({ r: u.r + dr, c: u.c + dc })).filter((n) => passable(n.r, n.c));
 
     if (enemyDrones.some((d) => d.r === u.r && d.c === u.c)) {
       if (!nbrs.length) continue;
-      const dist = (r: number, c: number) =>
-        Math.min(...enemyDrones.map((d) => Math.abs(d.r - r) + Math.abs(d.c - c)));
+      const dist = (r: number, c: number) => Math.min(...enemyDrones.map((d) => Math.abs(d.r - r) + Math.abs(d.c - c)));
       let best: { r: number; c: number } | null = null;
       let bestD = dist(u.r, u.c);
       for (const n of nbrs) {
@@ -246,6 +250,42 @@ function step(prev: Game): Game {
   return g;
 }
 
+function smoothPath(pts: { x: number; y: number }[]) {
+  if (pts.length < 2) return "";
+  let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] || p2;
+    const c1x = p1.x + (p2.x - p0.x) / 6;
+    const c1y = p1.y + (p2.y - p0.y) / 6;
+    const c2x = p2.x - (p3.x - p1.x) / 6;
+    const c2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+  }
+  return d;
+}
+
+function River({ rows, bridges }: { rows: number; bridges: number }) {
+  const cx = (c: number) => c * (CELL_W + GAP) + CELL_W / 2;
+  const cy = (r: number) => r * (CELL_H + GAP) + CELL_H / 2;
+  const w = COLS * CELL_W + (COLS - 1) * GAP;
+  const h = rows * CELL_H + (rows - 1) * GAP;
+  const pts = [{ x: cx(riverCol(0, rows)), y: 0 }];
+  for (let r = 0; r < rows; r++) pts.push({ x: cx(riverCol(r, rows)), y: cy(r) });
+  pts.push({ x: cx(riverCol(rows - 1, rows)), y: h });
+  const bRows = bridgeRows(rows, bridges);
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none", zIndex: 5 }}>
+      <path d={smoothPath(pts)} fill="none" stroke={RIVER_BLUE} strokeWidth={3} strokeLinecap="round" opacity={0.85} />
+      {bRows.map((r) => (
+        <rect key={r} x={cx(riverCol(r, rows)) - 18} y={cy(r) - 5} width={36} height={10} rx={2} fill="#A9763A" stroke="#5A3A1A" strokeWidth={1} />
+      ))}
+    </svg>
+  );
+}
+
 function Clock({ n }: { n: number }) {
   const cx = 10;
   const cy = 10;
@@ -268,23 +308,11 @@ function Clock({ n }: { n: number }) {
   );
 }
 
-function Marker({
-  u,
-  onEdit,
-  extra,
-}: {
-  u: Unit;
-  onEdit?: () => void;
-  extra?: React.CSSProperties;
-}) {
+function Marker({ u, onEdit, extra }: { u: Unit; onEdit?: () => void; extra?: React.CSSProperties }) {
   const friendly = u.side === "friendly";
   const drone = u.kind === "drone";
   const editable = friendly && drone && onEdit;
-  const border = drone && friendly
-    ? `2px solid ${RATING_COLOR[u.rating]}`
-    : !drone && friendly
-      ? "2px solid #1a1a1a"
-      : "none";
+  const border = friendly && drone ? `2px solid ${RATING_COLOR[u.rating]}` : `2px solid ${BLACK}`;
   return (
     <span
       title={`${u.side} ${u.kind}${drone && friendly ? ` · rated ${["", "G", "Y", "R"][u.rating]}` : ""}`}
@@ -304,32 +332,14 @@ function Marker({
   );
 }
 
-function Stepper({
-  label,
-  value,
-  set,
-  min,
-  max,
-  disabled,
-}: {
-  label: string;
-  value: number;
-  set: (v: number) => void;
-  min: number;
-  max: number;
-  disabled: boolean;
-}) {
+function Stepper({ label, value, set, min, max, disabled }: { label: string; value: number; set: (v: number) => void; min: number; max: number; disabled: boolean }) {
   const b = "h-6 w-6 rounded border border-rule text-sm leading-none hover:bg-panel disabled:opacity-40";
   return (
     <div className="flex items-center gap-1.5">
       <span className="w-32 text-xs text-muted">{label}</span>
-      <button className={b} disabled={disabled || value <= min} onClick={() => set(value - 1)}>
-        −
-      </button>
+      <button className={b} disabled={disabled || value <= min} onClick={() => set(value - 1)}>−</button>
       <span className="w-5 text-center text-sm font-bold tabular-nums text-ink">{value}</span>
-      <button className={b} disabled={disabled || value >= max} onClick={() => set(value + 1)}>
-        +
-      </button>
+      <button className={b} disabled={disabled || value >= max} onClick={() => set(value + 1)}>+</button>
     </div>
   );
 }
@@ -352,7 +362,7 @@ export default function AutonomousTargetingGame() {
 
   useEffect(() => {
     if (!running) return;
-    timer.current = setInterval(() => setGame((g) => (g.status === "playing" ? step(g) : g)), 2000);
+    timer.current = setInterval(() => setGame((g) => (g.status === "playing" ? step(g) : g)), STEP_MS);
     return () => {
       if (timer.current) clearInterval(timer.current);
     };
@@ -373,6 +383,7 @@ export default function AutonomousTargetingGame() {
       eDrones: Math.min(n.eDrones, rows),
       eUnits: Math.min(n.eUnits, rows),
       civ: Math.max(1, Math.min(maxCivFor(rows), n.civ)),
+      bridges: Math.max(0, Math.min(maxBridges(rows), n.bridges)),
     };
     setConfig(next);
     setRunning(false);
@@ -404,10 +415,10 @@ export default function AutonomousTargetingGame() {
   const s = game.stats;
   const boxes: [string, number, string][] = [
     ["Enemy units", s.eu, "red"],
-    ["Enemy drones", s.ed, "red"],
     ["Friendly units", s.fu, "blue"],
-    ["Friendly drones", s.fd, "blue"],
     ["Civilians (your fire)", s.civF, "grey"],
+    ["Enemy drones", s.ed, "red"],
+    ["Friendly drones", s.fd, "blue"],
     ["Civilians (enemy fire)", s.civE, "grey"],
   ];
 
@@ -419,21 +430,20 @@ export default function AutonomousTargetingGame() {
       </div>
       <p className="mt-2 text-sm leading-relaxed text-muted">
         You command the region but control no forces — only the overlay. The
-        top-left swatch sets a cell&apos;s rating requirement (click to cycle);
-        it defaults from the civilians present. Click anywhere else on a cell to
-        authorize it for four turns (the clock counts down); double-click to
-        switch it off. Friendly drones may enter only active cells rated at or
-        below their certification; troops may enter any active cell; enemies
-        ignore the overlay. Before pressing play, click a friendly drone to
-        change its rating.
+        top-left swatch sets a cell&apos;s rating requirement (it defaults from
+        the civilians present); click elsewhere on a cell to authorize it for
+        four turns (the clock counts down), double-click to switch it off.
+        Friendly drones may enter only active cells rated at or below their
+        certification; troops may enter any active cell; enemies ignore the
+        overlay. A river runs down the middle — ground troops can only cross it
+        at a bridge. Before pressing play, click a friendly drone to change its
+        rating.
       </p>
 
       <div className="mt-4 grid grid-cols-3 gap-2 text-center">
         {boxes.map(([label, val, c]) => (
           <div key={label} style={{ background: BOX[c].bg, border: `2px solid ${BOX[c].border}` }} className="px-2 py-1.5">
-            <p className="text-[10px] font-bold leading-tight" style={{ color: BOX[c].border }}>
-              {label} killed
-            </p>
+            <p className="text-[10px] font-bold leading-tight" style={{ color: BOX[c].border }}>{label} killed</p>
             <p className="mt-0.5 text-xl font-bold tabular-nums text-ink">{val}</p>
           </div>
         ))}
@@ -454,80 +464,71 @@ export default function AutonomousTargetingGame() {
       )}
 
       <div className="mt-5 overflow-x-auto">
-        <div style={{ border: "2px solid #1a1a1a", display: "inline-block", background: "#1a1a1a" }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: `repeat(${COLS}, ${CELL_W}px)`,
-              gap: 2,
-              width: "max-content",
-            }}
-          >
-            {game.cells.map((row, r) =>
-              row.map((cell, c) => {
-                const active = cell.activeTurns > 0;
-                const units = at(game, r, c);
-                const fd = units.filter((u) => u.side === "friendly" && u.kind === "drone");
-                const ed = units.filter((u) => u.side === "enemy" && u.kind === "drone");
-                const fh = units.filter((u) => u.side === "friendly" && u.kind === "human");
-                const eh = units.filter((u) => u.side === "enemy" && u.kind === "human");
-                const lane = (arr: Unit[], top: number, fromLeft: boolean) =>
-                  arr.map((u, i) => (
-                    <Marker
-                      key={u.id}
-                      u={u}
-                      onEdit={setup ? () => editDrone(u.id) : undefined}
-                      extra={{
-                        position: "absolute",
-                        top,
-                        zIndex: i + 1,
-                        ...(fromLeft ? { left: 3 + i * HALF } : { right: 3 + i * HALF }),
+        <div style={{ border: `2px solid ${BLACK}`, display: "inline-block", background: "#fff" }}>
+          <div style={{ position: "relative" }}>
+            <div style={{ display: "grid", gridTemplateColumns: `repeat(${COLS}, ${CELL_W}px)`, gap: GAP, width: "max-content" }}>
+              {game.cells.map((row, r) =>
+                row.map((cell, c) => {
+                  const active = cell.activeTurns > 0;
+                  const units = at(game, r, c);
+                  const fd = units.filter((u) => u.side === "friendly" && u.kind === "drone");
+                  const ed = units.filter((u) => u.side === "enemy" && u.kind === "drone");
+                  const fh = units.filter((u) => u.side === "friendly" && u.kind === "human");
+                  const eh = units.filter((u) => u.side === "enemy" && u.kind === "human");
+                  const lane = (arr: Unit[], top: number, fromLeft: boolean) =>
+                    arr.map((u, i) => (
+                      <Marker
+                        key={u.id}
+                        u={u}
+                        onEdit={setup ? () => editDrone(u.id) : undefined}
+                        extra={{ position: "absolute", top, zIndex: i + 1, ...(fromLeft ? { left: 3 + i * HALF } : { right: 3 + i * HALF }) }}
+                      />
+                    ));
+                  return (
+                    <div
+                      key={`${r}-${c}`}
+                      onClick={() => setCellTimer(r, c, 4)}
+                      onDoubleClick={() => setCellTimer(r, c, 0)}
+                      style={{
+                        position: "relative",
+                        height: CELL_H,
+                        cursor: "pointer",
+                        background: active ? RATING_TINT[cell.rating] : "#ffffff",
+                        border: `2px ${active ? "solid" : "dashed"} ${RATING_COLOR[cell.rating]}`,
+                        boxSizing: "border-box",
                       }}
-                    />
-                  ));
-                return (
-                  <div
-                    key={`${r}-${c}`}
-                    onClick={() => setCellTimer(r, c, 4)}
-                    onDoubleClick={() => setCellTimer(r, c, 0)}
-                    style={{
-                      position: "relative",
-                      height: CELL_H,
-                      cursor: "pointer",
-                      background: active ? RATING_TINT[cell.rating] : "#ffffff",
-                      border: `2px ${active ? "solid" : "dashed"} ${RATING_COLOR[cell.rating]}`,
-                      boxSizing: "border-box",
-                    }}
-                  >
-                    <button
-                      onClick={(e) => { e.stopPropagation(); cycleRating(r, c); }}
-                      onDoubleClick={(e) => e.stopPropagation()}
-                      title="rating requirement (cycles green/yellow/red)"
-                      style={{ position: "absolute", top: 3, left: 3, width: 18, height: 18, background: RATING_COLOR[cell.rating], border: "none", borderRadius: 3, cursor: "pointer" }}
-                    />
-                    <span style={{ position: "absolute", top: 2, right: 2, pointerEvents: "none" }}>
-                      <Clock n={cell.activeTurns} />
-                    </span>
-                    {lane(fd, DRONE_TOP, true)}
-                    {lane(ed, DRONE_TOP, false)}
-                    {lane(fh, HUMAN_TOP, true)}
-                    {lane(eh, HUMAN_TOP, false)}
-                    <div style={{ position: "absolute", left: 3, bottom: 3, display: "flex", gap: 2 }}>
-                      {Array.from({ length: cell.civ }, (_, i) => (
-                        <span key={i} title="civilian" style={{ width: 11, height: 11, background: "#9b9a92", borderRadius: 1 }} />
-                      ))}
+                    >
+                      <button
+                        onClick={(e) => { e.stopPropagation(); cycleRating(r, c); }}
+                        onDoubleClick={(e) => e.stopPropagation()}
+                        title="rating requirement (cycles green/yellow/red)"
+                        style={{ position: "absolute", top: 3, left: 3, width: 18, height: 18, background: RATING_COLOR[cell.rating], border: "none", borderRadius: 3, cursor: "pointer" }}
+                      />
+                      <span style={{ position: "absolute", top: 2, right: 2, pointerEvents: "none" }}>
+                        <Clock n={cell.activeTurns} />
+                      </span>
+                      {lane(fd, DRONE_TOP, true)}
+                      {lane(ed, DRONE_TOP, false)}
+                      {lane(fh, HUMAN_TOP, true)}
+                      {lane(eh, HUMAN_TOP, false)}
+                      <div style={{ position: "absolute", left: 3, bottom: 3, display: "flex", gap: 2 }}>
+                        {Array.from({ length: cell.civ }, (_, i) => (
+                          <span key={i} title="civilian" style={{ width: 11, height: 11, background: "#9b9a92", borderRadius: 1 }} />
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                );
-              }),
-            )}
+                  );
+                }),
+              )}
+            </div>
+            <River rows={game.cells.length} bridges={game.bridges} />
           </div>
         </div>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted">
         <span className="flex items-center gap-1">
-          <span style={{ width: 13, height: 13, background: "#378ADD", border: "2px solid #1a1a1a", display: "inline-block", borderRadius: 2, boxSizing: "border-box" }} />
+          <span style={{ width: 13, height: 13, background: "#378ADD", border: `2px solid ${BLACK}`, display: "inline-block", borderRadius: 2, boxSizing: "border-box" }} />
           friendly troops
         </span>
         <span className="flex items-center gap-1">
@@ -535,16 +536,20 @@ export default function AutonomousTargetingGame() {
           friendly drone (border = rating)
         </span>
         <span className="flex items-center gap-1">
-          <span style={{ width: 13, height: 13, background: ENEMY_RED, display: "inline-block", borderRadius: 2 }} />
+          <span style={{ width: 13, height: 13, background: ENEMY_RED, border: `2px solid ${BLACK}`, display: "inline-block", borderRadius: 2, boxSizing: "border-box" }} />
           enemy troops
         </span>
         <span className="flex items-center gap-1">
-          <span style={{ width: 13, height: 13, background: ENEMY_RED, borderRadius: "50%", display: "inline-block" }} />
+          <span style={{ width: 13, height: 13, background: ENEMY_RED, border: `2px solid ${BLACK}`, borderRadius: "50%", display: "inline-block", boxSizing: "border-box" }} />
           enemy drone
         </span>
         <span className="flex items-center gap-1">
-          <span style={{ width: 11, height: 11, background: "#9b9a92", display: "inline-block", borderRadius: 1 }} />
-          civilians
+          <span style={{ width: 24, height: 3, background: RIVER_BLUE, display: "inline-block" }} />
+          river
+        </span>
+        <span className="flex items-center gap-1">
+          <span style={{ width: 14, height: 8, background: "#A9763A", border: "1px solid #5A3A1A", display: "inline-block" }} />
+          bridge
         </span>
       </div>
 
@@ -555,7 +560,7 @@ export default function AutonomousTargetingGame() {
         <button className={btn} onClick={() => applyConfig(config)}>
           Reset
         </button>
-        <span className="text-sm text-muted">tick {game.stats.ticks} · runs every 2s</span>
+        <span className="text-sm text-muted">tick {game.stats.ticks} · runs every 3s</span>
       </div>
 
       <div className="mt-4 flex flex-col gap-2">
@@ -564,6 +569,7 @@ export default function AutonomousTargetingGame() {
         <Stepper label="Friendly drones" value={config.fDrones} min={1} max={config.rows} disabled={running} set={(v) => setForce("fDrones", v)} />
         <Stepper label="Enemy drones" value={config.eDrones} min={1} max={config.rows} disabled={running} set={(v) => setForce("eDrones", v)} />
         <Stepper label="Enemy units" value={config.eUnits} min={1} max={config.rows} disabled={running} set={(v) => setForce("eUnits", v)} />
+        <Stepper label="Bridges" value={config.bridges} min={0} max={maxBridges(config.rows)} disabled={running} set={(v) => setForce("bridges", v)} />
         <div className="flex items-center gap-1.5">
           <span className="w-32 text-xs text-muted">Civilians</span>
           <input
