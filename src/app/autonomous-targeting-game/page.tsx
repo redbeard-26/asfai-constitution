@@ -47,9 +47,9 @@ type Unit = { id: number; side: Side; kind: Kind; rating: number; r: number; c: 
 type Status = "playing" | "won" | "lost";
 type Stats = { eu: number; ed: number; fu: number; fd: number; civF: number; civE: number; ticks: number };
 type Game = { cells: Cell[][]; units: Unit[]; stats: Stats; status: Status; bridges: number };
-type Config = { rows: number; fUnits: number; fDrones: number; eDrones: number; eUnits: number; civ: number; bridges: number };
+type Config = { rows: number; fUnits: number; fDrones: number; eDrones: number; eUnits: number; civ: number; bridges: number; maxActive: number };
 
-const DEFAULT_CONFIG: Config = { rows: 5, fUnits: 5, fDrones: 5, eDrones: 5, eUnits: 5, civ: 20, bridges: 1 };
+const DEFAULT_CONFIG: Config = { rows: 5, fUnits: 5, fDrones: 5, eDrones: 5, eUnits: 5, civ: 20, bridges: 1, maxActive: 10 };
 const ratingFromCiv = (civ: number) => (civ === 0 ? 1 : civ <= 2 ? 2 : 3);
 const maxCivFor = (rows: number) => MAX_CIV * rows * COLS;
 const maxBridges = (rows: number) => Math.floor(rows / 2);
@@ -110,6 +110,8 @@ function attackPhase(g: Game, kind: Kind) {
   const killed = new Set<number>();
   for (const a of g.units.filter((x) => x.kind === kind)) {
     if (killed.has(a.id)) continue;
+    // A friendly drone in an inactive (white) cell may not fire.
+    if (a.side === "friendly" && a.kind === "drone" && g.cells[a.r][a.c].activeTurns <= 0) continue;
     const here = g.units.filter((x) => !killed.has(x.id) && x.r === a.r && x.c === a.c);
     const foes = here.filter((x) => x.side !== a.side);
     const friends = here.filter((x) => x.side === a.side && x.id !== a.id);
@@ -384,15 +386,23 @@ export default function AutonomousTargetingGame() {
       eUnits: Math.min(n.eUnits, rows),
       civ: Math.max(1, Math.min(maxCivFor(rows), n.civ)),
       bridges: Math.max(0, Math.min(maxBridges(rows), n.bridges)),
+      maxActive: Math.max(1, Math.min(rows * COLS, n.maxActive)),
     };
     setConfig(next);
     setRunning(false);
     setGame(buildGame(next, true));
   };
-  const setForce = (k: keyof Config, v: number) => applyConfig({ ...config, [k]: v });
+  // Changing the drone count also resets the default max active zones (drones × 2).
+  const setForce = (k: keyof Config, v: number) =>
+    applyConfig(k === "fDrones" ? { ...config, fDrones: v, maxActive: v * 2 } : { ...config, [k]: v });
 
   const setCellTimer = (r: number, c: number, turns: number) =>
     setGame((g) => {
+      // Enforce the max-active-zones cap on new activations.
+      if (turns > 0 && g.cells[r][c].activeTurns <= 0) {
+        const activeCount = g.cells.reduce((s, row) => s + row.filter((x) => x.activeTurns > 0).length, 0);
+        if (activeCount >= config.maxActive) return g;
+      }
       const n: Game = structuredClone(g);
       n.cells[r][c].activeTurns = turns;
       return n;
@@ -464,7 +474,7 @@ export default function AutonomousTargetingGame() {
       )}
 
       <div className="mt-5 overflow-x-auto">
-        <div style={{ border: `2px solid ${BLACK}`, display: "inline-block", background: "#fff" }}>
+        <div style={{ border: `5px solid ${BLACK}`, padding: 2, display: "inline-block", background: "#fff" }}>
           <div style={{ position: "relative" }}>
             <div style={{ display: "grid", gridTemplateColumns: `repeat(${COLS}, ${CELL_W}px)`, gap: GAP, width: "max-content" }}>
               {game.cells.map((row, r) =>
@@ -560,7 +570,9 @@ export default function AutonomousTargetingGame() {
         <button className={btn} onClick={() => applyConfig(config)}>
           Reset
         </button>
-        <span className="text-sm text-muted">tick {game.stats.ticks} · runs every 3s</span>
+        <span className="text-sm text-muted">
+          tick {game.stats.ticks} · active {game.cells.reduce((s, row) => s + row.filter((x) => x.activeTurns > 0).length, 0)}/{config.maxActive} · runs every 3s
+        </span>
       </div>
 
       <div className="mt-4 flex flex-col gap-2">
@@ -570,6 +582,7 @@ export default function AutonomousTargetingGame() {
         <Stepper label="Enemy drones" value={config.eDrones} min={1} max={config.rows} disabled={running} set={(v) => setForce("eDrones", v)} />
         <Stepper label="Enemy units" value={config.eUnits} min={1} max={config.rows} disabled={running} set={(v) => setForce("eUnits", v)} />
         <Stepper label="Bridges" value={config.bridges} min={0} max={maxBridges(config.rows)} disabled={running} set={(v) => setForce("bridges", v)} />
+        <Stepper label="Max active zones" value={config.maxActive} min={1} max={config.rows * COLS} disabled={running} set={(v) => setForce("maxActive", v)} />
         <div className="flex items-center gap-1.5">
           <span className="w-32 text-xs text-muted">Civilians</span>
           <input
