@@ -514,13 +514,14 @@ export default function AutonomousTargetingGame() {
   const s = game.stats;
   const activeCount = game.cells.reduce((sum, row) => sum + row.filter((x) => x.activeTurns > 0).length, 0);
   const boxes: [string, number, string][] = [
-    ["Enemy units killed", s.eu, "red"],
-    ["Friendly units killed", s.fu, "blue"],
+    ["Enemy troops killed", s.eu, "red"],
+    ["Friendly troops killed", s.fu, "blue"],
     ["Civilians killed (your fire)", s.civF, "grey"],
     ["Enemy drones killed", s.ed, "red"],
     ["Friendly drones killed", s.fd, "blue"],
     ["Civilians killed (enemy fire)", s.civE, "grey"],
   ];
+  const totalScore = s.eu + s.ed - (s.fu + s.fd) - (s.civF + s.civE);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
@@ -564,6 +565,18 @@ export default function AutonomousTargetingGame() {
             <p className="mt-0.5 text-xl font-bold tabular-nums text-ink">{val}</p>
           </div>
         ))}
+      </div>
+
+      <div
+        className="mt-2 flex items-center justify-between px-3 py-2"
+        style={{ width: GAME_W, maxWidth: "100%", background: "#F1EFE8", border: `2px solid ${BLACK}`, borderRadius: 6 }}
+      >
+        <span className="text-[11px] font-bold text-ink">
+          Total score = enemy killed − friendly killed − civilians killed
+        </span>
+        <span className="text-2xl font-bold tabular-nums" style={{ color: totalScore >= 0 ? "#3B6D11" : "#A32D2D" }}>
+          {totalScore}
+        </span>
       </div>
 
       {game.status !== "playing" && (
