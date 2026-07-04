@@ -439,7 +439,9 @@ export default function AutonomousTargetingGame() {
     if (game.status !== "playing") setRunning(false);
   }, [game.status]);
 
-  const setup = game.stats.ticks === 0;
+  // Setup phase: before the game has started. Drone ratings and civilian counts
+  // may only be edited here; once playing, only zone ratings and timers change.
+  const setup = !running && game.stats.ticks === 0;
 
   const applyConfig = (n: Config) => {
     const rows = Math.max(2, Math.min(10, n.rows));
@@ -640,9 +642,9 @@ export default function AutonomousTargetingGame() {
                       {lane(fh, HUMAN_TOP, true)}
                       {lane(eh, HUMAN_TOP, false)}
                       <div
-                        onClick={(e) => { e.stopPropagation(); cycleCiv(r, c); }}
-                        title="click to add a civilian (removes all at 4)"
-                        style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 18, display: "flex", alignItems: "flex-end", gap: 2, paddingLeft: 3, paddingBottom: 3, cursor: "pointer" }}
+                        onClick={setup ? (e) => { e.stopPropagation(); cycleCiv(r, c); } : undefined}
+                        title={setup ? "click to add a civilian (removes all at 4)" : undefined}
+                        style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 18, display: "flex", alignItems: "flex-end", gap: 2, paddingLeft: 3, paddingBottom: 3, cursor: setup ? "pointer" : "inherit" }}
                       >
                         {Array.from({ length: cell.civ }, (_, i) => (
                           <span key={i} style={{ width: 11, height: 11, background: "#9b9a92", borderRadius: 1 }} />
