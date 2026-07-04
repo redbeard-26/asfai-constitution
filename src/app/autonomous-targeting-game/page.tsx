@@ -19,18 +19,19 @@ const DIRS8 = [
   [1, 1],
 ] as const;
 
-const RATING_COLOR: Record<number, string> = { 1: "#639922", 2: "#EF9F27", 3: "#B0348C" };
+const RATING_COLOR: Record<number, string> = { 1: "#639922", 2: "#EF9F27", 3: "#C23A63" };
 const RATING_TINT: Record<number, string> = {
   1: "rgba(151,196,89,0.50)",
   2: "rgba(239,159,39,0.42)",
-  3: "rgba(176,52,140,0.40)",
+  3: "rgba(194,58,99,0.40)",
 };
 const DRONE_PRECISION: Record<number, number> = { 1: 0.75, 2: 0.88, 3: 0.97 };
 const HUMAN_PRECISION = 0.88;
 const KILL = { drone: 0.42, human: 0.3 };
 const FF = { drone: 0.04, human: 0.02 };
 const MAX_CIV = 4;
-const ENEMY_RED = "#C0392B";
+const ENEMY_HUMAN = "#9C4A2E"; // brown-red
+const ENEMY_DRONE = "#C0503C"; // lighter red-brown
 const RIVER_BLUE = "#2C7BD6";
 const CELL_W = 82;
 const CELL_H = 90;
@@ -112,6 +113,14 @@ function buildGame(cfg: Config, randomize: boolean): Game {
     const phase1 = Math.min(total, capReduced);
     place(phase1, (r, c) => (isDroneStart(r, c) ? 1 : MAX_CIV));
     if (total > phase1) place(total - phase1, () => MAX_CIV);
+    // Guarantee at least one river cell holds the maximum civilians.
+    const rc: [number, number][] = [];
+    for (let r = 0; r < rows; r++) rc.push([r, riverCol(r, rows)]);
+    if (!rc.some(([r, c]) => cells[r][c].civ >= MAX_CIV)) {
+      let best = rc[0];
+      for (const [r, c] of rc) if (cells[r][c].civ > cells[best[0]][best[1]].civ) best = [r, c];
+      cells[best[0]][best[1]].civ = MAX_CIV;
+    }
   }
   for (let r = 0; r < rows; r++) for (let c = 0; c < COLS; c++) cells[r][c].rating = ratingFromCiv(cells[r][c].civ);
   let seqCounter = 0;
@@ -378,7 +387,7 @@ function Marker({ u, onEdit, extra }: { u: Unit; onEdit?: () => void; extra?: Re
       style={{
         width: US,
         height: US,
-        background: friendly ? "#378ADD" : ENEMY_RED,
+        background: friendly ? "#378ADD" : drone ? ENEMY_DRONE : ENEMY_HUMAN,
         borderRadius: drone ? "50%" : 2,
         border,
         boxSizing: "border-box",
@@ -605,10 +614,10 @@ export default function AutonomousTargetingGame() {
                         boxSizing: "border-box",
                       }}
                     >
-                      <button
+                      <div
                         onClick={(e) => { e.stopPropagation(); cycleRating(r, c); }}
                         title="rating requirement (cycles green/yellow/purple)"
-                        style={{ position: "absolute", top: 3, left: 3, width: 18, height: 18, background: RATING_COLOR[cell.rating], border: "none", borderRadius: 3, cursor: "pointer" }}
+                        style={{ position: "absolute", top: 0, left: 0, width: 24, height: 24, background: RATING_COLOR[cell.rating], clipPath: "polygon(0 0, 100% 0, 0 100%)", cursor: "pointer", zIndex: 3 }}
                       />
                       <span style={{ position: "absolute", top: 2, right: 2, pointerEvents: "none" }}>
                         <Clock n={cell.activeTurns} />
@@ -646,11 +655,11 @@ export default function AutonomousTargetingGame() {
           friendly drone (border = rating)
         </span>
         <span className="flex items-center gap-1">
-          <span style={{ width: 13, height: 13, background: ENEMY_RED, border: `2px solid ${BLACK}`, display: "inline-block", borderRadius: 2, boxSizing: "border-box" }} />
+          <span style={{ width: 13, height: 13, background: ENEMY_HUMAN, border: `2px solid ${BLACK}`, display: "inline-block", borderRadius: 2, boxSizing: "border-box" }} />
           enemy troops
         </span>
         <span className="flex items-center gap-1">
-          <span style={{ width: 13, height: 13, background: ENEMY_RED, border: `2px solid ${BLACK}`, borderRadius: "50%", display: "inline-block", boxSizing: "border-box" }} />
+          <span style={{ width: 13, height: 13, background: ENEMY_DRONE, border: `2px solid ${BLACK}`, borderRadius: "50%", display: "inline-block", boxSizing: "border-box" }} />
           enemy drone
         </span>
         <span className="flex items-center gap-1">
