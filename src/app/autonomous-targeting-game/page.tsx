@@ -39,6 +39,7 @@ const HALF = 8;
 const DRONE_TOP = 24;
 const HUMAN_TOP = 47;
 const BLACK = "#1a1a1a";
+const GAME_W = COLS * CELL_W + (COLS - 1) * GAP + 14; // grid + 2×(5px border + 2px pad)
 
 type Cell = { rating: number; activeTurns: number; civ: number };
 type Side = "friendly" | "enemy";
@@ -49,7 +50,7 @@ type Stats = { eu: number; ed: number; fu: number; fd: number; civF: number; civ
 type Game = { cells: Cell[][]; units: Unit[]; stats: Stats; status: Status; bridges: number };
 type Config = { rows: number; fUnits: number; fDrones: number; eDrones: number; eUnits: number; civ: number; bridges: number; maxActive: number };
 
-const DEFAULT_CONFIG: Config = { rows: 5, fUnits: 5, fDrones: 5, eDrones: 5, eUnits: 5, civ: 20, bridges: 1, maxActive: 10 };
+const DEFAULT_CONFIG: Config = { rows: 5, fUnits: 5, fDrones: 5, eDrones: 5, eUnits: 5, civ: 5 * COLS, bridges: 1, maxActive: 10 };
 const ratingFromCiv = (civ: number) => (civ === 0 ? 1 : civ <= 2 ? 2 : 3);
 const maxCivFor = (rows: number) => MAX_CIV * rows * COLS;
 const maxBridges = (rows: number) => Math.floor(rows / 2);
@@ -75,17 +76,32 @@ function buildGame(cfg: Config, randomize: boolean): Game {
   for (let i = 0; i < neu; i++) units.push(mk("enemy", "human", 0, i, COLS - 1));
 
   if (randomize) {
-    let remaining = Math.max(0, Math.min(maxCivFor(rows), cfg.civ));
-    const order: [number, number][] = [];
-    for (let r = 0; r < rows; r++) for (let c = 0; c < COLS; c++) order.push([r, c]);
-    let guard = 0;
-    while (remaining > 0 && guard++ < 20000) {
-      const [r, c] = order[Math.floor(Math.random() * order.length)];
-      if (cells[r][c].civ < MAX_CIV) {
-        cells[r][c].civ += 1;
-        remaining -= 1;
-      } else if (order.every(([rr, cc]) => cells[rr][cc].civ >= MAX_CIV)) break;
-    }
+    const total = Math.max(0, Math.min(maxCivFor(rows), cfg.civ));
+    const isDroneStart = (r: number, c: number) => c === 1 && r < nd;
+    // River cells are twice as likely to receive a civilian.
+    const weighted: [number, number][] = [];
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < COLS; c++) {
+        weighted.push([r, c]);
+        if (c === riverCol(r, rows)) weighted.push([r, c]);
+      }
+    const place = (count: number, cap: (r: number, c: number) => number) => {
+      let placed = 0;
+      let guard = 0;
+      while (placed < count && guard++ < 100000) {
+        const [r, c] = weighted[Math.floor(Math.random() * weighted.length)];
+        if (cells[r][c].civ < cap(r, c)) {
+          cells[r][c].civ += 1;
+          placed += 1;
+        }
+      }
+    };
+    // Keep ≤1 civilian in the starting drone squares unless there is nowhere else.
+    let capReduced = 0;
+    for (let r = 0; r < rows; r++) for (let c = 0; c < COLS; c++) capReduced += isDroneStart(r, c) ? 1 : MAX_CIV;
+    const phase1 = Math.min(total, capReduced);
+    place(phase1, (r, c) => (isDroneStart(r, c) ? 1 : MAX_CIV));
+    if (total > phase1) place(total - phase1, () => MAX_CIV);
   }
   for (let r = 0; r < rows; r++) for (let c = 0; c < COLS; c++) cells[r][c].rating = ratingFromCiv(cells[r][c].civ);
   for (let i = 0; i < nd; i++) cells[i][1].activeTurns = 4;
@@ -392,9 +408,15 @@ export default function AutonomousTargetingGame() {
     setRunning(false);
     setGame(buildGame(next, true));
   };
-  // Changing the drone count also resets the default max active zones (drones × 2).
+  // Drone count resets max active zones (drones × 2); row count resets civilians (= squares).
   const setForce = (k: keyof Config, v: number) =>
-    applyConfig(k === "fDrones" ? { ...config, fDrones: v, maxActive: v * 2 } : { ...config, [k]: v });
+    applyConfig(
+      k === "fDrones"
+        ? { ...config, fDrones: v, maxActive: v * 2 }
+        : k === "rows"
+          ? { ...config, rows: v, civ: v * COLS }
+          : { ...config, [k]: v },
+    );
 
   const setCellTimer = (r: number, c: number, turns: number) =>
     setGame((g) => {
@@ -420,16 +442,23 @@ export default function AutonomousTargetingGame() {
       if (u) u.rating = (u.rating % 3) + 1;
       return n;
     });
+  const cycleCiv = (r: number, c: number) =>
+    setGame((g) => {
+      const n: Game = structuredClone(g);
+      const cell = n.cells[r][c];
+      cell.civ = cell.civ < MAX_CIV ? cell.civ + 1 : 0;
+      return n;
+    });
 
   const btn = "rounded border border-rule px-4 py-1.5 text-sm hover:bg-panel disabled:opacity-40";
   const s = game.stats;
   const boxes: [string, number, string][] = [
-    ["Enemy units", s.eu, "red"],
-    ["Friendly units", s.fu, "blue"],
-    ["Civilians (your fire)", s.civF, "grey"],
-    ["Enemy drones", s.ed, "red"],
-    ["Friendly drones", s.fd, "blue"],
-    ["Civilians (enemy fire)", s.civE, "grey"],
+    ["Enemy units killed", s.eu, "red"],
+    ["Friendly units killed", s.fu, "blue"],
+    ["Civilians killed (your fire)", s.civF, "grey"],
+    ["Enemy drones killed", s.ed, "red"],
+    ["Friendly drones killed", s.fd, "blue"],
+    ["Civilians killed (enemy fire)", s.civE, "grey"],
   ];
 
   return (
@@ -450,10 +479,10 @@ export default function AutonomousTargetingGame() {
         rating.
       </p>
 
-      <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+      <div className="mt-4 grid grid-cols-3 gap-2 text-center" style={{ width: GAME_W, maxWidth: "100%" }}>
         {boxes.map(([label, val, c]) => (
-          <div key={label} style={{ background: BOX[c].bg, border: `2px solid ${BOX[c].border}` }} className="px-2 py-1.5">
-            <p className="text-[10px] font-bold leading-tight" style={{ color: BOX[c].border }}>{label} killed</p>
+          <div key={label} style={{ background: BOX[c].bg, border: `2px solid ${BOX[c].border}`, borderRadius: 6 }} className="px-2 py-1.5">
+            <p className="text-[10px] font-bold leading-tight" style={{ color: BOX[c].border }}>{label}</p>
             <p className="mt-0.5 text-xl font-bold tabular-nums text-ink">{val}</p>
           </div>
         ))}
@@ -474,7 +503,7 @@ export default function AutonomousTargetingGame() {
       )}
 
       <div className="mt-5 overflow-x-auto">
-        <div style={{ border: `5px solid ${BLACK}`, padding: 2, display: "inline-block", background: "#fff" }}>
+        <div style={{ border: `5px solid ${BLACK}`, borderRadius: 12, padding: 2, display: "inline-block", background: "#fff" }}>
           <div style={{ position: "relative" }}>
             <div style={{ display: "grid", gridTemplateColumns: `repeat(${COLS}, ${CELL_W}px)`, gap: GAP, width: "max-content" }}>
               {game.cells.map((row, r) =>
@@ -521,9 +550,14 @@ export default function AutonomousTargetingGame() {
                       {lane(ed, DRONE_TOP, false)}
                       {lane(fh, HUMAN_TOP, true)}
                       {lane(eh, HUMAN_TOP, false)}
-                      <div style={{ position: "absolute", left: 3, bottom: 3, display: "flex", gap: 2 }}>
+                      <div
+                        onClick={(e) => { e.stopPropagation(); cycleCiv(r, c); }}
+                        onDoubleClick={(e) => e.stopPropagation()}
+                        title="click to add a civilian (removes all at 4)"
+                        style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 18, display: "flex", alignItems: "flex-end", gap: 2, paddingLeft: 3, paddingBottom: 3, cursor: "pointer" }}
+                      >
                         {Array.from({ length: cell.civ }, (_, i) => (
-                          <span key={i} title="civilian" style={{ width: 11, height: 11, background: "#9b9a92", borderRadius: 1 }} />
+                          <span key={i} style={{ width: 11, height: 11, background: "#9b9a92", borderRadius: 1 }} />
                         ))}
                       </div>
                     </div>
