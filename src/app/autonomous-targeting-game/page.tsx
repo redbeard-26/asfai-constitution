@@ -617,7 +617,7 @@ export default function AutonomousTargetingGame() {
                       <div
                         onClick={(e) => { e.stopPropagation(); cycleRating(r, c); }}
                         title="rating requirement (cycles green/yellow/purple)"
-                        style={{ position: "absolute", top: 0, left: 0, width: 24, height: 24, background: RATING_COLOR[cell.rating], clipPath: "polygon(0 0, 100% 0, 0 100%)", cursor: "pointer", zIndex: 3 }}
+                        style={{ position: "absolute", top: -2, left: -2, width: 24, height: 24, background: RATING_COLOR[cell.rating], clipPath: "polygon(0 0, 100% 0, 0 100%)", cursor: "pointer", zIndex: 3 }}
                       />
                       <span style={{ position: "absolute", top: 2, right: 2, pointerEvents: "none" }}>
                         <Clock n={cell.activeTurns} />
@@ -645,30 +645,46 @@ export default function AutonomousTargetingGame() {
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted">
-        <span className="flex items-center gap-1">
+      <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-muted sm:grid-cols-5" style={{ maxWidth: GAME_W }}>
+        <span className="flex items-center gap-1.5">
           <span style={{ width: 13, height: 13, background: "#378ADD", border: `2px solid ${BLACK}`, display: "inline-block", borderRadius: 2, boxSizing: "border-box" }} />
-          friendly troops
+          friendly troop
         </span>
-        <span className="flex items-center gap-1">
+        <span className="flex items-center gap-1.5">
+          <span style={{ width: 13, height: 13, background: ENEMY_HUMAN, border: `2px solid ${BLACK}`, display: "inline-block", borderRadius: 2, boxSizing: "border-box" }} />
+          enemy troop
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span style={{ width: 22, height: 3, background: RIVER_BLUE, display: "inline-block" }} />
+          river
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span style={{ width: 14, height: 14, background: RATING_COLOR[1], clipPath: "polygon(0 0, 100% 0, 0 100%)", display: "inline-block" }} />
+          permissive (G)
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span style={{ width: 14, height: 14, background: RATING_COLOR[2], clipPath: "polygon(0 0, 100% 0, 0 100%)", display: "inline-block" }} />
+          medium (Y)
+        </span>
+        <span className="flex items-center gap-1.5">
           <span style={{ width: 13, height: 13, background: "#378ADD", borderRadius: "50%", border: "2px solid #639922", display: "inline-block", boxSizing: "border-box" }} />
           friendly drone (border = rating)
         </span>
-        <span className="flex items-center gap-1">
-          <span style={{ width: 13, height: 13, background: ENEMY_HUMAN, border: `2px solid ${BLACK}`, display: "inline-block", borderRadius: 2, boxSizing: "border-box" }} />
-          enemy troops
-        </span>
-        <span className="flex items-center gap-1">
+        <span className="flex items-center gap-1.5">
           <span style={{ width: 13, height: 13, background: ENEMY_DRONE, border: `2px solid ${BLACK}`, borderRadius: "50%", display: "inline-block", boxSizing: "border-box" }} />
           enemy drone
         </span>
-        <span className="flex items-center gap-1">
-          <span style={{ width: 24, height: 3, background: RIVER_BLUE, display: "inline-block" }} />
-          river
-        </span>
-        <span className="flex items-center gap-1">
+        <span className="flex items-center gap-1.5">
           <span style={{ width: 14, height: 8, background: "#A9763A", border: "1px solid #5A3A1A", display: "inline-block" }} />
           bridge
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span style={{ width: 14, height: 14, background: RATING_COLOR[3], clipPath: "polygon(0 0, 100% 0, 0 100%)", display: "inline-block" }} />
+          restrictive (R)
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span style={{ width: 11, height: 11, background: "#9b9a92", borderRadius: 1, display: "inline-block" }} />
+          civilian
         </span>
       </div>
 
