@@ -41,7 +41,7 @@ const HUMAN_TOP = 47;
 const BLACK = "#1a1a1a";
 const FRAME_PAD = 4;
 const GAME_W = COLS * CELL_W + (COLS - 1) * GAP + 2 * (5 + FRAME_PAD);
-const LEVELS = [2, 3, 4, 5, 6];
+const LEVELS = [1, 2, 3, 4, 5]; // button labels; internal N = label + 1
 
 type Cell = { rating: number; activeTurns: number; civ: number; seq: number };
 type Side = "friendly" | "enemy";
@@ -116,7 +116,7 @@ function buildGame(cfg: Config, randomize: boolean): Game {
   for (let r = 0; r < rows; r++) for (let c = 0; c < COLS; c++) cells[r][c].rating = ratingFromCiv(cells[r][c].civ);
   let seqCounter = 0;
   for (let i = 0; i < nd; i++) {
-    cells[i][1].activeTurns = 4;
+    cells[i][1].activeTurns = 2; // start half-filled
     cells[i][1].seq = ++seqCounter;
   }
   const bridges = Math.max(0, Math.min(maxBridges(rows), cfg.bridges));
@@ -540,9 +540,9 @@ export default function AutonomousTargetingGame() {
         >
           {running ? "❚❚ Pause" : "▶ Play"}
         </button>
-        {LEVELS.map((n) => (
-          <button key={n} className={btn} disabled={running} onClick={() => applyConfig(levelConfig(n))}>
-            Lvl {n}
+        {LEVELS.map((l) => (
+          <button key={l} className={btn} disabled={running} onClick={() => applyConfig(levelConfig(l + 1))}>
+            Lvl {l}
           </button>
         ))}
         <span className="text-sm text-muted">tick {game.stats.ticks} · active {activeCount}/{config.maxActive}</span>
