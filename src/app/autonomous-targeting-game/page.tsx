@@ -251,7 +251,10 @@ function moveHumans(g: Game) {
   }
 }
 
-function droneStep(g: Game, u: Unit): { r: number; c: number } | null {
+type Enter = (g: Game, u: Unit, r: number, c: number) => boolean;
+
+// BFS toward the nearest enemy over cells the `canEnter` predicate admits; returns the first step.
+function droneStepBy(g: Game, u: Unit, canEnter: Enter): { r: number; c: number } | null {
   const o = opp(u.side);
   const cols = g.cells[0].length;
   const key = (r: number, c: number) => r * cols + c;
@@ -268,7 +271,7 @@ function droneStep(g: Game, u: Unit): { r: number; c: number } | null {
     for (const [dr, dc] of DIRS8) {
       const nr = cur.r + dr;
       const nc = cur.c + dc;
-      if (!droneCanEnter(g, u, nr, nc) || seen.has(key(nr, nc))) continue;
+      if (!canEnter(g, u, nr, nc) || seen.has(key(nr, nc))) continue;
       seen.add(key(nr, nc));
       prev.set(key(nr, nc), cur);
       q.push({ r: nr, c: nc });
@@ -282,6 +285,23 @@ function droneStep(g: Game, u: Unit): { r: number; c: number } | null {
     node = p;
   }
   return node;
+}
+
+const droneStep = (g: Game, u: Unit) => droneStepBy(g, u, droneCanEnter);
+
+// Auto mode: where a friendly drone would advance if the overlay allowed it —
+// ignores active status but still honors the drone's rating ceiling.
+const droneReach: Enter = (g, u, r, c) => inB(g, r, c) && g.cells[r][c].rating <= u.rating;
+
+// After a tick, activate the next cell each friendly drone wants to move into, so the
+// authorized zone follows the drones as trailing cells expire.
+function autoActivate(g: Game, maxActive: number) {
+  if (g.status !== "playing") return;
+  for (const u of g.units.filter((x) => x.side === "friendly" && x.kind === "drone")) {
+    const foeHere = at(g, u.r, u.c).some((x) => x.side === "enemy");
+    const target = foeHere ? { r: u.r, c: u.c } : droneStepBy(g, u, droneReach);
+    if (target && g.cells[target.r][target.c].activeTurns <= 0) setClock(g, target.r, target.c, 4, maxActive);
+  }
 }
 
 function moveDrones(g: Game) {
@@ -420,8 +440,13 @@ export default function AutonomousTargetingGame() {
   const [config, setConfig] = useState<Config>(DEFAULT_CONFIG);
   const [game, setGame] = useState<Game>(() => buildGame(DEFAULT_CONFIG, false));
   const [running, setRunning] = useState(false);
+  const [auto, setAuto] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const pending = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const autoRef = useRef(auto);
+  autoRef.current = auto;
+  const maxActiveRef = useRef(config.maxActive);
+  maxActiveRef.current = config.maxActive;
 
   useEffect(() => {
     setGame(buildGame(DEFAULT_CONFIG, true));
@@ -429,7 +454,16 @@ export default function AutonomousTargetingGame() {
 
   useEffect(() => {
     if (!running) return;
-    timer.current = setInterval(() => setGame((g) => (g.status === "playing" ? step(g) : g)), STEP_MS);
+    timer.current = setInterval(
+      () =>
+        setGame((g) => {
+          if (g.status !== "playing") return g;
+          const n = step(g);
+          if (autoRef.current) autoActivate(n, maxActiveRef.current);
+          return n;
+        }),
+      STEP_MS,
+    );
     return () => {
       if (timer.current) clearInterval(timer.current);
     };
@@ -457,7 +491,16 @@ export default function AutonomousTargetingGame() {
     };
     setConfig(next);
     setRunning(false);
+    setAuto(false);
     setGame(buildGame(next, true));
+  };
+  const toggleAuto = () => {
+    if (!auto) {
+      setAuto(true);
+      setRunning(true);
+    } else {
+      setAuto(false);
+    }
   };
   const setForce = (k: keyof Config, v: number) =>
     applyConfig(
@@ -540,7 +583,9 @@ export default function AutonomousTargetingGame() {
         cells rated at or below their certification; troops enter any active
         cell; enemies ignore the overlay. Troops cross the river only at a
         bridge. Before pressing play, click a friendly drone to change its
-        rating.
+        rating. Press Auto to let the overlay keep authorizing the cells your
+        drones want to advance into as older zones expire — you can still toggle
+        cells and timers yourself.
       </p>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -551,6 +596,19 @@ export default function AutonomousTargetingGame() {
           className="px-4 py-1.5 text-sm font-bold hover:brightness-95 disabled:opacity-40"
         >
           {running ? "❚❚ Pause" : "▶ Play"}
+        </button>
+        <button
+          onClick={toggleAuto}
+          disabled={game.status !== "playing"}
+          title="Auto: the overlay keeps activating the cells your drones want to advance into as older zones expire"
+          style={
+            auto
+              ? { background: "#378ADD", border: "1px solid #2C6BB0", color: "#ffffff", borderRadius: 8 }
+              : { background: "#D6E6F7", border: "1px solid #2C6BB0", color: "#1c4c86", borderRadius: 8 }
+          }
+          className="px-4 py-1.5 text-sm font-bold hover:brightness-95 disabled:opacity-40"
+        >
+          {auto ? "◉ Auto" : "◎ Auto"}
         </button>
         {LEVELS.map((l) => (
           <button key={l} className={btn} disabled={running} onClick={() => applyConfig(levelConfig(l + 1))}>
