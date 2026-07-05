@@ -52,6 +52,9 @@ type Status = "playing" | "won" | "lost";
 type Stats = { eu: number; ed: number; fu: number; fd: number; civF: number; civE: number; ticks: number };
 type Game = { cells: Cell[][]; units: Unit[]; stats: Stats; status: Status; bridges: number; seqCounter: number };
 type Config = { rows: number; fUnits: number; fDrones: number; eDrones: number; eUnits: number; civ: number; bridges: number; maxActive: number };
+type FxMove = { fr: number; fc: number; tr: number; tc: number; side: Side };
+type Fx = { moves: FxMove[]; deaths: { r: number; c: number }[] };
+const NO_FX: Fx = { moves: [], deaths: [] };
 
 const DEFAULT_CONFIG: Config = { rows: 5, fUnits: 5, fDrones: 5, eDrones: 5, eUnits: 5, civ: 5 * COLS, bridges: 1, maxActive: 10 };
 const ratingFromCiv = (civ: number) => (civ === 0 ? 1 : civ <= 2 ? 2 : 3);
@@ -337,6 +340,28 @@ function step(prev: Game): Game {
   return g;
 }
 
+// Diff pre/post-step states into transient effects: who moved (origin→dest, side)
+// and which cells saw a death (a removed unit, or a lost civilian).
+function computeFx(before: Game, after: Game): Fx {
+  const moves: FxMove[] = [];
+  const afterById = new Map(after.units.map((u) => [u.id, u]));
+  for (const b of before.units) {
+    const a = afterById.get(b.id);
+    if (a && (a.r !== b.r || a.c !== b.c)) moves.push({ fr: b.r, fc: b.c, tr: a.r, tc: a.c, side: b.side });
+  }
+  const afterIds = new Set(after.units.map((u) => u.id));
+  const deadCells = new Set<string>();
+  for (const b of before.units) if (!afterIds.has(b.id)) deadCells.add(`${b.r},${b.c}`);
+  for (let r = 0; r < after.cells.length; r++)
+    for (let c = 0; c < after.cells[0].length; c++)
+      if (after.cells[r][c].civ < before.cells[r][c].civ) deadCells.add(`${r},${c}`);
+  const deaths = [...deadCells].map((k) => {
+    const [r, c] = k.split(",").map(Number);
+    return { r, c };
+  });
+  return { moves, deaths };
+}
+
 function smoothPath(pts: { x: number; y: number }[]) {
   if (pts.length < 2) return "";
   let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
@@ -368,6 +393,43 @@ function River({ rows, bridges }: { rows: number; bridges: number }) {
       <path d={smoothPath(pts)} fill="none" stroke={RIVER_BLUE} strokeWidth={3} strokeLinecap="round" opacity={0.85} />
       {bRows.map((r) => (
         <rect key={r} x={cx(riverCol(r, rows)) - 18} y={cy(r) - 5} width={36} height={10} rx={2} fill="#A9763A" stroke="#5A3A1A" strokeWidth={1} />
+      ))}
+    </svg>
+  );
+}
+
+// Transient overlay: movement arrows (unit-colored) and death skulls, shown ~1s per tick.
+function FxLayer({ fx, rows }: { fx: Fx; rows: number }) {
+  const cx = (c: number) => c * (CELL_W + GAP) + CELL_W / 2;
+  const cy = (r: number) => r * (CELL_H + GAP) + CELL_H / 2;
+  const w = COLS * CELL_W + (COLS - 1) * GAP;
+  const h = rows * CELL_H + (rows - 1) * GAP;
+  const col = (s: Side) => (s === "friendly" ? "#378ADD" : "#C0392B");
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none", zIndex: 8 }}>
+      {fx.moves.map((m, i) => {
+        const x1 = cx(m.fc);
+        const y1 = cy(m.fr);
+        const x2 = cx(m.tc);
+        const y2 = cy(m.tr);
+        const ang = Math.atan2(y2 - y1, x2 - x1);
+        const ah = 11;
+        const p1x = x2 - ah * Math.cos(ang - Math.PI / 7);
+        const p1y = y2 - ah * Math.sin(ang - Math.PI / 7);
+        const p2x = x2 - ah * Math.cos(ang + Math.PI / 7);
+        const p2y = y2 - ah * Math.sin(ang + Math.PI / 7);
+        const c = col(m.side);
+        return (
+          <g key={i}>
+            <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c} strokeWidth={3.5} strokeLinecap="round" opacity={0.92} />
+            <polygon points={`${x2.toFixed(1)},${y2.toFixed(1)} ${p1x.toFixed(1)},${p1y.toFixed(1)} ${p2x.toFixed(1)},${p2y.toFixed(1)}`} fill={c} opacity={0.92} />
+          </g>
+        );
+      })}
+      {fx.deaths.map((d, i) => (
+        <text key={`d${i}`} x={cx(d.c)} y={cy(d.r)} textAnchor="middle" dominantBaseline="central" fontSize={26}>
+          💀
+        </text>
       ))}
     </svg>
   );
@@ -441,29 +503,37 @@ export default function AutonomousTargetingGame() {
   const [game, setGame] = useState<Game>(() => buildGame(DEFAULT_CONFIG, false));
   const [running, setRunning] = useState(false);
   const [auto, setAuto] = useState(false);
+  const [fx, setFx] = useState<Fx>(NO_FX);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const pending = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const fxTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoRef = useRef(auto);
   autoRef.current = auto;
   const maxActiveRef = useRef(config.maxActive);
   maxActiveRef.current = config.maxActive;
+  const gameRef = useRef(game);
+  gameRef.current = game;
 
   useEffect(() => {
     setGame(buildGame(DEFAULT_CONFIG, true));
   }, []);
 
+  useEffect(() => () => { if (fxTimer.current) clearTimeout(fxTimer.current); }, []);
+
   useEffect(() => {
     if (!running) return;
-    timer.current = setInterval(
-      () =>
-        setGame((g) => {
-          if (g.status !== "playing") return g;
-          const n = step(g);
-          if (autoRef.current) autoActivate(n, maxActiveRef.current);
-          return n;
-        }),
-      STEP_MS,
-    );
+    timer.current = setInterval(() => {
+      const g = gameRef.current;
+      if (g.status !== "playing") return;
+      const n = step(g);
+      if (autoRef.current) autoActivate(n, maxActiveRef.current);
+      const nextFx = computeFx(g, n);
+      gameRef.current = n;
+      setGame(n);
+      setFx(nextFx);
+      if (fxTimer.current) clearTimeout(fxTimer.current);
+      fxTimer.current = setTimeout(() => setFx(NO_FX), 1000);
+    }, STEP_MS);
     return () => {
       if (timer.current) clearInterval(timer.current);
     };
@@ -492,6 +562,8 @@ export default function AutonomousTargetingGame() {
     setConfig(next);
     setRunning(false);
     setAuto(false);
+    if (fxTimer.current) clearTimeout(fxTimer.current);
+    setFx(NO_FX);
     setGame(buildGame(next, true));
   };
   const toggleAuto = () => {
@@ -714,6 +786,7 @@ export default function AutonomousTargetingGame() {
               )}
             </div>
             <River rows={game.cells.length} bridges={game.bridges} />
+            <FxLayer fx={fx} rows={game.cells.length} />
           </div>
         </div>
       </div>
