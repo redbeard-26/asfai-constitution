@@ -255,16 +255,18 @@ function moveHumans(g: Game) {
 }
 
 type Enter = (g: Game, u: Unit, r: number, c: number) => boolean;
+type RC = { r: number; c: number };
 
-// BFS toward the nearest enemy over cells the `canEnter` predicate admits; returns the first step.
-function droneStepBy(g: Game, u: Unit, canEnter: Enter): { r: number; c: number } | null {
+// BFS toward the nearest enemy over cells `canEnter` admits; returns the whole path
+// [first step, …, enemy cell], or [] if no enemy is reachable.
+function dronePath(g: Game, u: Unit, canEnter: Enter): RC[] {
   const o = opp(u.side);
   const cols = g.cells[0].length;
   const key = (r: number, c: number) => r * cols + c;
-  const prev = new Map<number, { r: number; c: number }>();
+  const prev = new Map<number, RC>();
   const seen = new Set<number>([key(u.r, u.c)]);
-  const q: { r: number; c: number }[] = [{ r: u.r, c: u.c }];
-  let goal: { r: number; c: number } | null = null;
+  const q: RC[] = [{ r: u.r, c: u.c }];
+  let goal: RC | null = null;
   while (q.length) {
     const cur = q.shift()!;
     if ((cur.r !== u.r || cur.c !== u.c) && at(g, cur.r, cur.c).some((x) => x.side === o)) {
@@ -280,31 +282,69 @@ function droneStepBy(g: Game, u: Unit, canEnter: Enter): { r: number; c: number 
       q.push({ r: nr, c: nc });
     }
   }
-  if (!goal) return null;
-  let node = goal;
-  while (true) {
-    const p = prev.get(key(node.r, node.c));
-    if (!p || (p.r === u.r && p.c === u.c)) break;
-    node = p;
+  if (!goal) return [];
+  const path: RC[] = [];
+  let node: RC | undefined = goal;
+  while (node && (node.r !== u.r || node.c !== u.c)) {
+    path.push(node);
+    node = prev.get(key(node.r, node.c));
   }
-  return node;
+  return path.reverse();
 }
 
-const droneStep = (g: Game, u: Unit) => droneStepBy(g, u, droneCanEnter);
+const droneStep = (g: Game, u: Unit) => dronePath(g, u, droneCanEnter)[0] ?? null;
 
-// Auto mode: where a friendly drone would advance if the overlay allowed it —
-// ignores active status but still honors the drone's rating ceiling.
+// Where a friendly drone could advance if the overlay allowed it — ignores active
+// status but honors the drone's rating ceiling.
 const droneReach: Enter = (g, u, r, c) => inB(g, r, c) && g.cells[r][c].rating <= u.rating;
 
-// After a tick, activate the next cell each friendly drone wants to move into, so the
-// authorized zone follows the drones as trailing cells expire.
-function autoActivate(g: Game, maxActive: number) {
+const AUTO_LOOKAHEAD = 2; // corridor cells to open ahead of each drone
+const AUTO_CLOCK = 4;
+
+// Auto-mode planning phase — runs once per tick, right after the clocks tick down.
+// Rebuilds the whole active-zone set: keep the cell every friendly unit stands on,
+// open a short corridor toward where each drone needs to go, then spend whatever
+// budget remains keeping units supported — and switch OFF every active cell that
+// nothing in that plan needs.
+function autoPlan(g: Game, maxActive: number) {
   if (g.status !== "playing") return;
+  const rows = g.cells.length;
+  const cols = g.cells[0].length;
+  const key = (r: number, c: number) => r * cols + c;
+  const want = new Map<number, number>(); // cell key -> priority (lower = keep first)
+  const bump = (r: number, c: number, p: number) => {
+    if (!inB(g, r, c)) return;
+    const k = key(r, c);
+    const cur = want.get(k);
+    if (cur === undefined || cur > p) want.set(k, p);
+  };
+  // Drones must hold their own cell (fire / not strand) and, above all, have the next
+  // cells of their route open so they can actually advance.
   for (const u of g.units.filter((x) => x.side === "friendly" && x.kind === "drone")) {
-    const foeHere = at(g, u.r, u.c).some((x) => x.side === "enemy");
-    const target = foeHere ? { r: u.r, c: u.c } : droneStepBy(g, u, droneReach);
-    if (target && g.cells[target.r][target.c].activeTurns <= 0) setClock(g, target.r, target.c, 4, maxActive);
+    bump(u.r, u.c, 0);
+    const path = dronePath(g, u, droneReach);
+    for (let i = 0; i < path.length && i < AUTO_LOOKAHEAD; i++) bump(path[i].r, path[i].c, 1 + i);
   }
+  // Low priority: keep ground under friendly troops when budget allows.
+  for (const u of g.units.filter((x) => x.side === "friendly" && x.kind === "human")) bump(u.r, u.c, 10);
+  // Rank by priority; keep the most useful cells within the active-zone budget.
+  const keep = new Set(
+    [...want.entries()].sort((a, b) => a[1] - b[1]).slice(0, Math.max(0, maxActive)).map(([k]) => k),
+  );
+  // Apply the plan: switch kept cells on, everything else off.
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) {
+      const cell = g.cells[r][c];
+      if (keep.has(key(r, c))) {
+        if (cell.activeTurns <= 0) {
+          cell.activeTurns = AUTO_CLOCK;
+          cell.seq = ++g.seqCounter;
+        }
+      } else if (cell.activeTurns > 0) {
+        cell.activeTurns = 0;
+        cell.seq = 0;
+      }
+    }
 }
 
 function moveDrones(g: Game) {
@@ -526,7 +566,7 @@ export default function AutonomousTargetingGame() {
       const g = gameRef.current;
       if (g.status !== "playing") return;
       const n = step(g);
-      if (autoRef.current) autoActivate(n, maxActiveRef.current);
+      if (autoRef.current) autoPlan(n, maxActiveRef.current);
       const nextFx = computeFx(g, n);
       gameRef.current = n;
       setGame(n);
