@@ -25,15 +25,17 @@ const RATING_TINT: Record<number, string> = {
   2: "rgba(239,159,39,0.42)",
   3: "rgba(194,58,99,0.40)",
 };
-// Lethality levels (green=1 most lethal … red=3 least lethal). A more lethal setting
-// kills targets faster but spares fewer civilians; the least-lethal of the drone and
+// Lethality levels (green=1 most lethal … red=3 least lethal). Each firing unit rolls
+// three independent chances per tick: kill a foe (flat), kill a civilian (scaled by the
+// number present), kill a friend (scaled by the number present). A more lethal setting
+// hits the foe harder but spares fewer bystanders. The least-lethal of the drone and
 // cell settings is what actually applies.
-const KILL_BY_LEVEL: Record<number, number> = { 1: 0.55, 2: 0.4, 3: 0.26 }; // green kills most
-const PREC_BY_LEVEL: Record<number, number> = { 1: 0.75, 2: 0.88, 3: 0.97 }; // green least precise
+const LETHALITY: Record<number, { foe: number; civ: number; friend: number }> = {
+  1: { foe: 0.9, civ: 0.2, friend: 0.1 }, // most lethal (green)
+  2: { foe: 0.8, civ: 0.1, friend: 0.05 }, // medium (yellow) — also every troop
+  3: { foe: 0.7, civ: 0.05, friend: 0.01 }, // least lethal (red)
+};
 const appliedLevel = (droneRating: number, cellRating: number) => Math.max(droneRating, cellRating);
-const HUMAN_PRECISION = 0.88;
-const KILL = { human: 0.3 };
-const FF = { drone: 0.04, human: 0.02 };
 const MAX_CIV = 4;
 const ENEMY_HUMAN = "#9C4A2E"; // brown-red
 const ENEMY_DRONE = "#C0503C"; // lighter red-brown
@@ -183,24 +185,24 @@ function attackPhase(g: Game, kind: Kind) {
     // Fail closed: a friendly drone in a deactivated cell is non-lethal — present, able
     // to move, but it does not fire.
     if (a.side === "friendly" && a.kind === "drone" && cell.activeTurns <= 0) continue;
-    // Applied lethality: for a friendly drone, the least lethal of its own setting and the
-    // cell's cap. Enemy drones ignore the overlay and run at full lethality.
-    const level = a.kind === "drone" ? (a.side === "friendly" ? appliedLevel(a.rating, cell.rating) : 1) : 0;
     const here = g.units.filter((x) => !killed.has(x.id) && x.r === a.r && x.c === a.c);
     const foes = here.filter((x) => x.side !== a.side);
+    if (!foes.length) continue; // a unit only fires when a foe shares its cell
     const friends = here.filter((x) => x.side === a.side && x.id !== a.id);
-    const kill = a.kind === "drone" ? KILL_BY_LEVEL[level] : KILL.human;
-    const ff = a.kind === "drone" ? FF.drone : FF.human;
-    if (foes.length && Math.random() < kill) killed.add(foes[Math.floor(Math.random() * foes.length)].id);
-    if (friends.length && Math.random() < ff) killed.add(friends[Math.floor(Math.random() * friends.length)].id);
-    // Collateral only accompanies an actual engagement (a foe was present to fire at).
-    if (foes.length && cell.civ > 0) {
-      const prec = a.kind === "drone" ? PREC_BY_LEVEL[level] : HUMAN_PRECISION;
-      const pCiv = (1 - prec) * (cell.civ / MAX_CIV);
-      if (Math.random() < pCiv) {
-        cell.civ -= 1;
-        a.side === "friendly" ? (g.stats.civF += 1) : (g.stats.civE += 1);
-      }
+    // Applied lethality: a friendly drone runs at the least lethal of its own setting and
+    // the cell's cap; an enemy drone always runs at full lethality; any troop fires like a
+    // medium drone.
+    const level = a.kind === "drone" ? (a.side === "friendly" ? appliedLevel(a.rating, cell.rating) : 1) : 2;
+    const L = LETHALITY[level];
+    const civStat: "civF" | "civE" = a.side === "friendly" ? "civF" : "civE";
+    // Three independent rolls: foe (flat), civilian (× count present), friend (× count present).
+    if (Math.random() < L.foe) killed.add(foes[Math.floor(Math.random() * foes.length)].id);
+    if (cell.civ > 0 && Math.random() < Math.min(1, L.civ * cell.civ)) {
+      cell.civ -= 1;
+      g.stats[civStat] += 1;
+    }
+    if (friends.length && Math.random() < Math.min(1, L.friend * friends.length)) {
+      killed.add(friends[Math.floor(Math.random() * friends.length)].id);
     }
   }
   for (const idk of killed) {
@@ -225,7 +227,6 @@ function moveHumans(g: Game) {
     const blockedC = u.side === "friendly" ? u.c + 1 : u.c - 1;
     const passable = (r: number, c: number) => {
       if (!inB(g, r, c) || hasDrone(r, c)) return false;
-      if (u.side === "friendly" && g.cells[r][c].activeTurns <= 0) return false;
       if (onRiver && !bridged && r === u.r && c === blockedC) return false;
       return true;
     };
@@ -707,8 +708,9 @@ export default function AutonomousTargetingGame() {
         managing the drones. A deactivated cell is non-lethal: drones may cross it
         but won&apos;t fire (fail-closed). Single-click a cell to step its
         authorization clock (wraps 4 → 0), double-click to jump 4 ↔ 0; click a
-        drone to change its lethality. Troops still need active cells to advance
-        and cross the river only at a bridge; enemies ignore the overlay. Press
+        drone to change its lethality. Troops move on their own and fire like a
+        medium drone, but still cross the river only at a bridge; enemies ignore
+        the overlay. Press
         Auto to let the system authorize engagement where your drones meet the
         enemy — it won&apos;t switch off cells you activated yourself; those
         expire on their own clock.
