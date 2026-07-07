@@ -41,6 +41,7 @@ const ENEMY_HUMAN = "#9C4A2E"; // brown-red
 const ENEMY_DRONE = "#C0503C"; // lighter red-brown
 const RIVER_BLUE = "#2C7BD6";
 const FRIENDLY_BLUE = "#2564AA"; // medium-dark blue — darker than the river, lighter than navy
+const SHOW_TIMERS = false; // clocks hidden for now — kept in code
 const CELL_W = 82;
 const CELL_H = 90;
 const US = 15; // troop square side
@@ -719,8 +720,6 @@ export default function AutonomousTargetingGame() {
       <ul className="mt-1 ml-5 list-disc space-y-0.5 text-sm leading-relaxed text-muted">
         <li>click on a friendly drone to set its safety program</li>
         <li>click on the corner of a cell to set its safety level</li>
-        <li>click on a cell to increment an activation timer (on = fire permitted)</li>
-        <li>double-click on a cell to toggle the timer on/off</li>
       </ul>
       <p className="mt-2 text-sm leading-relaxed text-muted">
         Drone units (circles) will apply a level of caution equal to the lesser of its
@@ -835,9 +834,11 @@ export default function AutonomousTargetingGame() {
                         title="cell lethality cap — green most lethal, red least (cycles G/Y/R)"
                         style={{ position: "absolute", top: -2, left: -2, width: 24, height: 24, background: RATING_COLOR[cell.rating], clipPath: "polygon(0 0, 100% 0, 0 100%)", cursor: "pointer", zIndex: 3 }}
                       />
-                      <span style={{ position: "absolute", top: 2, right: 2, pointerEvents: "none" }}>
-                        <Clock n={cell.activeTurns} />
-                      </span>
+                      {SHOW_TIMERS && (
+                        <span style={{ position: "absolute", top: 2, right: 2, pointerEvents: "none" }}>
+                          <Clock n={cell.activeTurns} />
+                        </span>
+                      )}
                       {lane(fd, DRONE_TOP, true)}
                       {lane(ed, DRONE_TOP, false)}
                       {lane(fh, HUMAN_TOP, true)}
