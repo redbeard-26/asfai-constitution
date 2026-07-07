@@ -43,7 +43,8 @@ const RIVER_BLUE = "#2C7BD6";
 const FRIENDLY_BLUE = "#2564AA"; // medium-dark blue — darker than the river, lighter than navy
 const CELL_W = 82;
 const CELL_H = 90;
-const US = 15;
+const US = 15; // troop square side
+const DRONE_D = Math.round((US * 2) / Math.sqrt(Math.PI)); // circle diameter with the same area as the troop square
 const HALF = 8;
 const DRONE_TOP = 24;
 const HUMAN_TOP = 47;
@@ -539,8 +540,8 @@ function Marker({ u, onEdit, extra }: { u: Unit; onEdit?: () => void; extra?: Re
       title={`${u.side} ${u.kind}${drone && friendly ? ` · lethality ${["", "G", "Y", "R"][u.rating]} (click to change)` : ""}`}
       onClick={editable ? (e) => { e.stopPropagation(); onEdit!(); } : undefined}
       style={{
-        width: US,
-        height: US,
+        width: drone ? DRONE_D : US,
+        height: drone ? DRONE_D : US,
         background: friendly ? FRIENDLY_BLUE : drone ? ENEMY_DRONE : ENEMY_HUMAN,
         borderRadius: drone ? "50%" : 2,
         border,
