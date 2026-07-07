@@ -66,7 +66,6 @@ type Fx = { moves: FxMove[]; deaths: { r: number; c: number }[] };
 const NO_FX: Fx = { moves: [], deaths: [] };
 
 const DEFAULT_CONFIG: Config = { rows: 5, fUnits: 5, fDrones: 5, eDrones: 5, eUnits: 5, civ: 5 * COLS, bridges: 1, maxActive: 10 };
-const ratingFromCiv = (civ: number) => (civ === 0 ? 1 : civ <= 2 ? 2 : 3);
 const maxCivFor = (rows: number) => MAX_CIV * rows * COLS;
 const maxBridges = (rows: number) => Math.floor(rows / 2);
 const riverCol = (r: number, rows: number) => (Math.sin(((r + 0.5) / rows) * Math.PI * 2) >= 0 ? 3 : 4);
@@ -96,7 +95,7 @@ function buildGame(cfg: Config, randomize: boolean): Game {
   const ned = Math.min(cfg.eDrones, rows);
   const neu = Math.min(cfg.eUnits, rows);
   for (let i = 0; i < nf; i++) units.push(mk("friendly", "human", 0, i, 0));
-  for (let i = 0; i < nd; i++) units.push(mk("friendly", "drone", (i % 3) + 1, i, 1));
+  for (let i = 0; i < nd; i++) units.push(mk("friendly", "drone", 1, i, 1)); // all drones start green
   for (let i = 0; i < ned; i++) units.push(mk("enemy", "drone", 0, i, COLS - 2));
   for (let i = 0; i < neu; i++) units.push(mk("enemy", "human", 0, i, COLS - 1));
 
@@ -134,12 +133,18 @@ function buildGame(cfg: Config, randomize: boolean): Game {
       cells[best[0]][best[1]].civ = MAX_CIV;
     }
   }
-  for (let r = 0; r < rows; r++) for (let c = 0; c < COLS; c++) cells[r][c].rating = ratingFromCiv(cells[r][c].civ);
+  // All cells start green (rating 1) — the commander sets levels from there.
+  // Start with the maximum number of zones already active, filling a band from the
+  // friendly (left) side and giving each an activation order.
   let seqCounter = 0;
-  for (let i = 0; i < nd; i++) {
-    cells[i][1].activeTurns = 2; // start half-filled
-    cells[i][1].seq = ++seqCounter;
-  }
+  let activated = 0;
+  const cap = Math.max(0, Math.min(rows * COLS, cfg.maxActive));
+  for (let c = 0; c < COLS && activated < cap; c++)
+    for (let r = 0; r < rows && activated < cap; r++) {
+      cells[r][c].activeTurns = 4;
+      cells[r][c].seq = ++seqCounter;
+      activated++;
+    }
   const bridges = Math.max(0, Math.min(maxBridges(rows), cfg.bridges));
   return { cells, units, stats: { eu: 0, ed: 0, fu: 0, fd: 0, civF: 0, civE: 0, ticks: 0 }, status: "playing", bridges, seqCounter };
 }
@@ -575,14 +580,11 @@ export default function AutonomousTargetingGame() {
   const [config, setConfig] = useState<Config>(DEFAULT_CONFIG);
   const [game, setGame] = useState<Game>(() => buildGame(DEFAULT_CONFIG, false));
   const [running, setRunning] = useState(false);
-  const [auto, setAuto] = useState(false);
   const [fx, setFx] = useState<Fx>(NO_FX);
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const pending = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const fxTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const autoRef = useRef(auto);
-  autoRef.current = auto;
   const maxActiveRef = useRef(config.maxActive);
   maxActiveRef.current = config.maxActive;
   const gameRef = useRef(game);
@@ -600,7 +602,7 @@ export default function AutonomousTargetingGame() {
       const g = gameRef.current;
       if (g.status !== "playing") return;
       const n = step(g);
-      if (autoRef.current) autoPlan(n, maxActiveRef.current);
+      autoPlan(n, maxActiveRef.current); // Play always runs the automatic activation planner
       const nextFx = computeFx(g, n);
       gameRef.current = n;
       setGame(n);
@@ -635,18 +637,19 @@ export default function AutonomousTargetingGame() {
     };
     setConfig(next);
     setRunning(false);
-    setAuto(false);
     if (fxTimer.current) clearTimeout(fxTimer.current);
     setFx(NO_FX);
-    setGame(buildGame(next, true));
+    const g = buildGame(next, true);
+    gameRef.current = g;
+    setGame(g);
   };
-  const toggleAuto = () => {
-    if (!auto) {
-      setAuto(true);
-      setRunning(true);
-    } else {
-      setAuto(false);
-    }
+  const reset = () => {
+    setRunning(false);
+    if (fxTimer.current) clearTimeout(fxTimer.current);
+    setFx(NO_FX);
+    const g = buildGame(config, true);
+    gameRef.current = g;
+    setGame(g);
   };
   const setForce = (k: keyof Config, v: number) => {
     setSelectedLevel(null); // any manual config change clears the level highlight
@@ -733,25 +736,16 @@ export default function AutonomousTargetingGame() {
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <button
-          onClick={() => setRunning((v) => !v)}
-          disabled={game.status !== "playing"}
-          style={{ background: "#C6E9B0", border: "1px solid #7FB05B", color: "#2f5417", borderRadius: 8 }}
-          className="px-4 py-1.5 text-sm font-bold hover:brightness-95 disabled:opacity-40"
-        >
-          {running ? "❚❚ Pause" : "▶ Play"}
-        </button>
-        <button
-          onClick={toggleAuto}
-          disabled={game.status !== "playing"}
-          title="Auto: the overlay keeps activating the cells your drones want to advance into as older zones expire"
+          onClick={game.status !== "playing" ? reset : () => setRunning((v) => !v)}
+          title="Play runs the game with cells activated automatically; pause any time"
           style={
-            auto
-              ? { background: "#378ADD", border: "1px solid #2C6BB0", color: "#ffffff", borderRadius: 8 }
-              : { background: "#D6E6F7", border: "1px solid #2C6BB0", color: "#1c4c86", borderRadius: 8 }
+            game.status !== "playing"
+              ? { background: "#E7E4DA", border: "1px solid #A9A597", color: "#3a382f", borderRadius: 8 }
+              : { background: "#C6E9B0", border: "1px solid #7FB05B", color: "#2f5417", borderRadius: 8 }
           }
-          className="px-4 py-1.5 text-sm font-bold hover:brightness-95 disabled:opacity-40"
+          className="px-4 py-1.5 text-sm font-bold hover:brightness-95"
         >
-          {auto ? "◉ Auto" : "◎ Auto"}
+          {game.status !== "playing" ? "↺ Reset" : running ? "❚❚ Pause" : "▶ Play"}
         </button>
         {LEVELS.map((l) => (
           <button
