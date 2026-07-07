@@ -53,7 +53,7 @@ const FRAME_PAD = 4;
 const GAME_W = COLS * CELL_W + (COLS - 1) * GAP + 2 * (5 + FRAME_PAD);
 const LEVELS = [1, 2, 3, 4, 5]; // button labels; internal N = label + 1
 
-type Cell = { rating: number; activeTurns: number; civ: number; seq: number; pinned: boolean };
+type Cell = { rating: number; activeTurns: number; civ: number; seq: number; pinned: boolean; lockout: number };
 type Side = "friendly" | "enemy";
 type Kind = "human" | "drone";
 type Unit = { id: number; side: Side; kind: Kind; rating: number; r: number; c: number };
@@ -85,7 +85,7 @@ const levelConfig = (n: number): Config => ({
 function buildGame(cfg: Config, randomize: boolean): Game {
   const rows = cfg.rows;
   const cells: Cell[][] = Array.from({ length: rows }, () =>
-    Array.from({ length: COLS }, () => ({ rating: 1, activeTurns: 0, civ: 0, seq: 0, pinned: false })),
+    Array.from({ length: COLS }, () => ({ rating: 1, activeTurns: 0, civ: 0, seq: 0, pinned: false, lockout: 0 })),
   );
   let id = 0;
   const mk = (side: Side, kind: Kind, rating: number, r: number, c: number): Unit => ({ id: id++, side, kind, rating, r, c });
@@ -335,6 +335,7 @@ function dronePath(g: Game, u: Unit, canEnter: Enter): RC[] {
 const droneStep = (g: Game, u: Unit) => dronePath(g, u, droneCanEnter)[0] ?? null;
 
 const AUTO_CLOCK = 4;
+const AUTO_LOCKOUT = 2; // turns a user-deactivated cell is barred from automatic reactivation
 
 // Auto planning runs each tick right after the clocks tick down. Drones move on their
 // own now, so the plan authorizes *engagement*, and it always spends the full active-zone
@@ -356,6 +357,7 @@ function autoPlan(g: Game, maxActive: number) {
     if (!inB(g, r, c)) return;
     const cell = g.cells[r][c];
     if (cell.pinned && cell.activeTurns > 0) return; // already held by the user
+    if (cell.lockout > 0) return; // recently deactivated by hand — off-limits to auto for now
     const k = key(r, c);
     const cur = want.get(k);
     if (cur === undefined || cur > p) want.set(k, p);
@@ -382,6 +384,7 @@ function autoPlan(g: Game, maxActive: number) {
   for (let r = 0; r < rows; r++)
     for (let c = 0; c < cols; c++) {
       const cell = g.cells[r][c];
+      if (cell.lockout > 0) cell.lockout -= 1; // count down the manual-deactivation cooldown
       if (cell.pinned && cell.activeTurns > 0) continue; // leave user cells to time out
       if (keep.has(key(r, c))) {
         if (cell.activeTurns <= 0) {
@@ -669,11 +672,14 @@ export default function AutonomousTargetingGame() {
     applyConfig(k === "rows" ? { ...config, rows: v, civ: v * COLS } : { ...config, [k]: v });
   };
 
-  // A click toggles the cell on/off (active ↔ inactive).
+  // A click toggles the cell on/off (active ↔ inactive). Deactivating also locks the cell
+  // out of automatic reactivation for 2 turns; activating clears any lockout.
   const clickCell = (r: number, c: number) =>
     setGame((g) => {
       const n: Game = structuredClone(g);
-      setClock(n, r, c, n.cells[r][c].activeTurns > 0 ? 0 : 4, config.maxActive, true);
+      const wasActive = n.cells[r][c].activeTurns > 0;
+      setClock(n, r, c, wasActive ? 0 : 4, config.maxActive, true);
+      n.cells[r][c].lockout = wasActive ? AUTO_LOCKOUT : 0;
       return n;
     });
   const cycleRating = (r: number, c: number) =>
@@ -722,6 +728,7 @@ export default function AutonomousTargetingGame() {
       <ul className="mt-1 ml-5 list-disc space-y-0.5 text-sm leading-relaxed text-muted">
         <li>click on a friendly drone to set its safety program</li>
         <li>click on the corner of a cell to set its safety level</li>
+        <li>click on a cell to activate or deactivate a cell (this will happen automatically but you can override)</li>
       </ul>
       <p className="mt-2 text-sm leading-relaxed text-muted">
         Drone units (circles) will apply a level of caution equal to the lesser of its
