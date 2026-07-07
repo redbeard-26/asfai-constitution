@@ -479,30 +479,22 @@ function FxLayer({ fx, rows }: { fx: Fx; rows: number }) {
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none", zIndex: 8 }}>
       {fx.moves.map((m, i) => {
-        // A short, thick arrow straddling the boundary between origin and destination
-        // (centered at the midpoint of the two cell centers), pointing toward the move.
+        // A simple triangle centered on the boundary between origin and destination,
+        // pointing toward the move.
         const ang = Math.atan2(cy(m.tr) - cy(m.fr), cx(m.tc) - cx(m.fc));
         const ux = Math.cos(ang);
         const uy = Math.sin(ang);
+        const px = -uy; // perpendicular
+        const py = ux;
         const mx = (cx(m.fc) + cx(m.tc)) / 2;
         const my = (cy(m.fr) + cy(m.tr)) / 2;
-        const half = 11; // half the shaft length
-        const tailx = mx - half * ux;
-        const taily = my - half * uy;
-        const headx = mx + half * ux;
-        const heady = my + half * uy;
-        const ah = 13; // arrowhead length
-        const p1x = headx - ah * Math.cos(ang - Math.PI / 6);
-        const p1y = heady - ah * Math.sin(ang - Math.PI / 6);
-        const p2x = headx - ah * Math.cos(ang + Math.PI / 6);
-        const p2y = heady - ah * Math.sin(ang + Math.PI / 6);
-        const c = col(m.side);
-        return (
-          <g key={i}>
-            <line x1={tailx.toFixed(1)} y1={taily.toFixed(1)} x2={headx.toFixed(1)} y2={heady.toFixed(1)} stroke={c} strokeWidth={7} strokeLinecap="round" opacity={0.95} />
-            <polygon points={`${headx.toFixed(1)},${heady.toFixed(1)} ${p1x.toFixed(1)},${p1y.toFixed(1)} ${p2x.toFixed(1)},${p2y.toFixed(1)}`} fill={c} opacity={0.95} />
-          </g>
-        );
+        const fwd = 11; // tip distance ahead of center
+        const back = 8; // base distance behind center
+        const halfW = 9; // half base width
+        const tip = `${(mx + fwd * ux).toFixed(1)},${(my + fwd * uy).toFixed(1)}`;
+        const bl = `${(mx - back * ux + halfW * px).toFixed(1)},${(my - back * uy + halfW * py).toFixed(1)}`;
+        const br = `${(mx - back * ux - halfW * px).toFixed(1)},${(my - back * uy - halfW * py).toFixed(1)}`;
+        return <polygon key={i} points={`${tip} ${bl} ${br}`} fill={col(m.side)} opacity={0.95} />;
       })}
       {fx.deaths.map((d, i) => (
         <text key={`d${i}`} x={cx(d.c)} y={cy(d.r)} textAnchor="middle" dominantBaseline="central" fontSize={26}>
