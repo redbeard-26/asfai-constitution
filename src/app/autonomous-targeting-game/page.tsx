@@ -631,7 +631,7 @@ export default function AutonomousTargetingGame() {
       eUnits: Math.max(1, Math.min(n.eUnits, rows)),
       civ: Math.max(1, Math.min(maxCivFor(rows), n.civ)),
       bridges: Math.max(0, Math.min(maxBridges(rows), n.bridges)),
-      maxActive: Math.max(1, Math.min(rows * COLS, n.maxActive)),
+      maxActive: rows * 2, // always two active zones per row
     };
     setConfig(next);
     setRunning(false);
@@ -650,13 +650,7 @@ export default function AutonomousTargetingGame() {
   };
   const setForce = (k: keyof Config, v: number) => {
     setSelectedLevel(null); // any manual config change clears the level highlight
-    applyConfig(
-      k === "fDrones"
-        ? { ...config, fDrones: v, maxActive: v * 2 }
-        : k === "rows"
-          ? { ...config, rows: v, civ: v * COLS }
-          : { ...config, [k]: v },
-    );
+    applyConfig(k === "rows" ? { ...config, rows: v, civ: v * COLS } : { ...config, [k]: v });
   };
 
   const clickCell = (r: number, c: number) => {
@@ -927,7 +921,7 @@ export default function AutonomousTargetingGame() {
         <Stepper label="Enemy drones" value={config.eDrones} min={1} max={config.rows} disabled={running} set={(v) => setForce("eDrones", v)} />
         <Stepper label="Enemy units" value={config.eUnits} min={1} max={config.rows} disabled={running} set={(v) => setForce("eUnits", v)} />
         <Stepper label="Bridges" value={config.bridges} min={0} max={maxBridges(config.rows)} disabled={running} set={(v) => setForce("bridges", v)} />
-        <Stepper label="Max active zones" value={config.maxActive} min={1} max={config.rows * COLS} disabled={running} set={(v) => setForce("maxActive", v)} />
+        <p className="text-xs text-muted">Max active zones: <span className="font-bold text-ink tabular-nums">{config.rows * 2}</span> (2 per row)</p>
         <div className="flex items-center gap-1.5">
           <span className="w-32 text-xs text-muted">Civilians</span>
           <input
