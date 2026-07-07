@@ -717,21 +717,18 @@ export default function AutonomousTargetingGame() {
         <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">Autonomy Zone</h1>
       </div>
       <p className="mt-2 text-sm leading-relaxed text-muted">
-        You command the region but control no forces — only the overlay and the
-        drones&apos; settings. Every drone can fire at any lethality: its colored
-        border and each cell&apos;s corner triangle both set a level (green most
-        lethal → red least), and what applies is the <em>least lethal</em> of the
-        two — a red cell throttles a green drone, and a red drone throttles a
-        green cell. So you can hold fire either by managing the battlefield or by
-        managing the drones. A deactivated cell is non-lethal: drones may cross it
-        but won&apos;t fire (fail-closed). Single-click a cell to step its
-        authorization clock (wraps 4 → 0), double-click to jump 4 ↔ 0; click a
-        drone to change its lethality. Troops move on their own and fire like a
-        medium drone, but still cross the river only at a bridge; enemies ignore
-        the overlay. Press
-        Auto to let the system authorize engagement where your drones meet the
-        enemy — it won&apos;t switch off cells you activated yourself; those
-        expire on their own clock.
+        You are a battlefield commander. You are responsible for the following actions:
+      </p>
+      <ul className="mt-1 ml-5 list-disc space-y-0.5 text-sm leading-relaxed text-muted">
+        <li>click on a friendly drone to set its safety program</li>
+        <li>click on the corner of a cell to set its safety level</li>
+        <li>click on a cell to increment an activation timer (on = fire permitted)</li>
+        <li>double-click on a cell to toggle the timer on/off</li>
+      </ul>
+      <p className="mt-2 text-sm leading-relaxed text-muted">
+        Drone units (circles) will apply a level of caution equal to the lesser of its
+        individual program and the level of the cell it is in. Green = permissive (more
+        lethal), Yellow = medium, Red = restrictive (more safe).
       </p>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
