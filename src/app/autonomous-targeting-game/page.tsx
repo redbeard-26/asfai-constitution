@@ -25,9 +25,14 @@ const RATING_TINT: Record<number, string> = {
   2: "rgba(239,159,39,0.42)",
   3: "rgba(194,58,99,0.40)",
 };
-const DRONE_PRECISION: Record<number, number> = { 1: 0.75, 2: 0.88, 3: 0.97 };
+// Lethality levels (green=1 most lethal … red=3 least lethal). A more lethal setting
+// kills targets faster but spares fewer civilians; the least-lethal of the drone and
+// cell settings is what actually applies.
+const KILL_BY_LEVEL: Record<number, number> = { 1: 0.55, 2: 0.4, 3: 0.26 }; // green kills most
+const PREC_BY_LEVEL: Record<number, number> = { 1: 0.75, 2: 0.88, 3: 0.97 }; // green least precise
+const appliedLevel = (droneRating: number, cellRating: number) => Math.max(droneRating, cellRating);
 const HUMAN_PRECISION = 0.88;
-const KILL = { drone: 0.42, human: 0.3 };
+const KILL = { human: 0.3 };
 const FF = { drone: 0.04, human: 0.02 };
 const MAX_CIV = 4;
 const ENEMY_HUMAN = "#9C4A2E"; // brown-red
@@ -44,7 +49,7 @@ const FRAME_PAD = 4;
 const GAME_W = COLS * CELL_W + (COLS - 1) * GAP + 2 * (5 + FRAME_PAD);
 const LEVELS = [1, 2, 3, 4, 5]; // button labels; internal N = label + 1
 
-type Cell = { rating: number; activeTurns: number; civ: number; seq: number };
+type Cell = { rating: number; activeTurns: number; civ: number; seq: number; pinned: boolean };
 type Side = "friendly" | "enemy";
 type Kind = "human" | "drone";
 type Unit = { id: number; side: Side; kind: Kind; rating: number; r: number; c: number };
@@ -77,7 +82,7 @@ const levelConfig = (n: number): Config => ({
 function buildGame(cfg: Config, randomize: boolean): Game {
   const rows = cfg.rows;
   const cells: Cell[][] = Array.from({ length: rows }, () =>
-    Array.from({ length: COLS }, () => ({ rating: 1, activeTurns: 0, civ: 0, seq: 0 })),
+    Array.from({ length: COLS }, () => ({ rating: 1, activeTurns: 0, civ: 0, seq: 0, pinned: false })),
   );
   let id = 0;
   const mk = (side: Side, kind: Kind, rating: number, r: number, c: number): Unit => ({ id: id++, side, kind, rating, r, c });
@@ -135,12 +140,14 @@ function buildGame(cfg: Config, randomize: boolean): Game {
   return { cells, units, stats: { eu: 0, ed: 0, fu: 0, fd: 0, civF: 0, civE: 0, ticks: 0 }, status: "playing", bridges, seqCounter };
 }
 
-// Set a cell's clock, assigning FIFO order on activation and evicting the oldest over the cap.
-function setClock(g: Game, r: number, c: number, turns: number, maxActive: number) {
+// Set a cell's clock, assigning FIFO order on activation and evicting the oldest over the
+// cap. `pinned` marks a user activation, which the auto planner will not switch off.
+function setClock(g: Game, r: number, c: number, turns: number, maxActive: number, pinned = false) {
   const cell = g.cells[r][c];
   const wasActive = cell.activeTurns > 0;
   cell.activeTurns = turns;
   if (turns > 0) {
+    if (pinned) cell.pinned = true;
     if (!wasActive) {
       cell.seq = ++g.seqCounter;
       const active: Cell[] = [];
@@ -150,42 +157,46 @@ function setClock(g: Game, r: number, c: number, turns: number, maxActive: numbe
         for (const a of active) if (a.seq < oldest.seq) oldest = a;
         oldest.activeTurns = 0;
         oldest.seq = 0;
+        oldest.pinned = false;
         active.splice(active.indexOf(oldest), 1);
       }
     }
   } else {
     cell.seq = 0;
+    cell.pinned = false;
   }
 }
 
 const inB = (g: Game, r: number, c: number) => r >= 0 && c >= 0 && r < g.cells.length && c < g.cells[0].length;
 const at = (g: Game, r: number, c: number) => g.units.filter((x) => x.r === r && x.c === c);
 const opp = (s: Side): Side => (s === "friendly" ? "enemy" : "friendly");
-const civPrecision = (a: Unit) =>
-  a.kind === "drone" ? (a.side === "friendly" ? DRONE_PRECISION[a.rating] : DRONE_PRECISION[1]) : HUMAN_PRECISION;
-
+// Any drone may enter any in-bounds cell; the overlay governs lethality, not movement.
 function droneCanEnter(g: Game, u: Unit, r: number, c: number) {
-  if (!inB(g, r, c)) return false;
-  if (u.side === "enemy") return true;
-  const cell = g.cells[r][c];
-  return cell.activeTurns > 0 && cell.rating <= u.rating;
+  return inB(g, r, c);
 }
 
 function attackPhase(g: Game, kind: Kind) {
   const killed = new Set<number>();
   for (const a of g.units.filter((x) => x.kind === kind)) {
     if (killed.has(a.id)) continue;
-    if (a.side === "friendly" && a.kind === "drone" && g.cells[a.r][a.c].activeTurns <= 0) continue;
+    const cell = g.cells[a.r][a.c];
+    // Fail closed: a friendly drone in a deactivated cell is non-lethal — present, able
+    // to move, but it does not fire.
+    if (a.side === "friendly" && a.kind === "drone" && cell.activeTurns <= 0) continue;
+    // Applied lethality: for a friendly drone, the least lethal of its own setting and the
+    // cell's cap. Enemy drones ignore the overlay and run at full lethality.
+    const level = a.kind === "drone" ? (a.side === "friendly" ? appliedLevel(a.rating, cell.rating) : 1) : 0;
     const here = g.units.filter((x) => !killed.has(x.id) && x.r === a.r && x.c === a.c);
     const foes = here.filter((x) => x.side !== a.side);
     const friends = here.filter((x) => x.side === a.side && x.id !== a.id);
-    const kill = a.kind === "drone" ? KILL.drone : KILL.human;
+    const kill = a.kind === "drone" ? KILL_BY_LEVEL[level] : KILL.human;
     const ff = a.kind === "drone" ? FF.drone : FF.human;
     if (foes.length && Math.random() < kill) killed.add(foes[Math.floor(Math.random() * foes.length)].id);
     if (friends.length && Math.random() < ff) killed.add(friends[Math.floor(Math.random() * friends.length)].id);
-    const cell = g.cells[a.r][a.c];
-    if (cell.civ > 0) {
-      const pCiv = (1 - civPrecision(a)) * (cell.civ / MAX_CIV);
+    // Collateral only accompanies an actual engagement (a foe was present to fire at).
+    if (foes.length && cell.civ > 0) {
+      const prec = a.kind === "drone" ? PREC_BY_LEVEL[level] : HUMAN_PRECISION;
+      const pCiv = (1 - prec) * (cell.civ / MAX_CIV);
       if (Math.random() < pCiv) {
         cell.civ -= 1;
         a.side === "friendly" ? (g.stats.civF += 1) : (g.stats.civE += 1);
@@ -294,47 +305,43 @@ function dronePath(g: Game, u: Unit, canEnter: Enter): RC[] {
 
 const droneStep = (g: Game, u: Unit) => dronePath(g, u, droneCanEnter)[0] ?? null;
 
-// Where a friendly drone could advance if the overlay allowed it — ignores active
-// status but honors the drone's rating ceiling.
-const droneReach: Enter = (g, u, r, c) => inB(g, r, c) && g.cells[r][c].rating <= u.rating;
-
-const AUTO_LOOKAHEAD = 2; // corridor cells to open ahead of each drone
 const AUTO_CLOCK = 4;
 
-// Auto-mode planning phase — runs once per tick, right after the clocks tick down.
-// Rebuilds the whole active-zone set: keep the cell every friendly unit stands on,
-// open a short corridor toward where each drone needs to go, then spend whatever
-// budget remains keeping units supported — and switch OFF every active cell that
-// nothing in that plan needs.
+// Auto planning runs each tick right after the clocks tick down. Drones move on their
+// own now, so the plan only authorizes *engagement*: it lights the cells where a friendly
+// drone meets the enemy, within the active-zone budget — and it never switches off a cell
+// the user activated (those expire on their own clock).
 function autoPlan(g: Game, maxActive: number) {
   if (g.status !== "playing") return;
   const rows = g.cells.length;
   const cols = g.cells[0].length;
   const key = (r: number, c: number) => r * cols + c;
-  const want = new Map<number, number>(); // cell key -> priority (lower = keep first)
+  // User-pinned cells are held and still count against the budget.
+  let pinned = 0;
+  for (const row of g.cells) for (const cell of row) if (cell.activeTurns > 0 && cell.pinned) pinned++;
+  const budget = Math.max(0, maxActive - pinned);
+
+  const want = new Map<number, number>(); // key -> priority (lower = keep first)
   const bump = (r: number, c: number, p: number) => {
     if (!inB(g, r, c)) return;
+    const cell = g.cells[r][c];
+    if (cell.pinned && cell.activeTurns > 0) return; // already held by the user
     const k = key(r, c);
     const cur = want.get(k);
     if (cur === undefined || cur > p) want.set(k, p);
   };
-  // Drones must hold their own cell (fire / not strand) and, above all, have the next
-  // cells of their route open so they can actually advance.
+  const enemyAt = (r: number, c: number) => inB(g, r, c) && at(g, r, c).some((x) => x.side === "enemy");
   for (const u of g.units.filter((x) => x.side === "friendly" && x.kind === "drone")) {
-    bump(u.r, u.c, 0);
-    const path = dronePath(g, u, droneReach);
-    for (let i = 0; i < path.length && i < AUTO_LOOKAHEAD; i++) bump(path[i].r, path[i].c, 1 + i);
+    if (enemyAt(u.r, u.c)) bump(u.r, u.c, 0); // engage where the drone already sits on a foe
+    for (const [dr, dc] of DIRS8) if (enemyAt(u.r + dr, u.c + dc)) bump(u.r + dr, u.c + dc, 1); // imminent contact
   }
-  // Low priority: keep ground under friendly troops when budget allows.
-  for (const u of g.units.filter((x) => x.side === "friendly" && x.kind === "human")) bump(u.r, u.c, 10);
-  // Rank by priority; keep the most useful cells within the active-zone budget.
-  const keep = new Set(
-    [...want.entries()].sort((a, b) => a[1] - b[1]).slice(0, Math.max(0, maxActive)).map(([k]) => k),
-  );
-  // Apply the plan: switch kept cells on, everything else off.
+  const keep = new Set([...want.entries()].sort((a, b) => a[1] - b[1]).slice(0, budget).map(([k]) => k));
+
+  // Apply: light kept cells, switch off any auto cell that fell out of the plan.
   for (let r = 0; r < rows; r++)
     for (let c = 0; c < cols; c++) {
       const cell = g.cells[r][c];
+      if (cell.pinned && cell.activeTurns > 0) continue; // leave user cells to time out
       if (keep.has(key(r, c))) {
         if (cell.activeTurns <= 0) {
           cell.activeTurns = AUTO_CLOCK;
@@ -343,6 +350,7 @@ function autoPlan(g: Game, maxActive: number) {
       } else if (cell.activeTurns > 0) {
         cell.activeTurns = 0;
         cell.seq = 0;
+        cell.pinned = false;
       }
     }
 }
@@ -371,7 +379,10 @@ function step(prev: Game): Game {
     for (const cell of row)
       if (cell.activeTurns > 0) {
         cell.activeTurns -= 1;
-        if (cell.activeTurns === 0) cell.seq = 0;
+        if (cell.activeTurns === 0) {
+          cell.seq = 0;
+          cell.pinned = false;
+        }
       }
   const enemy = g.units.filter((x) => x.side === "enemy").length;
   const friendly = g.units.filter((x) => x.side === "friendly").length;
@@ -504,7 +515,7 @@ function Marker({ u, onEdit, extra }: { u: Unit; onEdit?: () => void; extra?: Re
   const border = friendly && drone ? `2px solid ${RATING_COLOR[u.rating]}` : `2px solid ${BLACK}`;
   return (
     <span
-      title={`${u.side} ${u.kind}${drone && friendly ? ` · rated ${["", "G", "Y", "P"][u.rating]}` : ""}`}
+      title={`${u.side} ${u.kind}${drone && friendly ? ` · lethality ${["", "G", "Y", "R"][u.rating]} (click to change)` : ""}`}
       onClick={editable ? (e) => { e.stopPropagation(); onEdit!(); } : undefined}
       style={{
         width: US,
@@ -583,8 +594,8 @@ export default function AutonomousTargetingGame() {
     if (game.status !== "playing") setRunning(false);
   }, [game.status]);
 
-  // Setup phase: before the game has started. Drone ratings and civilian counts
-  // may only be edited here; once playing, only zone ratings and timers change.
+  // Setup phase: before the game has started. Civilian counts may only be edited here;
+  // drone lethality, cell caps, and timers stay adjustable throughout play.
   const setup = !running && game.stats.ticks === 0;
 
   const applyConfig = (n: Config) => {
@@ -631,7 +642,7 @@ export default function AutonomousTargetingGame() {
       // double click → toggle between 4 and 0
       setGame((g) => {
         const n: Game = structuredClone(g);
-        setClock(n, r, c, n.cells[r][c].activeTurns === 4 ? 0 : 4, config.maxActive);
+        setClock(n, r, c, n.cells[r][c].activeTurns === 4 ? 0 : 4, config.maxActive, true);
         return n;
       });
     } else {
@@ -640,7 +651,7 @@ export default function AutonomousTargetingGame() {
         // single click → step the clock by one (4 wraps to 0)
         setGame((g) => {
           const n: Game = structuredClone(g);
-          setClock(n, r, c, (n.cells[r][c].activeTurns + 1) % 5, config.maxActive);
+          setClock(n, r, c, (n.cells[r][c].activeTurns + 1) % 5, config.maxActive, true);
           return n;
         });
       }, 230);
@@ -687,17 +698,20 @@ export default function AutonomousTargetingGame() {
         <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">Autonomy Zone</h1>
       </div>
       <p className="mt-2 text-sm leading-relaxed text-muted">
-        You command the region but control no forces — only the overlay. The
-        top-left swatch sets a cell&apos;s rating requirement; single-click a
-        cell to step its authorization clock up by one turn (it wraps 4 → 0),
-        double-click to jump between 4 and 0. Newly authorizing past your active
-        limit deactivates the oldest zone. Friendly drones enter only active
-        cells rated at or below their certification; troops enter any active
-        cell; enemies ignore the overlay. Troops cross the river only at a
-        bridge. Before pressing play, click a friendly drone to change its
-        rating. Press Auto to let the overlay keep authorizing the cells your
-        drones want to advance into as older zones expire — you can still toggle
-        cells and timers yourself.
+        You command the region but control no forces — only the overlay and the
+        drones&apos; settings. Every drone can fire at any lethality: its colored
+        border and each cell&apos;s corner triangle both set a level (green most
+        lethal → red least), and what applies is the <em>least lethal</em> of the
+        two — a red cell throttles a green drone, and a red drone throttles a
+        green cell. So you can hold fire either by managing the battlefield or by
+        managing the drones. A deactivated cell is non-lethal: drones may cross it
+        but won&apos;t fire (fail-closed). Single-click a cell to step its
+        authorization clock (wraps 4 → 0), double-click to jump 4 ↔ 0; click a
+        drone to change its lethality. Troops still need active cells to advance
+        and cross the river only at a bridge; enemies ignore the overlay. Press
+        Auto to let the system authorize engagement where your drones meet the
+        enemy — it won&apos;t switch off cells you activated yourself; those
+        expire on their own clock.
       </p>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -782,7 +796,7 @@ export default function AutonomousTargetingGame() {
                       <Marker
                         key={u.id}
                         u={u}
-                        onEdit={setup ? () => editDrone(u.id) : undefined}
+                        onEdit={() => editDrone(u.id)}
                         extra={{ position: "absolute", top, zIndex: i + 1, ...(fromLeft ? { left: 3 + i * HALF } : { right: 3 + i * HALF }) }}
                       />
                     ));
@@ -801,7 +815,7 @@ export default function AutonomousTargetingGame() {
                     >
                       <div
                         onClick={(e) => { e.stopPropagation(); cycleRating(r, c); }}
-                        title="rating requirement (cycles green/yellow/purple)"
+                        title="cell lethality cap — green most lethal, red least (cycles G/Y/R)"
                         style={{ position: "absolute", top: -2, left: -2, width: 24, height: 24, background: RATING_COLOR[cell.rating], clipPath: "polygon(0 0, 100% 0, 0 100%)", cursor: "pointer", zIndex: 3 }}
                       />
                       <span style={{ position: "absolute", top: 2, right: 2, pointerEvents: "none" }}>
@@ -846,7 +860,7 @@ export default function AutonomousTargetingGame() {
         </span>
         <span className="flex items-center gap-1.5">
           <span style={{ width: 14, height: 14, background: RATING_COLOR[1], clipPath: "polygon(0 0, 100% 0, 0 100%)", display: "inline-block" }} />
-          permissive (G)
+          most lethal (G)
         </span>
         <span className="flex items-center gap-1.5">
           <span style={{ width: 14, height: 14, background: RATING_COLOR[2], clipPath: "polygon(0 0, 100% 0, 0 100%)", display: "inline-block" }} />
@@ -854,7 +868,7 @@ export default function AutonomousTargetingGame() {
         </span>
         <span className="flex items-center gap-1.5">
           <span style={{ width: 13, height: 13, background: "#378ADD", borderRadius: "50%", border: "2px solid #639922", display: "inline-block", boxSizing: "border-box" }} />
-          friendly drone (border = rating)
+          friendly drone (border = lethality)
         </span>
         <span className="flex items-center gap-1.5">
           <span style={{ width: 13, height: 13, background: ENEMY_DRONE, border: `2px solid ${BLACK}`, borderRadius: "50%", display: "inline-block", boxSizing: "border-box" }} />
@@ -866,7 +880,7 @@ export default function AutonomousTargetingGame() {
         </span>
         <span className="flex items-center gap-1.5">
           <span style={{ width: 14, height: 14, background: RATING_COLOR[3], clipPath: "polygon(0 0, 100% 0, 0 100%)", display: "inline-block" }} />
-          restrictive (R)
+          least lethal (R)
         </span>
         <span className="flex items-center gap-1.5">
           <span style={{ width: 11, height: 11, background: "#9b9a92", borderRadius: 1, display: "inline-block" }} />
