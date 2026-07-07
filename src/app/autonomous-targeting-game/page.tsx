@@ -186,13 +186,15 @@ function droneCanEnter(g: Game, u: Unit, r: number, c: number) {
 
 function attackPhase(g: Game, kind: Kind) {
   const killed = new Set<number>();
+  // Simultaneous resolution: every unit fires from the cell's occupancy at the start of
+  // the phase, so a co-located enemy always gets its shot off even as it dies. Deaths are
+  // collected and applied together — no first-mover advantage from array order.
   for (const a of g.units.filter((x) => x.kind === kind)) {
-    if (killed.has(a.id)) continue;
     const cell = g.cells[a.r][a.c];
     // Fail closed: a friendly drone in a deactivated cell is non-lethal — present, able
     // to move, but it does not fire.
     if (a.side === "friendly" && a.kind === "drone" && cell.activeTurns <= 0) continue;
-    const here = g.units.filter((x) => !killed.has(x.id) && x.r === a.r && x.c === a.c);
+    const here = g.units.filter((x) => x.r === a.r && x.c === a.c);
     const foes = here.filter((x) => x.side !== a.side);
     if (!foes.length) continue; // a unit only fires when a foe shares its cell
     const friends = here.filter((x) => x.side === a.side && x.id !== a.id);
