@@ -41,7 +41,6 @@ const ENEMY_HUMAN = "#9C4A2E"; // brown-red
 const ENEMY_DRONE = "#C0503C"; // lighter red-brown
 const RIVER_BLUE = "#2C7BD6";
 const FRIENDLY_BLUE = "#2564AA"; // medium-dark blue — darker than the river, lighter than navy
-const SHOW_TIMERS = false; // clocks hidden for now — kept in code
 const CELL_W = 82;
 const CELL_H = 90;
 const US = 15; // troop square side
@@ -187,6 +186,7 @@ function droneCanEnter(g: Game, u: Unit, r: number, c: number) {
 
 function attackPhase(g: Game, kind: Kind) {
   const killed = new Set<number>();
+  const civHits: { r: number; c: number; side: Side }[] = [];
   // Simultaneous resolution: every unit fires from the cell's occupancy at the start of
   // the phase, so a co-located enemy always gets its shot off even as it dies. Deaths are
   // collected and applied together — no first-mover advantage from array order.
@@ -204,16 +204,34 @@ function attackPhase(g: Game, kind: Kind) {
     // medium drone.
     const level = a.kind === "drone" ? (a.side === "friendly" ? appliedLevel(a.rating, cell.rating) : 1) : 2;
     const L = LETHALITY[level];
-    const civStat: "civF" | "civE" = a.side === "friendly" ? "civF" : "civE";
     // Three independent rolls: foe (flat), civilian (× count present), friend (× count present).
     if (Math.random() < L.foe) killed.add(foes[Math.floor(Math.random() * foes.length)].id);
-    if (cell.civ > 0 && Math.random() < Math.min(1, L.civ * cell.civ)) {
-      cell.civ -= 1;
-      g.stats[civStat] += 1;
-    }
+    // Civilians roll against the cell's original count (not decremented mid-loop), so both
+    // sides get the same odds regardless of processing order.
+    if (cell.civ > 0 && Math.random() < Math.min(1, L.civ * cell.civ)) civHits.push({ r: a.r, c: a.c, side: a.side });
     if (friends.length && Math.random() < Math.min(1, L.friend * friends.length)) {
       killed.add(friends[Math.floor(Math.random() * friends.length)].id);
     }
+  }
+  // Apply civilian casualties together: per cell at most cell.civ die, credited to a
+  // random subset of the units that hit — no processing-order (friendly-first) advantage.
+  const civByCell = new Map<string, Side[]>();
+  for (const h of civHits) {
+    const k = `${h.r},${h.c}`;
+    let arr = civByCell.get(k);
+    if (!arr) civByCell.set(k, (arr = []));
+    arr.push(h.side);
+  }
+  for (const [k, sides] of civByCell) {
+    const [r, c] = k.split(",").map(Number);
+    const cell = g.cells[r][c];
+    for (let i = sides.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [sides[i], sides[j]] = [sides[j], sides[i]];
+    }
+    const n = Math.min(sides.length, cell.civ);
+    for (let i = 0; i < n; i++) sides[i] === "friendly" ? (g.stats.civF += 1) : (g.stats.civE += 1);
+    cell.civ -= n;
   }
   for (const idk of killed) {
     const v = g.units.find((x) => x.id === idk);
@@ -577,8 +595,8 @@ export default function AutonomousTargetingGame() {
   const [running, setRunning] = useState(false);
   const [fx, setFx] = useState<Fx>(NO_FX);
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
+  const [showTimers, setShowTimers] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const pending = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const fxTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxActiveRef = useRef(config.maxActive);
   maxActiveRef.current = config.maxActive;
@@ -651,29 +669,13 @@ export default function AutonomousTargetingGame() {
     applyConfig(k === "rows" ? { ...config, rows: v, civ: v * COLS } : { ...config, [k]: v });
   };
 
-  const clickCell = (r: number, c: number) => {
-    const key = `${r}-${c}`;
-    if (pending.current[key]) {
-      clearTimeout(pending.current[key]);
-      delete pending.current[key];
-      // double click → toggle between 4 and 0
-      setGame((g) => {
-        const n: Game = structuredClone(g);
-        setClock(n, r, c, n.cells[r][c].activeTurns === 4 ? 0 : 4, config.maxActive, true);
-        return n;
-      });
-    } else {
-      pending.current[key] = setTimeout(() => {
-        delete pending.current[key];
-        // single click → step the clock by one (4 wraps to 0)
-        setGame((g) => {
-          const n: Game = structuredClone(g);
-          setClock(n, r, c, (n.cells[r][c].activeTurns + 1) % 5, config.maxActive, true);
-          return n;
-        });
-      }, 230);
-    }
-  };
+  // A click toggles the cell on/off (active ↔ inactive).
+  const clickCell = (r: number, c: number) =>
+    setGame((g) => {
+      const n: Game = structuredClone(g);
+      setClock(n, r, c, n.cells[r][c].activeTurns > 0 ? 0 : 4, config.maxActive, true);
+      return n;
+    });
   const cycleRating = (r: number, c: number) =>
     setGame((g) => {
       const n: Game = structuredClone(g);
@@ -834,7 +836,7 @@ export default function AutonomousTargetingGame() {
                         title="cell lethality cap — green most lethal, red least (cycles G/Y/R)"
                         style={{ position: "absolute", top: -2, left: -2, width: 24, height: 24, background: RATING_COLOR[cell.rating], clipPath: "polygon(0 0, 100% 0, 0 100%)", cursor: "pointer", zIndex: 3 }}
                       />
-                      {SHOW_TIMERS && (
+                      {showTimers && (
                         <span style={{ position: "absolute", top: 2, right: 2, pointerEvents: "none" }}>
                           <Clock n={cell.activeTurns} />
                         </span>
@@ -927,6 +929,10 @@ export default function AutonomousTargetingGame() {
           />
           <span className="w-10 text-sm font-bold tabular-nums text-ink">{config.civ}</span>
         </div>
+        <label className="flex items-center gap-1.5 text-xs text-muted">
+          <input type="checkbox" checked={showTimers} onChange={(e) => setShowTimers(e.target.checked)} />
+          Show timers
+        </label>
       </div>
     </div>
   );
