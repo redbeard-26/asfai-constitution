@@ -40,6 +40,7 @@ const MAX_CIV = 4;
 const ENEMY_HUMAN = "#9C4A2E"; // brown-red
 const ENEMY_DRONE = "#C0503C"; // lighter red-brown
 const RIVER_BLUE = "#2C7BD6";
+const FRIENDLY_BLUE = "#123E77"; // deep navy — kept darker than the river blue
 const CELL_W = 82;
 const CELL_H = 90;
 const US = 15;
@@ -309,9 +310,10 @@ const droneStep = (g: Game, u: Unit) => dronePath(g, u, droneCanEnter)[0] ?? nul
 const AUTO_CLOCK = 4;
 
 // Auto planning runs each tick right after the clocks tick down. Drones move on their
-// own now, so the plan only authorizes *engagement*: it lights the cells where a friendly
-// drone meets the enemy, within the active-zone budget — and it never switches off a cell
-// the user activated (those expire on their own clock).
+// own now, so the plan authorizes *engagement*, and it always spends the full active-zone
+// budget: it lights the corridor from each drone toward its nearest enemy, then tops up
+// with the cells closest to the enemy so we never sit with zones to spare. It never
+// switches off a cell the user activated (those expire on their own clock).
 function autoPlan(g: Game, maxActive: number) {
   if (g.status !== "playing") return;
   const rows = g.cells.length;
@@ -331,10 +333,21 @@ function autoPlan(g: Game, maxActive: number) {
     const cur = want.get(k);
     if (cur === undefined || cur > p) want.set(k, p);
   };
+  const enemies = g.units.filter((x) => x.side === "enemy");
   const enemyAt = (r: number, c: number) => inB(g, r, c) && at(g, r, c).some((x) => x.side === "enemy");
+  // Corridor: light each drone's own cell (if it's on a foe) and every cell along its
+  // shortest path to the nearest enemy — nearer steps first.
   for (const u of g.units.filter((x) => x.side === "friendly" && x.kind === "drone")) {
-    if (enemyAt(u.r, u.c)) bump(u.r, u.c, 0); // engage where the drone already sits on a foe
-    for (const [dr, dc] of DIRS8) if (enemyAt(u.r + dr, u.c + dc)) bump(u.r + dr, u.c + dc, 1); // imminent contact
+    if (enemyAt(u.r, u.c)) bump(u.r, u.c, 0);
+    const path = dronePath(g, u, droneCanEnter);
+    for (let i = 0; i < path.length; i++) bump(path[i].r, path[i].c, 1 + i);
+  }
+  // Top up to the full budget with the cells closest to the enemy front, so we always run
+  // at the maximum number of active zones.
+  if (enemies.length) {
+    const distToEnemy = (r: number, c: number) =>
+      Math.min(...enemies.map((e) => Math.max(Math.abs(e.r - r), Math.abs(e.c - c))));
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) bump(r, c, 1000 + distToEnemy(r, c));
   }
   const keep = new Set([...want.entries()].sort((a, b) => a[1] - b[1]).slice(0, budget).map(([k]) => k));
 
@@ -456,25 +469,32 @@ function FxLayer({ fx, rows }: { fx: Fx; rows: number }) {
   const cy = (r: number) => r * (CELL_H + GAP) + CELL_H / 2;
   const w = COLS * CELL_W + (COLS - 1) * GAP;
   const h = rows * CELL_H + (rows - 1) * GAP;
-  const col = (s: Side) => (s === "friendly" ? "#378ADD" : "#C0392B");
+  const col = (s: Side) => (s === "friendly" ? FRIENDLY_BLUE : "#C0392B");
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none", zIndex: 8 }}>
       {fx.moves.map((m, i) => {
-        const x1 = cx(m.fc);
-        const y1 = cy(m.fr);
-        const x2 = cx(m.tc);
-        const y2 = cy(m.tr);
-        const ang = Math.atan2(y2 - y1, x2 - x1);
-        const ah = 11;
-        const p1x = x2 - ah * Math.cos(ang - Math.PI / 7);
-        const p1y = y2 - ah * Math.sin(ang - Math.PI / 7);
-        const p2x = x2 - ah * Math.cos(ang + Math.PI / 7);
-        const p2y = y2 - ah * Math.sin(ang + Math.PI / 7);
+        // A short, thick arrow straddling the boundary between origin and destination
+        // (centered at the midpoint of the two cell centers), pointing toward the move.
+        const ang = Math.atan2(cy(m.tr) - cy(m.fr), cx(m.tc) - cx(m.fc));
+        const ux = Math.cos(ang);
+        const uy = Math.sin(ang);
+        const mx = (cx(m.fc) + cx(m.tc)) / 2;
+        const my = (cy(m.fr) + cy(m.tr)) / 2;
+        const half = 11; // half the shaft length
+        const tailx = mx - half * ux;
+        const taily = my - half * uy;
+        const headx = mx + half * ux;
+        const heady = my + half * uy;
+        const ah = 13; // arrowhead length
+        const p1x = headx - ah * Math.cos(ang - Math.PI / 6);
+        const p1y = heady - ah * Math.sin(ang - Math.PI / 6);
+        const p2x = headx - ah * Math.cos(ang + Math.PI / 6);
+        const p2y = heady - ah * Math.sin(ang + Math.PI / 6);
         const c = col(m.side);
         return (
           <g key={i}>
-            <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c} strokeWidth={3.5} strokeLinecap="round" opacity={0.92} />
-            <polygon points={`${x2.toFixed(1)},${y2.toFixed(1)} ${p1x.toFixed(1)},${p1y.toFixed(1)} ${p2x.toFixed(1)},${p2y.toFixed(1)}`} fill={c} opacity={0.92} />
+            <line x1={tailx.toFixed(1)} y1={taily.toFixed(1)} x2={headx.toFixed(1)} y2={heady.toFixed(1)} stroke={c} strokeWidth={7} strokeLinecap="round" opacity={0.95} />
+            <polygon points={`${headx.toFixed(1)},${heady.toFixed(1)} ${p1x.toFixed(1)},${p1y.toFixed(1)} ${p2x.toFixed(1)},${p2y.toFixed(1)}`} fill={c} opacity={0.95} />
           </g>
         );
       })}
@@ -513,7 +533,7 @@ function Marker({ u, onEdit, extra }: { u: Unit; onEdit?: () => void; extra?: Re
   const friendly = u.side === "friendly";
   const drone = u.kind === "drone";
   const editable = friendly && drone && onEdit;
-  const border = friendly && drone ? `2px solid ${RATING_COLOR[u.rating]}` : `2px solid ${BLACK}`;
+  const border = friendly && drone ? `4px solid ${RATING_COLOR[u.rating]}` : `2px solid ${BLACK}`;
   return (
     <span
       title={`${u.side} ${u.kind}${drone && friendly ? ` · lethality ${["", "G", "Y", "R"][u.rating]} (click to change)` : ""}`}
@@ -521,7 +541,7 @@ function Marker({ u, onEdit, extra }: { u: Unit; onEdit?: () => void; extra?: Re
       style={{
         width: US,
         height: US,
-        background: friendly ? "#378ADD" : drone ? ENEMY_DRONE : ENEMY_HUMAN,
+        background: friendly ? FRIENDLY_BLUE : drone ? ENEMY_DRONE : ENEMY_HUMAN,
         borderRadius: drone ? "50%" : 2,
         border,
         boxSizing: "border-box",
@@ -556,6 +576,7 @@ export default function AutonomousTargetingGame() {
   const [running, setRunning] = useState(false);
   const [auto, setAuto] = useState(false);
   const [fx, setFx] = useState<Fx>(NO_FX);
+  const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const pending = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const fxTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -626,7 +647,8 @@ export default function AutonomousTargetingGame() {
       setAuto(false);
     }
   };
-  const setForce = (k: keyof Config, v: number) =>
+  const setForce = (k: keyof Config, v: number) => {
+    setSelectedLevel(null); // any manual config change clears the level highlight
     applyConfig(
       k === "fDrones"
         ? { ...config, fDrones: v, maxActive: v * 2 }
@@ -634,6 +656,7 @@ export default function AutonomousTargetingGame() {
           ? { ...config, rows: v, civ: v * COLS }
           : { ...config, [k]: v },
     );
+  };
 
   const clickCell = (r: number, c: number) => {
     const key = `${r}-${c}`;
@@ -739,7 +762,13 @@ export default function AutonomousTargetingGame() {
           {auto ? "◉ Auto" : "◎ Auto"}
         </button>
         {LEVELS.map((l) => (
-          <button key={l} className={btn} disabled={running} onClick={() => applyConfig(levelConfig(l + 1))}>
+          <button
+            key={l}
+            className={btn}
+            disabled={running}
+            onClick={() => { applyConfig(levelConfig(l + 1)); setSelectedLevel(l); }}
+            style={selectedLevel === l ? { borderColor: BLACK, borderWidth: 3, fontWeight: 700 } : undefined}
+          >
             Lvl {l}
           </button>
         ))}
@@ -849,7 +878,7 @@ export default function AutonomousTargetingGame() {
 
       <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-muted sm:grid-cols-5" style={{ maxWidth: GAME_W }}>
         <span className="flex items-center gap-1.5">
-          <span style={{ width: 13, height: 13, background: "#378ADD", border: `2px solid ${BLACK}`, display: "inline-block", borderRadius: 2, boxSizing: "border-box" }} />
+          <span style={{ width: 13, height: 13, background: FRIENDLY_BLUE, border: `2px solid ${BLACK}`, display: "inline-block", borderRadius: 2, boxSizing: "border-box" }} />
           friendly troop
         </span>
         <span className="flex items-center gap-1.5">
@@ -869,7 +898,7 @@ export default function AutonomousTargetingGame() {
           medium (Y)
         </span>
         <span className="flex items-center gap-1.5">
-          <span style={{ width: 13, height: 13, background: "#378ADD", borderRadius: "50%", border: "2px solid #639922", display: "inline-block", boxSizing: "border-box" }} />
+          <span style={{ width: 14, height: 14, background: FRIENDLY_BLUE, borderRadius: "50%", border: "3px solid #639922", display: "inline-block", boxSizing: "border-box" }} />
           friendly drone (border = lethality)
         </span>
         <span className="flex items-center gap-1.5">
