@@ -817,15 +817,21 @@ export default function AutonomousTargetingGame() {
                   const ed = units.filter((u) => u.side === "enemy" && u.kind === "drone");
                   const fh = units.filter((u) => u.side === "friendly" && u.kind === "human");
                   const eh = units.filter((u) => u.side === "enemy" && u.kind === "human");
-                  const lane = (arr: Unit[], top: number, fromLeft: boolean) =>
-                    arr.map((u, i) => (
+                  const lane = (arr: Unit[], top: number, fromLeft: boolean) => {
+                    // Compress each side's stack so it stays within its own half and never
+                    // crosses the centerline — friends and enemies stay completely separate.
+                    const w = arr.length && arr[0].kind === "drone" ? DRONE_D : US;
+                    const span = CELL_W / 2 - 3 - w;
+                    const step = arr.length > 1 ? Math.min(HALF, span / (arr.length - 1)) : 0;
+                    return arr.map((u, i) => (
                       <Marker
                         key={u.id}
                         u={u}
                         onEdit={() => editDrone(u.id)}
-                        extra={{ position: "absolute", top, zIndex: i + 1, ...(fromLeft ? { left: 3 + i * HALF } : { right: 3 + i * HALF }) }}
+                        extra={{ position: "absolute", top, zIndex: i + 1, ...(fromLeft ? { left: 3 + i * step } : { right: 3 + i * step }) }}
                       />
                     ));
+                  };
                   return (
                     <div
                       key={`${r}-${c}`}
