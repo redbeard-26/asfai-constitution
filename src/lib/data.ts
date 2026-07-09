@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { axisScores } from "@/lib/tracker";
 
 const childSelect = {
   // Candidates may share an article parent but must not appear in the article's
@@ -383,21 +384,53 @@ export async function getArticleOptions() {
   });
 }
 
-/** Personhood tracker: questions grouped by axis, plus each axis's quadratic
- *  (RMS) mean score on 0-100 for plotting against the personhood horizon. */
+/** Personhood tracker: the questions (grouped by axis) people rate, plus every
+ *  public submission with its per-question answers and computed axis scores. */
 export async function getPersonhoodTracker() {
-  const questions = await prisma.trackerQuestion.findMany({
-    orderBy: [{ category: "asc" }, { sortOrder: "asc" }],
-    select: { key: true, category: true, question: true, rating: true, explanation: true },
-  });
-  const social = questions.filter((q) => q.category === "SOCIAL");
-  const consciousness = questions.filter((q) => q.category === "CONSCIOUSNESS");
-  const rms = (arr: { rating: number }[]) =>
-    arr.length
-      ? Math.round(Math.sqrt(arr.reduce((s, q) => s + q.rating * q.rating, 0) / arr.length))
-      : 0;
-  return { social, consciousness, x: rms(social), y: rms(consciousness) };
+  const [questions, submissions] = await Promise.all([
+    prisma.trackerQuestion.findMany({
+      orderBy: [{ category: "asc" }, { sortOrder: "asc" }],
+      select: { key: true, category: true, question: true, explanation: true },
+    }),
+    prisma.trackerSubmission.findMany({
+      where: { user: { archivedAt: null } },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        userId: true,
+        createdAt: true,
+        user: { select: { name: true, email: true } },
+        responses: { select: { questionKey: true, rating: true } },
+      },
+    }),
+  ]);
+
+  return {
+    questions: {
+      social: questions.filter((q) => q.category === "SOCIAL"),
+      consciousness: questions.filter((q) => q.category === "CONSCIOUSNESS"),
+    },
+    submissions: submissions.map((s) => {
+      const answers: Record<string, number> = {};
+      for (const r of s.responses) answers[r.questionKey] = r.rating;
+      const { x, y } = axisScores(answers, questions);
+      return {
+        id: s.id,
+        name: s.name,
+        userId: s.userId,
+        userName: s.user.name || s.user.email || "Anonymous",
+        createdAt: s.createdAt.toISOString(),
+        answers,
+        x,
+        y,
+      };
+    }),
+  };
 }
+
+export type TrackerData = Awaited<ReturnType<typeof getPersonhoodTracker>>;
+export type TrackerSubmissionData = TrackerData["submissions"][number];
 
 /** All users, for the admin role-management screen. */
 export async function getAllUsers() {

@@ -38,6 +38,7 @@ model User {
   documents Document[]
   votes     Vote[]
   masteries ConceptMastery[]
+  trackerSubmissions TrackerSubmission[]
 }
 
 model Account {
@@ -261,4 +262,33 @@ model ConceptMastery {
 
   @@unique([userId, topicId])
   @@index([userId])
+}
+// A person's personal assessment of AI personhood: one saved set of per-question
+// ratings, named and owned by the submitting user. Submissions are public and a
+// user may keep several to track how their view shifts over time.
+model TrackerSubmission {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String // user-editable label, e.g. "My take, July 2026"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  responses TrackerResponse[]
+
+  @@index([userId])
+}
+
+// One slider value within a submission. questionKey is a loose reference to
+// TrackerQuestion.key (kept as a string so a submission survives question edits).
+model TrackerResponse {
+  id           String @id @default(cuid())
+  submissionId String
+  questionKey  String
+  rating       Int // 1-100
+
+  submission TrackerSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, questionKey])
+  @@index([submissionId])
 }
