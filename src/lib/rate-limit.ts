@@ -8,16 +8,21 @@ type RateWindow = { windowMs: number; max: number; label: string };
  * instance Vercel without an external store, since it queries Postgres.
  */
 export async function checkRateLimit(
-  model: "comment" | "editProposal",
+  model: "comment" | "editProposal" | "trackerSubmission",
   authorId: string,
   { windowMs, max, label }: RateWindow,
 ): Promise<void> {
   const since = new Date(Date.now() - windowMs);
-  const where = { authorId, createdAt: { gte: since } };
-  const count =
-    model === "comment"
-      ? await prisma.comment.count({ where })
-      : await prisma.editProposal.count({ where });
+  const createdAt = { gte: since };
+  let count: number;
+  if (model === "comment") {
+    count = await prisma.comment.count({ where: { authorId, createdAt } });
+  } else if (model === "editProposal") {
+    count = await prisma.editProposal.count({ where: { authorId, createdAt } });
+  } else {
+    // TrackerSubmission keys the author as userId rather than authorId.
+    count = await prisma.trackerSubmission.count({ where: { userId: authorId, createdAt } });
+  }
 
   if (count >= max) {
     const mins = Math.max(1, Math.round(windowMs / 60000));

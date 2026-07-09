@@ -657,3 +657,86 @@ export async function demoteThesis(formData: FormData) {
   if (page.parent) revalidatePath(pageHref(page.parent));
   redirect(`/p/${page.slug}`);
 }
+
+// ---------------------------------------------------------------------------
+// Personhood tracker submissions
+// ---------------------------------------------------------------------------
+
+const TRACKER_PATH = "/personhood-tracker";
+
+const submissionSchema = z.object({
+  name: z.string().trim().min(1, "Give your submission a name.").max(80),
+  // answers arrives as a JSON string: { [questionKey]: rating(1-100) }.
+  answers: z.record(z.string(), z.number().int().min(1).max(100)),
+});
+
+/** Save a personal assessment: a named set of 1-100 ratings, one per question. */
+export async function createTrackerSubmission(formData: FormData) {
+  const user = await requireUser();
+  if (!isModerator(user.role)) {
+    await checkRateLimit("trackerSubmission", user.id, {
+      windowMs: 10 * 60_000,
+      max: 20,
+      label: "tracker submissions",
+    });
+  }
+
+  let answers: Record<string, number>;
+  try {
+    answers = JSON.parse(String(formData.get("answers") ?? "{}"));
+  } catch {
+    throw new Error("Could not read your slider values.");
+  }
+  const parsed = submissionSchema.parse({ name: formData.get("name"), answers });
+
+  // Only accept ratings for questions that actually exist; ignore stray keys.
+  const questions = await prisma.trackerQuestion.findMany({ select: { key: true } });
+  const validKeys = new Set(questions.map((q) => q.key));
+  const responses = Object.entries(parsed.answers)
+    .filter(([key]) => validKeys.has(key))
+    .map(([questionKey, rating]) => ({ questionKey, rating }));
+  if (!responses.length) throw new Error("No valid ratings to save.");
+
+  await prisma.trackerSubmission.create({
+    data: {
+      userId: user.id,
+      name: parsed.name,
+      responses: { create: responses },
+    },
+  });
+
+  revalidatePath(TRACKER_PATH);
+}
+
+/** Rename one of your own submissions. */
+export async function renameTrackerSubmission(formData: FormData) {
+  const user = await requireUser();
+  const id = String(formData.get("submissionId"));
+  const name = z.string().trim().min(1, "Name cannot be empty.").max(80).parse(formData.get("name"));
+
+  const submission = await prisma.trackerSubmission.findUnique({
+    where: { id },
+    select: { userId: true },
+  });
+  if (!submission) throw new Error("Submission not found.");
+  if (submission.userId !== user.id) throw new Error("You can only rename your own submission.");
+
+  await prisma.trackerSubmission.update({ where: { id }, data: { name } });
+  revalidatePath(TRACKER_PATH);
+}
+
+/** Delete one of your own submissions (its responses cascade). */
+export async function deleteTrackerSubmission(formData: FormData) {
+  const user = await requireUser();
+  const id = String(formData.get("submissionId"));
+
+  const submission = await prisma.trackerSubmission.findUnique({
+    where: { id },
+    select: { userId: true },
+  });
+  if (!submission) throw new Error("Submission not found.");
+  if (submission.userId !== user.id) throw new Error("You can only delete your own submission.");
+
+  await prisma.trackerSubmission.delete({ where: { id } });
+  revalidatePath(TRACKER_PATH);
+}
