@@ -38,6 +38,21 @@ export default async function DocsIndex({
         discussion of particular theses.
       </p>
 
+      <Link
+        href="/learn"
+        className="mt-6 block border border-gold bg-panel p-4 hover:border-gold-deep"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <p className="kicker text-sm">Interactive tool</p>
+          <span className="text-xs text-gold-deep">Open →</span>
+        </div>
+        <p className="mt-1 font-bold text-ink">Concept Tracker</p>
+        <p className="mt-1 text-sm text-muted">
+          A prerequisite knowledge graph of 1,590 learning concepts. Track what
+          you&apos;ve mastered and see what you&apos;re ready to learn next.
+        </p>
+      </Link>
+
       <form method="get" className="mt-6 flex gap-2">
         <input
           type="search"
