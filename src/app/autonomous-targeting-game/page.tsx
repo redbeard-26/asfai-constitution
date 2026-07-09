@@ -592,6 +592,32 @@ const BOX: Record<string, { bg: string; border: string }> = {
   grey: { bg: "#E4E2DB", border: "#7C7B74" },
 };
 
+// High scores are kept per-browser in localStorage — no sign-in, no server. A finished
+// game may optionally be submitted; the list holds the best HS_MAX by score.
+const HS_KEY = "autonomy-zone-highscores";
+const HS_NAME_KEY = "autonomy-zone-player";
+const HS_MAX = 20;
+type HighScore = { name: string; score: number; outcome: Exclude<Status, "playing">; ticks: number; civilians: number; date: number };
+function loadScores(): HighScore[] {
+  try {
+    const arr = JSON.parse(localStorage.getItem(HS_KEY) || "[]");
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+function saveScores(list: HighScore[]) {
+  try {
+    localStorage.setItem(HS_KEY, JSON.stringify(list));
+  } catch {
+    /* ignore quota / private-mode errors */
+  }
+}
+// Rank high → low by score, breaking ties toward fewer ticks then earlier submission,
+// and keep only the top HS_MAX.
+const rankScores = (list: HighScore[]) =>
+  [...list].sort((a, b) => b.score - a.score || a.ticks - b.ticks || a.date - b.date).slice(0, HS_MAX);
+
 export default function AutonomousTargetingGame() {
   const [config, setConfig] = useState<Config>(DEFAULT_CONFIG);
   const [game, setGame] = useState<Game>(() => buildGame(DEFAULT_CONFIG, false));
@@ -599,6 +625,9 @@ export default function AutonomousTargetingGame() {
   const [fx, setFx] = useState<Fx>(NO_FX);
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
   const [showTimers, setShowTimers] = useState(false);
+  const [highScores, setHighScores] = useState<HighScore[]>([]);
+  const [playerName, setPlayerName] = useState("");
+  const [submitted, setSubmitted] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const fxTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxActiveRef = useRef(config.maxActive);
@@ -608,6 +637,12 @@ export default function AutonomousTargetingGame() {
 
   useEffect(() => {
     setGame(buildGame(DEFAULT_CONFIG, true));
+    setHighScores(rankScores(loadScores()));
+    try {
+      setPlayerName(localStorage.getItem(HS_NAME_KEY) || "");
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   useEffect(() => () => { if (fxTimer.current) clearTimeout(fxTimer.current); }, []);
@@ -653,6 +688,7 @@ export default function AutonomousTargetingGame() {
     };
     setConfig(next);
     setRunning(false);
+    setSubmitted(false);
     if (fxTimer.current) clearTimeout(fxTimer.current);
     setFx(NO_FX);
     const g = buildGame(next, true);
@@ -661,6 +697,7 @@ export default function AutonomousTargetingGame() {
   };
   const reset = () => {
     setRunning(false);
+    setSubmitted(false);
     if (fxTimer.current) clearTimeout(fxTimer.current);
     setFx(NO_FX);
     const g = buildGame(config, true);
@@ -715,6 +752,28 @@ export default function AutonomousTargetingGame() {
     ["Civilians killed (enemy fire)", s.civE, "grey"],
   ];
   const totalScore = s.eu + s.ed - (s.fu + s.fd) - (s.civF + s.civE);
+
+  const submitScore = () => {
+    if (game.status === "playing") return;
+    const name = playerName.trim().slice(0, 24) || "Anonymous";
+    const entry: HighScore = { name, score: totalScore, outcome: game.status, ticks: s.ticks, civilians: s.civF + s.civE, date: Date.now() };
+    const next = rankScores([...highScores, entry]);
+    setHighScores(next);
+    saveScores(next);
+    setSubmitted(true);
+    try {
+      localStorage.setItem(HS_NAME_KEY, name);
+    } catch {
+      /* ignore */
+    }
+  };
+  const clearScores = () => {
+    if (!window.confirm("Clear all saved high scores on this browser?")) return;
+    setHighScores([]);
+    saveScores([]);
+  };
+  // The just-submitted entry, so we can highlight it in the table.
+  const lastEntry = submitted && highScores.length ? highScores.find((h) => h.date === Math.max(...highScores.map((x) => x.date))) : null;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
@@ -796,6 +855,32 @@ export default function AutonomousTargetingGame() {
             ? `Enemy destroyed in ${game.stats.ticks} ticks — ${s.civF + s.civE} civilian casualties.`
             : "Friendly forces wiped out."}
         </p>
+      )}
+
+      {game.status !== "playing" && !submitted && (
+        <div
+          className="mt-3 flex flex-wrap items-center gap-2 px-3 py-2.5"
+          style={{ width: GAME_W, maxWidth: "100%", background: "#F1EFE8", border: `2px solid ${BLACK}`, borderRadius: 6 }}
+        >
+          <span className="text-sm font-bold text-ink">
+            Save your score of <span className="tabular-nums">{totalScore}</span> to the high scores?
+          </span>
+          <input
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submitScore()}
+            maxLength={24}
+            placeholder="Your name"
+            className="rounded border border-rule px-2 py-1 text-sm"
+            style={{ width: 140 }}
+          />
+          <button onClick={submitScore} className="rounded px-3 py-1.5 text-sm font-bold" style={{ background: "#C6E9B0", border: "1px solid #7FB05B", color: "#2f5417" }}>
+            Submit
+          </button>
+          <button onClick={() => setSubmitted(true)} className={btn}>
+            Skip
+          </button>
+        </div>
       )}
 
       <div className="mt-4 overflow-x-auto">
@@ -940,6 +1025,52 @@ export default function AutonomousTargetingGame() {
           <input type="checkbox" checked={showTimers} onChange={(e) => setShowTimers(e.target.checked)} />
           Show timers
         </label>
+      </div>
+
+      <div className="section-rule mt-6 pt-4" style={{ maxWidth: GAME_W }}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-ink">High Scores</h2>
+          {highScores.length > 0 && (
+            <button onClick={clearScores} className="text-xs text-muted underline hover:text-ink">
+              Clear
+            </button>
+          )}
+        </div>
+        {highScores.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">No scores yet — finish a game and submit your score to start the list.</p>
+        ) : (
+          <div className="mt-2 overflow-x-auto">
+            <table className="w-full text-sm tabular-nums">
+              <thead>
+                <tr className="text-left text-xs text-muted">
+                  <th className="py-1 pr-2 font-medium">#</th>
+                  <th className="py-1 pr-2 font-medium">Name</th>
+                  <th className="py-1 pr-2 text-right font-medium">Score</th>
+                  <th className="py-1 pr-2 font-medium">Result</th>
+                  <th className="py-1 pr-2 text-right font-medium">Ticks</th>
+                  <th className="py-1 pr-2 text-right font-medium">Civ.</th>
+                  <th className="py-1 font-medium">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {highScores.map((h, i) => {
+                  const mine = lastEntry != null && h.date === lastEntry.date;
+                  return (
+                    <tr key={h.date} className="border-t border-rule" style={mine ? { background: "rgba(151,196,89,0.18)" } : undefined}>
+                      <td className="py-1 pr-2 text-muted">{i + 1}</td>
+                      <td className="py-1 pr-2 font-medium text-ink">{h.name}</td>
+                      <td className="py-1 pr-2 text-right font-bold" style={{ color: h.score >= 0 ? "#3B6D11" : "#A32D2D" }}>{h.score}</td>
+                      <td className="py-1 pr-2 text-muted">{h.outcome === "won" ? "Won" : "Lost"}</td>
+                      <td className="py-1 pr-2 text-right text-muted">{h.ticks}</td>
+                      <td className="py-1 pr-2 text-right text-muted">{h.civilians}</td>
+                      <td className="py-1 text-muted">{new Date(h.date).toLocaleDateString()}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
