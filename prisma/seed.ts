@@ -6,6 +6,7 @@ import { EXTERNAL_RESOURCES } from "../src/content/external-resources";
 import { THESIS_LINKS } from "../src/content/thesis-links";
 import { THESIS_SUMMARIES } from "../src/content/thesis-summaries";
 import { TRACKER_QUESTIONS } from "../src/content/personhood-tracker";
+import { buildTrackerSubmission } from "../src/lib/tracker";
 import { adminEmails } from "../src/lib/env";
 
 const seededSlugs = new Set<string>();
@@ -294,6 +295,36 @@ async function main() {
     }
   }
   console.log(`+ tracker questions created: ${trackerCreated}`);
+
+  // Baseline "test" submission built from the original editorial ratings, owned by
+  // a system user. Create-if-absent so re-seeding never duplicates it. Its x/y are
+  // stored like any submission (computed from the ratings via buildTrackerSubmission).
+  const SYSTEM_USER_EMAIL = "baseline@ai-constitution.local";
+  const systemUser = await prisma.user.upsert({
+    where: { email: SYSTEM_USER_EMAIL },
+    update: {},
+    create: { email: SYSTEM_USER_EMAIL, name: "AI Constitution", role: "VIEWER" },
+  });
+  const baselineAnswers = Object.fromEntries(TRACKER_QUESTIONS.map((q) => [q.key, q.rating]));
+  const baseline = buildTrackerSubmission(baselineAnswers, TRACKER_QUESTIONS);
+  const existingTest = await prisma.trackerSubmission.findFirst({
+    where: { userId: systemUser.id, name: "test" },
+    select: { id: true },
+  });
+  if (!existingTest) {
+    await prisma.trackerSubmission.create({
+      data: {
+        userId: systemUser.id,
+        name: "test",
+        x: baseline.x,
+        y: baseline.y,
+        responses: { create: baseline.responses },
+      },
+    });
+    console.log(`+ baseline "test" submission created at x=${baseline.x}, y=${baseline.y}`);
+  } else {
+    console.log(`= baseline "test" submission already present`);
+  }
 
   for (const email of adminEmails) {
     await prisma.user.upsert({
