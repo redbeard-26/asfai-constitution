@@ -37,6 +37,7 @@ model User {
   auditLogs AuditLog[]
   documents Document[]
   votes     Vote[]
+  masteries ConceptMastery[]
 }
 
 model Account {
@@ -235,4 +236,29 @@ model TrackerQuestion {
   updatedAt   DateTime @updatedAt
 
   @@index([category])
+}
+
+// ---------------------------------------------------------------------------
+// Knowledge-graph learning tutor
+// ---------------------------------------------------------------------------
+
+// A learner's mastery of one micro-topic from the bundled Marble Open Skill
+// Taxonomy (src/content/taxonomy). The taxonomy itself is static reference data
+// loaded in-memory (src/lib/taxonomy.ts); only this per-user progress is stored.
+// topicId is the taxonomy's stable string id (e.g. "mt_N8CpN1EJrP"), kept loose
+// so progress survives taxonomy updates.
+model ConceptMastery {
+  id         String    @id @default(cuid())
+  userId     String
+  topicId    String // taxonomy topic id, e.g. "mt_N8CpN1EJrP"
+  status     String    @default("LEARNING") // LEARNING | MASTERED
+  evidence   String? // tutor's note on how mastery was demonstrated
+  assessedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, topicId])
+  @@index([userId])
 }

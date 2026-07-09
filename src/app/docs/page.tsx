@@ -21,6 +21,14 @@ const TOOLS: { title: string; href: string; kind: string; icon: string; blurb: s
     blurb:
       "A living estimate of where AI stands on two axes: how far it is socially and economically integrated, and how likely it is to be a sentient moral patient.",
   },
+  {
+    title: "Concept Tracker",
+    href: "/learn",
+    kind: "Tracker",
+    icon: "🕸️",
+    blurb:
+      "A prerequisite knowledge graph of 1,590 learning concepts. Track what you've mastered and see what you're ready to learn next.",
+  },
 ];
 
 export default async function DocsIndex({
