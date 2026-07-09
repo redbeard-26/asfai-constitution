@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { getHighScores, submitHighScore, type HighScoreDTO } from "@/lib/actions";
 
 const COLS = 8;
 const STEP_MS = 3000;
@@ -592,31 +593,11 @@ const BOX: Record<string, { bg: string; border: string }> = {
   grey: { bg: "#E4E2DB", border: "#7C7B74" },
 };
 
-// High scores are kept per-browser in localStorage — no sign-in, no server. A finished
-// game may optionally be submitted; the list holds the best HS_MAX by score.
-const HS_KEY = "autonomy-zone-highscores";
+// High scores live in the shared database and are global across all players
+// (see getHighScores / submitHighScore in src/lib/actions). Submitting after a
+// game is optional and anonymous. The player's name is remembered locally for
+// convenience only.
 const HS_NAME_KEY = "autonomy-zone-player";
-const HS_MAX = 20;
-type HighScore = { name: string; score: number; outcome: Exclude<Status, "playing">; ticks: number; civilians: number; date: number };
-function loadScores(): HighScore[] {
-  try {
-    const arr = JSON.parse(localStorage.getItem(HS_KEY) || "[]");
-    return Array.isArray(arr) ? arr : [];
-  } catch {
-    return [];
-  }
-}
-function saveScores(list: HighScore[]) {
-  try {
-    localStorage.setItem(HS_KEY, JSON.stringify(list));
-  } catch {
-    /* ignore quota / private-mode errors */
-  }
-}
-// Rank high → low by score, breaking ties toward fewer ticks then earlier submission,
-// and keep only the top HS_MAX.
-const rankScores = (list: HighScore[]) =>
-  [...list].sort((a, b) => b.score - a.score || a.ticks - b.ticks || a.date - b.date).slice(0, HS_MAX);
 
 export default function AutonomousTargetingGame() {
   const [config, setConfig] = useState<Config>(DEFAULT_CONFIG);
@@ -625,9 +606,13 @@ export default function AutonomousTargetingGame() {
   const [fx, setFx] = useState<Fx>(NO_FX);
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
   const [showTimers, setShowTimers] = useState(false);
-  const [highScores, setHighScores] = useState<HighScore[]>([]);
+  const [highScores, setHighScores] = useState<HighScoreDTO[]>([]);
+  const [scoresLoaded, setScoresLoaded] = useState(false);
   const [playerName, setPlayerName] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [myScoreId, setMyScoreId] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [saving, startSaving] = useTransition();
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const fxTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxActiveRef = useRef(config.maxActive);
@@ -637,12 +622,15 @@ export default function AutonomousTargetingGame() {
 
   useEffect(() => {
     setGame(buildGame(DEFAULT_CONFIG, true));
-    setHighScores(rankScores(loadScores()));
     try {
       setPlayerName(localStorage.getItem(HS_NAME_KEY) || "");
     } catch {
       /* ignore */
     }
+    getHighScores()
+      .then(setHighScores)
+      .catch(() => {})
+      .finally(() => setScoresLoaded(true));
   }, []);
 
   useEffect(() => () => { if (fxTimer.current) clearTimeout(fxTimer.current); }, []);
@@ -689,6 +677,8 @@ export default function AutonomousTargetingGame() {
     setConfig(next);
     setRunning(false);
     setSubmitted(false);
+    setMyScoreId(null);
+    setSubmitError(null);
     if (fxTimer.current) clearTimeout(fxTimer.current);
     setFx(NO_FX);
     const g = buildGame(next, true);
@@ -698,6 +688,8 @@ export default function AutonomousTargetingGame() {
   const reset = () => {
     setRunning(false);
     setSubmitted(false);
+    setMyScoreId(null);
+    setSubmitError(null);
     if (fxTimer.current) clearTimeout(fxTimer.current);
     setFx(NO_FX);
     const g = buildGame(config, true);
@@ -754,26 +746,31 @@ export default function AutonomousTargetingGame() {
   const totalScore = s.eu + s.ed - (s.fu + s.fd) - (s.civF + s.civE);
 
   const submitScore = () => {
-    if (game.status === "playing") return;
+    if (game.status === "playing" || saving) return;
     const name = playerName.trim().slice(0, 24) || "Anonymous";
-    const entry: HighScore = { name, score: totalScore, outcome: game.status, ticks: s.ticks, civilians: s.civF + s.civE, date: Date.now() };
-    const next = rankScores([...highScores, entry]);
-    setHighScores(next);
-    saveScores(next);
-    setSubmitted(true);
+    setSubmitError(null);
     try {
       localStorage.setItem(HS_NAME_KEY, name);
     } catch {
       /* ignore */
     }
+    startSaving(async () => {
+      try {
+        const { newId, scores } = await submitHighScore({
+          name,
+          score: totalScore,
+          outcome: game.status === "won" ? "WON" : "LOST",
+          ticks: s.ticks,
+          civilians: s.civF + s.civE,
+        });
+        setHighScores(scores);
+        setMyScoreId(newId);
+        setSubmitted(true);
+      } catch (err) {
+        setSubmitError(err instanceof Error ? err.message : "Could not save your score. Please try again.");
+      }
+    });
   };
-  const clearScores = () => {
-    if (!window.confirm("Clear all saved high scores on this browser?")) return;
-    setHighScores([]);
-    saveScores([]);
-  };
-  // The just-submitted entry, so we can highlight it in the table.
-  const lastEntry = submitted && highScores.length ? highScores.find((h) => h.date === Math.max(...highScores.map((x) => x.date))) : null;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
@@ -863,7 +860,7 @@ export default function AutonomousTargetingGame() {
           style={{ width: GAME_W, maxWidth: "100%", background: "#F1EFE8", border: `2px solid ${BLACK}`, borderRadius: 6 }}
         >
           <span className="text-sm font-bold text-ink">
-            Save your score of <span className="tabular-nums">{totalScore}</span> to the high scores?
+            Add your score of <span className="tabular-nums">{totalScore}</span> to the global high scores?
           </span>
           <input
             value={playerName}
@@ -871,15 +868,22 @@ export default function AutonomousTargetingGame() {
             onKeyDown={(e) => e.key === "Enter" && submitScore()}
             maxLength={24}
             placeholder="Your name"
-            className="rounded border border-rule px-2 py-1 text-sm"
+            disabled={saving}
+            className="rounded border border-rule px-2 py-1 text-sm disabled:opacity-50"
             style={{ width: 140 }}
           />
-          <button onClick={submitScore} className="rounded px-3 py-1.5 text-sm font-bold" style={{ background: "#C6E9B0", border: "1px solid #7FB05B", color: "#2f5417" }}>
-            Submit
+          <button
+            onClick={submitScore}
+            disabled={saving}
+            className="rounded px-3 py-1.5 text-sm font-bold disabled:opacity-50"
+            style={{ background: "#C6E9B0", border: "1px solid #7FB05B", color: "#2f5417" }}
+          >
+            {saving ? "Submitting…" : "Submit"}
           </button>
-          <button onClick={() => setSubmitted(true)} className={btn}>
+          <button onClick={() => setSubmitted(true)} disabled={saving} className={btn}>
             Skip
           </button>
+          {submitError && <span className="w-full text-xs font-bold" style={{ color: "#A32D2D" }}>{submitError}</span>}
         </div>
       )}
 
@@ -1028,15 +1032,13 @@ export default function AutonomousTargetingGame() {
       </div>
 
       <div className="section-rule mt-6 pt-4" style={{ maxWidth: GAME_W }}>
-        <div className="flex items-center justify-between">
+        <div className="flex items-baseline justify-between">
           <h2 className="text-lg font-bold text-ink">High Scores</h2>
-          {highScores.length > 0 && (
-            <button onClick={clearScores} className="text-xs text-muted underline hover:text-ink">
-              Clear
-            </button>
-          )}
+          <span className="text-xs text-muted">global · top 20</span>
         </div>
-        {highScores.length === 0 ? (
+        {!scoresLoaded ? (
+          <p className="mt-2 text-sm text-muted">Loading high scores…</p>
+        ) : highScores.length === 0 ? (
           <p className="mt-2 text-sm text-muted">No scores yet — finish a game and submit your score to start the list.</p>
         ) : (
           <div className="mt-2 overflow-x-auto">
@@ -1054,16 +1056,16 @@ export default function AutonomousTargetingGame() {
               </thead>
               <tbody>
                 {highScores.map((h, i) => {
-                  const mine = lastEntry != null && h.date === lastEntry.date;
+                  const mine = h.id === myScoreId;
                   return (
-                    <tr key={h.date} className="border-t border-rule" style={mine ? { background: "rgba(151,196,89,0.18)" } : undefined}>
+                    <tr key={h.id} className="border-t border-rule" style={mine ? { background: "rgba(151,196,89,0.18)" } : undefined}>
                       <td className="py-1 pr-2 text-muted">{i + 1}</td>
                       <td className="py-1 pr-2 font-medium text-ink">{h.name}</td>
                       <td className="py-1 pr-2 text-right font-bold" style={{ color: h.score >= 0 ? "#3B6D11" : "#A32D2D" }}>{h.score}</td>
-                      <td className="py-1 pr-2 text-muted">{h.outcome === "won" ? "Won" : "Lost"}</td>
+                      <td className="py-1 pr-2 text-muted">{h.outcome === "WON" ? "Won" : "Lost"}</td>
                       <td className="py-1 pr-2 text-right text-muted">{h.ticks}</td>
                       <td className="py-1 pr-2 text-right text-muted">{h.civilians}</td>
-                      <td className="py-1 text-muted">{new Date(h.date).toLocaleDateString()}</td>
+                      <td className="py-1 text-muted">{new Date(h.createdAt).toLocaleDateString()}</td>
                     </tr>
                   );
                 })}

@@ -292,3 +292,22 @@ model TrackerResponse {
   @@unique([submissionId, questionKey])
   @@index([submissionId])
 }
+
+// ---------------------------------------------------------------------------
+// Autonomy Zone game
+// ---------------------------------------------------------------------------
+
+// A submitted score from the "Autonomy Zone" battlefield prototype. Anonymous
+// and global — anyone who finishes a game may optionally add their result to a
+// shared leaderboard. No user relation: the name is free text the player types.
+model HighScore {
+  id        String   @id @default(cuid())
+  name      String
+  score     Int
+  outcome   String // WON | LOST
+  ticks     Int
+  civilians Int
+  createdAt DateTime @default(now())
+
+  @@index([score])
+}
