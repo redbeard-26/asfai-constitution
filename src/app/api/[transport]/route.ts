@@ -14,6 +14,27 @@ import {
 } from "@/lib/data";
 import { slugify } from "@/lib/slug";
 import { displayName } from "@/lib/format";
+import {
+  listSubjects,
+  searchConcepts,
+  getConcept,
+  hardPrereqsOf,
+  softPrereqsOf,
+  unlocksOf,
+  hardUnlockCount,
+  computeFrontier,
+  findLearningPath,
+  neighborhood,
+  type Topic,
+  type Link,
+} from "@/lib/taxonomy";
+import {
+  getMasteredIds,
+  getProgress,
+  recordMastery,
+  setLearning,
+} from "@/lib/learning";
+import { renderKnowledgeGraph } from "@/lib/graph-artifact";
 
 export const maxDuration = 60;
 
@@ -22,6 +43,27 @@ function json(data: unknown) {
 }
 function err(message: string) {
   return { content: [{ type: "text" as const, text: message }], isError: true };
+}
+
+/** Compact shape for a prerequisite/dependent link in tool output. */
+function linkOut(l: Link) {
+  return { id: l.id, name: l.name, strength: l.strength, reason: l.reason };
+}
+
+/** Full concept detail returned by concept-oriented tools. */
+function conceptOut(t: Topic) {
+  return {
+    id: t.id,
+    name: t.name,
+    type: t.type,
+    subject: t.subject,
+    domain: t.domain,
+    description: t.description,
+    ageRange: [t.ageRangeStart, t.ageRangeEnd] as [number, number],
+    centrality: t.centrality,
+    evidence: t.evidence,
+    standards: t.standards,
+  };
 }
 
 /** Resolve (find or create) a user by email so a tool can act on their behalf. */
@@ -414,6 +456,269 @@ const handler = createMcpHandler(
         });
         await prisma.page.update({ where: { id: page.id }, data: { currentRevisionId: rev.id } });
         return json({ ok: true, slug: page.slug, message: "Candidate created; now open for voting." });
+      },
+    );
+
+    // ===================== LEARNING / KNOWLEDGE-GRAPH TOOLS =====================
+    // A prerequisite knowledge graph (the bundled Marble Open Skill Taxonomy)
+    // wrapped with per-learner mastery state. The "learner" is the signed-in
+    // User identified by email — the same convention as `vote` above. No age or
+    // extra PII is collected.
+
+    server.registerTool(
+      "list_subjects",
+      {
+        title: "List learning subjects",
+        description:
+          "Lists the subjects in the knowledge-graph taxonomy, each with its topic count, age span, and the domains within it.",
+        inputSchema: {},
+      },
+      async () => json({ subjects: listSubjects() }),
+    );
+
+    server.registerTool(
+      "search_concepts",
+      {
+        title: "Search concepts",
+        description:
+          "Find micro-topics (concepts) by name/description, best matches first. Optionally scope to one subject.",
+        inputSchema: {
+          query: z.string().describe("Search terms (matched against name, domain, description)"),
+          subject: z.string().optional().describe("Optional subject to scope the search (see list_subjects)"),
+          limit: z.number().int().min(1).max(100).optional().describe("Max results (default 25)"),
+        },
+      },
+      async ({ query, subject, limit }) => {
+        const hits = searchConcepts(query, { subject, limit });
+        return json({
+          count: hits.length,
+          concepts: hits.map((t) => ({
+            id: t.id,
+            name: t.name,
+            subject: t.subject,
+            domain: t.domain,
+            description: t.description,
+          })),
+        });
+      },
+    );
+
+    server.registerTool(
+      "get_concept",
+      {
+        title: "Get a concept",
+        description:
+          "Returns full detail for a concept plus its hard/soft prerequisites and the topics it unlocks. Use the description + evidence to teach it.",
+        inputSchema: { id: z.string().describe("Concept id, e.g. 'mt_...'") },
+      },
+      async ({ id }) => {
+        const t = getConcept(id);
+        if (!t) return err(`No concept '${id}'. Use search_concepts to find one.`);
+        return json({
+          ...conceptOut(t),
+          hardPrerequisites: hardPrereqsOf(id).map(linkOut),
+          softPrerequisites: softPrereqsOf(id).map(linkOut),
+          unlocks: unlocksOf(id).map(linkOut),
+          hardUnlockCount: hardUnlockCount(id),
+        });
+      },
+    );
+
+    server.registerTool(
+      "get_progress",
+      {
+        title: "Get a learner's progress",
+        description:
+          "Returns a learner's mastered/learning totals overall and per subject, plus recent activity. Acts as the user identified by email.",
+        inputSchema: { email: z.string().email().describe("Email identifying the learner") },
+      },
+      async ({ email }) => {
+        const user = await resolveUser(email);
+        return json(await getProgress(user.id));
+      },
+    );
+
+    server.registerTool(
+      "recommend_next",
+      {
+        title: "Recommend what to learn next",
+        description:
+          "Returns the learner's ranked learning frontier — unmastered concepts whose hard prerequisites are all satisfied — with a 'why' for each. Acts as the user identified by email.",
+        inputSchema: {
+          email: z.string().email().describe("Email identifying the learner"),
+          subject: z.string().optional().describe("Optional subject to scope recommendations"),
+          limit: z.number().int().min(1).max(50).optional().describe("Max recommendations (default 10)"),
+        },
+      },
+      async ({ email, subject, limit }) => {
+        const user = await resolveUser(email);
+        const mastered = await getMasteredIds(user.id);
+        const frontier = computeFrontier(mastered, { subject, limit: limit ?? 10 });
+        return json({
+          count: frontier.length,
+          frontier: frontier.map((f) => ({
+            id: f.topic.id,
+            name: f.topic.name,
+            subject: f.topic.subject,
+            domain: f.topic.domain,
+            description: f.topic.description,
+            unlockCount: f.unlockCount,
+            why:
+              `All hard prerequisites are mastered; learning this unlocks ${f.unlockCount} ` +
+              `further ${f.unlockCount === 1 ? "topic" : "topics"}.`,
+            unmetSoftPrereqs: f.unmetSoftPrereqs.map(linkOut),
+          })),
+        });
+      },
+    );
+
+    server.registerTool(
+      "assess_concept",
+      {
+        title: "Assess a concept",
+        description:
+          "Returns the concept's assessment prompt (with the concept name filled in) and its evidence descriptors so you can check understanding. Does NOT change any mastery state. Acts as the user identified by email.",
+        inputSchema: {
+          email: z.string().email().describe("Email identifying the learner"),
+          id: z.string().describe("Concept id to assess"),
+        },
+      },
+      async ({ email, id }) => {
+        const t = getConcept(id);
+        if (!t) return err(`No concept '${id}'.`);
+        const user = await resolveUser(email);
+        const mastered = await getMasteredIds(user.id);
+        const unmetHard = hardPrereqsOf(id).filter((l) => !mastered.has(l.id));
+        return json({
+          id: t.id,
+          name: t.name,
+          assessmentPrompt: t.assessmentPrompt.replace(/\{\{name\}\}/g, t.name),
+          evidence: t.evidence,
+          alreadyMastered: mastered.has(id),
+          eligible: unmetHard.length === 0,
+          unmetHardPrerequisites: unmetHard.map(linkOut),
+        });
+      },
+    );
+
+    server.registerTool(
+      "record_mastery",
+      {
+        title: "Record concept mastery",
+        description:
+          "Mark a concept MASTERED for a learner (with optional evidence of understanding) and return the topics this newly unlocks. Acts as the user identified by email.",
+        inputSchema: {
+          email: z.string().email().describe("Email identifying the learner"),
+          id: z.string().describe("Concept id the learner has mastered"),
+          evidence: z.string().max(2000).optional().describe("Optional note on how mastery was demonstrated"),
+        },
+      },
+      async ({ email, id, evidence }) => {
+        const user = await resolveUser(email);
+        const result = await recordMastery(user.id, id, evidence);
+        if (!result) return err(`No concept '${id}'.`);
+        return json({
+          ok: true,
+          mastered: { id: result.topic.id, name: result.topic.name },
+          newlyUnlocked: result.newlyUnlocked.map((t) => ({
+            id: t.id,
+            name: t.name,
+            subject: t.subject,
+            domain: t.domain,
+          })),
+        });
+      },
+    );
+
+    server.registerTool(
+      "set_learning",
+      {
+        title: "Mark a concept in-progress",
+        description:
+          "Mark a concept as in-progress (LEARNING) for a learner without asserting mastery. Will not downgrade an already-mastered concept. Acts as the user identified by email.",
+        inputSchema: {
+          email: z.string().email().describe("Email identifying the learner"),
+          id: z.string().describe("Concept id the learner is now studying"),
+        },
+      },
+      async ({ email, id }) => {
+        const user = await resolveUser(email);
+        const t = await setLearning(user.id, id);
+        if (!t) return err(`No concept '${id}'.`);
+        return json({ ok: true, learning: { id: t.id, name: t.name } });
+      },
+    );
+
+    server.registerTool(
+      "find_learning_path",
+      {
+        title: "Find a learning path",
+        description:
+          "Returns an ordered roadmap of the hard prerequisites a learner still needs to reach a target concept (prerequisites first, target last; already-mastered topics omitted). Acts as the user identified by email.",
+        inputSchema: {
+          email: z.string().email().describe("Email identifying the learner"),
+          targetId: z.string().describe("Concept id the learner wants to reach"),
+        },
+      },
+      async ({ email, targetId }) => {
+        const user = await resolveUser(email);
+        const mastered = await getMasteredIds(user.id);
+        const path = findLearningPath(mastered, targetId);
+        if (!path) return err(`No concept '${targetId}'.`);
+        return json({
+          targetId,
+          steps: path.length,
+          alreadyComplete: path.length === 0,
+          path: path.map((t) => ({
+            id: t.id,
+            name: t.name,
+            subject: t.subject,
+            domain: t.domain,
+          })),
+        });
+      },
+    );
+
+    server.registerTool(
+      "render_knowledge_graph",
+      {
+        title: "Render the learner's knowledge graph",
+        description:
+          "Renders a live, self-contained HTML knowledge-graph artifact for a learner (mastered = green, frontier = amber, locked = gray; hard vs soft edges) and returns it as an embedded resource plus a JSON summary. Scope to a subject to keep it legible. Acts as the user identified by email.",
+        inputSchema: {
+          email: z.string().email().describe("Email identifying the learner"),
+          subject: z.string().optional().describe("Optional subject to scope the graph (recommended)"),
+        },
+      },
+      async ({ email, subject }) => {
+        const user = await resolveUser(email);
+        const [mastered, progress] = await Promise.all([
+          getMasteredIds(user.id),
+          getProgress(user.id),
+        ]);
+        const hood = neighborhood(mastered, subject ? { subject } : {});
+        const html = renderKnowledgeGraph(hood, {
+          masteredCount: progress.masteredCount,
+          learningCount: progress.learningCount,
+          totalTopics: progress.totalTopics,
+        });
+        const uri = `ui://knowledge-graph/${encodeURIComponent(subject ?? "all")}`;
+        return {
+          content: [
+            {
+              type: "resource" as const,
+              resource: { uri, mimeType: "text/html", text: html },
+            },
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                { subject: hood.subject, counts: hood.counts, nodeCount: hood.nodes.length, edgeCount: hood.edges.length },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
       },
     );
   },
