@@ -616,11 +616,22 @@ export default function AutonomousTargetingGame() {
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const fxTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxActiveRef = useRef(config.maxActive);
-  maxActiveRef.current = config.maxActive;
   const gameRef = useRef(game);
-  gameRef.current = game;
+
+  // Mirror the latest state into the refs the interval reads, from effects so we
+  // never write ref.current during render.
+  useEffect(() => {
+    maxActiveRef.current = config.maxActive;
+  }, [config.maxActive]);
+  useEffect(() => {
+    gameRef.current = game;
+  }, [game]);
 
   useEffect(() => {
+    // Randomize on the client after hydration so the server-rendered board stays
+    // deterministic (avoids a hydration mismatch). This intentional one-time
+    // setState is the documented server/client-divergence exception.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setGame(buildGame(DEFAULT_CONFIG, true));
     try {
       setPlayerName(localStorage.getItem(HS_NAME_KEY) || "");
@@ -646,6 +657,7 @@ export default function AutonomousTargetingGame() {
       gameRef.current = n;
       setGame(n);
       setFx(nextFx);
+      if (n.status !== "playing") setRunning(false); // game ended — stop the loop
       if (fxTimer.current) clearTimeout(fxTimer.current);
       fxTimer.current = setTimeout(() => setFx(NO_FX), 1000);
     }, STEP_MS);
@@ -653,10 +665,6 @@ export default function AutonomousTargetingGame() {
       if (timer.current) clearInterval(timer.current);
     };
   }, [running]);
-
-  useEffect(() => {
-    if (game.status !== "playing") setRunning(false);
-  }, [game.status]);
 
   // Setup phase: before the game has started. Civilian counts may only be edited here;
   // drone lethality, cell caps, and timers stay adjustable throughout play.
