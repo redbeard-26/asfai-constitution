@@ -1,8 +1,47 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { getDocuments } from "@/lib/data";
 import { getSessionUser } from "@/lib/session";
 import { isModerator } from "@/lib/constants";
 import { formatDate } from "@/lib/format";
+import { ConnectorGuide } from "@/components/ConnectorGuide";
+
+/** A section that starts collapsed so all section headers stay visible. */
+function CollapsibleSection({
+  kicker,
+  title,
+  defaultOpen = false,
+  children,
+}: {
+  kicker: string;
+  title: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <details open={defaultOpen} className="group section-rule mt-8 pt-3">
+      <summary className="flex cursor-pointer select-none list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+        <span>
+          <span className="kicker block text-xs">{kicker}</span>
+          <span className="text-lg font-bold tracking-tight text-ink group-hover:text-gold-deep">
+            {title}
+          </span>
+        </span>
+        <svg
+          aria-hidden
+          viewBox="0 0 20 20"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          className="h-5 w-5 shrink-0 text-muted transition-transform group-open:rotate-90"
+        >
+          <path d="M7 5l6 5-6 5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </summary>
+      <div className="mt-4">{children}</div>
+    </details>
+  );
+}
 
 const TOOLS: { title: string; href: string; kind: string; icon: string; blurb: string }[] = [
   {
@@ -61,15 +100,13 @@ export default async function DocsIndex({
         )}
       </div>
       <p className="mt-2 text-sm text-muted">
-        Interactive tools, plus panel reports, memos, and external work that
-        inform the discussion of particular theses.
+        Interactive tools and games, the document library informing particular
+        theses, and the AI connector for reaching all of it programmatically.
+        Expand any section below.
       </p>
 
-      <section className="mt-8">
-        <div className="section-rule pt-2">
-          <h2 className="kicker text-base">Tools &amp; Games</h2>
-        </div>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <CollapsibleSection kicker="Library" title="Tools & Games">
+        <div className="grid gap-4 sm:grid-cols-2">
           {TOOLS.map((it) => (
             <Link
               key={it.href}
@@ -96,14 +133,10 @@ export default async function DocsIndex({
             </Link>
           ))}
         </div>
-      </section>
+      </CollapsibleSection>
 
-      <section className="mt-10">
-        <div className="section-rule pt-2">
-          <h2 className="kicker text-base">Documents</h2>
-        </div>
-
-        <form method="get" className="mt-4 flex gap-2">
+      <CollapsibleSection kicker="Library" title="Documents" defaultOpen={!!query}>
+        <form method="get" className="flex gap-2">
         <input
           type="search"
           name="q"
@@ -169,7 +202,11 @@ export default async function DocsIndex({
           ))}
         </ul>
       )}
-      </section>
+      </CollapsibleSection>
+
+      <CollapsibleSection kicker="AI-native" title="AI Connector">
+        <ConnectorGuide />
+      </CollapsibleSection>
     </div>
   );
 }
