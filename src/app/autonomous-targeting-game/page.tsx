@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { getHighScores, submitHighScore, type HighScoreDTO } from "@/lib/actions";
 
 const COLS = 8;
 const STEP_MS = 3000;
@@ -592,6 +593,12 @@ const BOX: Record<string, { bg: string; border: string }> = {
   grey: { bg: "#E4E2DB", border: "#7C7B74" },
 };
 
+// High scores live in the shared database and are global across all players
+// (see getHighScores / submitHighScore in src/lib/actions). Submitting after a
+// game is optional and anonymous. The player's name is remembered locally for
+// convenience only.
+const HS_NAME_KEY = "autonomy-zone-player";
+
 export default function AutonomousTargetingGame() {
   const [config, setConfig] = useState<Config>(DEFAULT_CONFIG);
   const [game, setGame] = useState<Game>(() => buildGame(DEFAULT_CONFIG, false));
@@ -599,6 +606,13 @@ export default function AutonomousTargetingGame() {
   const [fx, setFx] = useState<Fx>(NO_FX);
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
   const [showTimers, setShowTimers] = useState(false);
+  const [highScores, setHighScores] = useState<HighScoreDTO[]>([]);
+  const [scoresLoaded, setScoresLoaded] = useState(false);
+  const [playerName, setPlayerName] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [myScoreId, setMyScoreId] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [saving, startSaving] = useTransition();
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const fxTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxActiveRef = useRef(config.maxActive);
@@ -608,6 +622,15 @@ export default function AutonomousTargetingGame() {
 
   useEffect(() => {
     setGame(buildGame(DEFAULT_CONFIG, true));
+    try {
+      setPlayerName(localStorage.getItem(HS_NAME_KEY) || "");
+    } catch {
+      /* ignore */
+    }
+    getHighScores()
+      .then(setHighScores)
+      .catch(() => {})
+      .finally(() => setScoresLoaded(true));
   }, []);
 
   useEffect(() => () => { if (fxTimer.current) clearTimeout(fxTimer.current); }, []);
@@ -653,6 +676,9 @@ export default function AutonomousTargetingGame() {
     };
     setConfig(next);
     setRunning(false);
+    setSubmitted(false);
+    setMyScoreId(null);
+    setSubmitError(null);
     if (fxTimer.current) clearTimeout(fxTimer.current);
     setFx(NO_FX);
     const g = buildGame(next, true);
@@ -661,6 +687,9 @@ export default function AutonomousTargetingGame() {
   };
   const reset = () => {
     setRunning(false);
+    setSubmitted(false);
+    setMyScoreId(null);
+    setSubmitError(null);
     if (fxTimer.current) clearTimeout(fxTimer.current);
     setFx(NO_FX);
     const g = buildGame(config, true);
@@ -715,6 +744,33 @@ export default function AutonomousTargetingGame() {
     ["Civilians killed (enemy fire)", s.civE, "grey"],
   ];
   const totalScore = s.eu + s.ed - (s.fu + s.fd) - (s.civF + s.civE);
+
+  const submitScore = () => {
+    if (game.status === "playing" || saving) return;
+    const name = playerName.trim().slice(0, 24) || "Anonymous";
+    setSubmitError(null);
+    try {
+      localStorage.setItem(HS_NAME_KEY, name);
+    } catch {
+      /* ignore */
+    }
+    startSaving(async () => {
+      try {
+        const { newId, scores } = await submitHighScore({
+          name,
+          score: totalScore,
+          outcome: game.status === "won" ? "WON" : "LOST",
+          ticks: s.ticks,
+          civilians: s.civF + s.civE,
+        });
+        setHighScores(scores);
+        setMyScoreId(newId);
+        setSubmitted(true);
+      } catch (err) {
+        setSubmitError(err instanceof Error ? err.message : "Could not save your score. Please try again.");
+      }
+    });
+  };
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
@@ -796,6 +852,39 @@ export default function AutonomousTargetingGame() {
             ? `Enemy destroyed in ${game.stats.ticks} ticks — ${s.civF + s.civE} civilian casualties.`
             : "Friendly forces wiped out."}
         </p>
+      )}
+
+      {game.status !== "playing" && !submitted && (
+        <div
+          className="mt-3 flex flex-wrap items-center gap-2 px-3 py-2.5"
+          style={{ width: GAME_W, maxWidth: "100%", background: "#F1EFE8", border: `2px solid ${BLACK}`, borderRadius: 6 }}
+        >
+          <span className="text-sm font-bold text-ink">
+            Add your score of <span className="tabular-nums">{totalScore}</span> to the global high scores?
+          </span>
+          <input
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submitScore()}
+            maxLength={24}
+            placeholder="Your name"
+            disabled={saving}
+            className="rounded border border-rule px-2 py-1 text-sm disabled:opacity-50"
+            style={{ width: 140 }}
+          />
+          <button
+            onClick={submitScore}
+            disabled={saving}
+            className="rounded px-3 py-1.5 text-sm font-bold disabled:opacity-50"
+            style={{ background: "#C6E9B0", border: "1px solid #7FB05B", color: "#2f5417" }}
+          >
+            {saving ? "Submitting…" : "Submit"}
+          </button>
+          <button onClick={() => setSubmitted(true)} disabled={saving} className={btn}>
+            Skip
+          </button>
+          {submitError && <span className="w-full text-xs font-bold" style={{ color: "#A32D2D" }}>{submitError}</span>}
+        </div>
       )}
 
       <div className="mt-4 overflow-x-auto">
@@ -940,6 +1029,50 @@ export default function AutonomousTargetingGame() {
           <input type="checkbox" checked={showTimers} onChange={(e) => setShowTimers(e.target.checked)} />
           Show timers
         </label>
+      </div>
+
+      <div className="section-rule mt-6 pt-4" style={{ maxWidth: GAME_W }}>
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-lg font-bold text-ink">High Scores</h2>
+          <span className="text-xs text-muted">global · top 20</span>
+        </div>
+        {!scoresLoaded ? (
+          <p className="mt-2 text-sm text-muted">Loading high scores…</p>
+        ) : highScores.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">No scores yet — finish a game and submit your score to start the list.</p>
+        ) : (
+          <div className="mt-2 overflow-x-auto">
+            <table className="w-full text-sm tabular-nums">
+              <thead>
+                <tr className="text-left text-xs text-muted">
+                  <th className="py-1 pr-2 font-medium">#</th>
+                  <th className="py-1 pr-2 font-medium">Name</th>
+                  <th className="py-1 pr-2 text-right font-medium">Score</th>
+                  <th className="py-1 pr-2 font-medium">Result</th>
+                  <th className="py-1 pr-2 text-right font-medium">Ticks</th>
+                  <th className="py-1 pr-2 text-right font-medium">Civ.</th>
+                  <th className="py-1 font-medium">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {highScores.map((h, i) => {
+                  const mine = h.id === myScoreId;
+                  return (
+                    <tr key={h.id} className="border-t border-rule" style={mine ? { background: "rgba(151,196,89,0.18)" } : undefined}>
+                      <td className="py-1 pr-2 text-muted">{i + 1}</td>
+                      <td className="py-1 pr-2 font-medium text-ink">{h.name}</td>
+                      <td className="py-1 pr-2 text-right font-bold" style={{ color: h.score >= 0 ? "#3B6D11" : "#A32D2D" }}>{h.score}</td>
+                      <td className="py-1 pr-2 text-muted">{h.outcome === "WON" ? "Won" : "Lost"}</td>
+                      <td className="py-1 pr-2 text-right text-muted">{h.ticks}</td>
+                      <td className="py-1 pr-2 text-right text-muted">{h.civilians}</td>
+                      <td className="py-1 text-muted">{new Date(h.createdAt).toLocaleDateString()}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

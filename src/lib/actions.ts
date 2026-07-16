@@ -746,3 +746,80 @@ export async function deleteTrackerSubmission(formData: FormData) {
   await prisma.trackerSubmission.delete({ where: { id } });
   revalidatePath(TRACKER_PATH);
 }
+
+// ---------------------------------------------------------------------------
+// Autonomy Zone game — global high-score leaderboard (anonymous)
+// ---------------------------------------------------------------------------
+
+const HIGHSCORE_LIMIT = 20;
+
+// Serializable shape returned to the client (Date → ISO string).
+export type HighScoreDTO = {
+  id: string;
+  name: string;
+  score: number;
+  outcome: "WON" | "LOST";
+  ticks: number;
+  civilians: number;
+  createdAt: string;
+};
+
+const highScoreSchema = z.object({
+  name: z.string().trim().min(1, "Enter a name.").max(24),
+  score: z.number().int().min(-1_000_000).max(1_000_000),
+  outcome: z.enum(["WON", "LOST"]),
+  ticks: z.number().int().min(0).max(1_000_000),
+  civilians: z.number().int().min(0).max(1_000_000),
+});
+
+function toHighScoreDTO(h: {
+  id: string;
+  name: string;
+  score: number;
+  outcome: string;
+  ticks: number;
+  civilians: number;
+  createdAt: Date;
+}): HighScoreDTO {
+  return {
+    id: h.id,
+    name: h.name,
+    score: h.score,
+    outcome: h.outcome === "LOST" ? "LOST" : "WON",
+    ticks: h.ticks,
+    civilians: h.civilians,
+    createdAt: h.createdAt.toISOString(),
+  };
+}
+
+/** The current global top scores, ranked high→low (ties: fewer ticks, then earlier). */
+export async function getHighScores(): Promise<HighScoreDTO[]> {
+  const rows = await prisma.highScore.findMany({
+    orderBy: [{ score: "desc" }, { ticks: "asc" }, { createdAt: "asc" }],
+    take: HIGHSCORE_LIMIT,
+  });
+  return rows.map(toHighScoreDTO);
+}
+
+/**
+ * Add a finished game's result to the shared leaderboard. Anonymous — no sign-in
+ * required; the name is free text. Returns the id of the new row plus the refreshed
+ * top list so the client can render and highlight it in one round-trip.
+ */
+export async function submitHighScore(input: {
+  name: string;
+  score: number;
+  outcome: "WON" | "LOST";
+  ticks: number;
+  civilians: number;
+}): Promise<{ newId: string; scores: HighScoreDTO[] }> {
+  const data = highScoreSchema.parse(input);
+
+  // Coarse global rate limit: guard against runaway submissions without a per-user id.
+  const since = new Date(Date.now() - 60_000);
+  const recent = await prisma.highScore.count({ where: { createdAt: { gte: since } } });
+  if (recent >= 60) throw new Error("Too many submissions right now — please try again shortly.");
+
+  const created = await prisma.highScore.create({ data });
+  return { newId: created.id, scores: await getHighScores() };
+}
