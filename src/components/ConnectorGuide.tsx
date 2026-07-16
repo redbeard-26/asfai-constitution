@@ -8,17 +8,14 @@ function Code({ children }: { children: string }) {
   );
 }
 
-/** AI Connector (MCP) instructions — embedded in the About page. */
+/**
+ * AI Connector (MCP) instructions — the body of the collapsible "AI Connector"
+ * section on the Resources page. The enclosing section supplies the heading.
+ */
 export function ConnectorGuide() {
   return (
-    <section id="ai-connector" className="mt-12">
-      <div className="section-rule pt-3">
-        <p className="kicker text-xs">AI-native</p>
-        <h2 className="mt-1 text-2xl font-bold tracking-tight text-ink">
-          AI Connector
-        </h2>
-      </div>
-      <p className="mt-3 leading-relaxed text-ink">
+    <div>
+      <p className="leading-relaxed text-ink">
         The AI Constitution is available to AI assistants through a{" "}
         <strong>Model Context Protocol (MCP)</strong> connector over Streamable
         HTTP. Connect a client below so it can read the constitution and act on
@@ -134,6 +131,6 @@ export function ConnectorGuide() {
           on this site.
         </p>
       </div>
-    </section>
+    </div>
   );
 }
