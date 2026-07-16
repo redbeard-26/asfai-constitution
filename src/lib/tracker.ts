@@ -22,6 +22,27 @@ export function axisScores(
   return { x: rms(forCategory("SOCIAL")), y: rms(forCategory("CONSCIOUSNESS")) };
 }
 
+/** Canonical persisted shape of a submission, derived from raw per-question
+ *  answers against the questions live at submit time. Returns the responses to
+ *  store (only answers whose key matches a live question — stray keys dropped)
+ *  plus the computed x/y coordinates. Shared by the browser server action and the
+ *  MCP tool so both write exactly the same data format. */
+export function buildTrackerSubmission(
+  answers: Record<string, number>,
+  questions: { key: string; category: string }[],
+): {
+  responses: { questionKey: string; rating: number }[];
+  x: number;
+  y: number;
+} {
+  const validKeys = new Set(questions.map((q) => q.key));
+  const responses = Object.entries(answers)
+    .filter(([key]) => validKeys.has(key))
+    .map(([questionKey, rating]) => ({ questionKey, rating }));
+  const { x, y } = axisScores(answers, questions);
+  return { responses, x, y };
+}
+
 // ---------------------------------------------------------------------------
 // Plot geometry — maps data values (0-100) to SVG pixels. Origin bottom-left,
 // square scale; the "personhood horizon" is the quarter-circle x² + y² = 100².

@@ -231,8 +231,12 @@ model TrackerQuestion {
   category    String // SOCIAL | CONSCIOUSNESS
   sortOrder   Int      @default(0)
   question    String
-  rating      Int      @default(0) // 0-100
+  rating      Int      @default(0) // 0-100 (original editorial baseline)
   explanation String
+  // Questions are hidden, never deleted: retiring a question sets active=false so
+  // it drops out of the sliders and new submissions, while past submissions keep
+  // their responses (referenced by the stable `key`) and their stored x/y.
+  active      Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -270,6 +274,11 @@ model TrackerSubmission {
   id        String   @id @default(cuid())
   userId    String
   name      String // user-editable label, e.g. "My take, July 2026"
+  // Axis coordinates (0-100), computed from `responses` at submit time against the
+  // questions active then. Stored (not recomputed on read) so a submission keeps
+  // its original coordinates even after questions are later hidden or changed.
+  x         Int      @default(0)
+  y         Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -279,8 +288,10 @@ model TrackerSubmission {
   @@index([userId])
 }
 
-// One slider value within a submission. questionKey is a loose reference to
-// TrackerQuestion.key (kept as a string so a submission survives question edits).
+// One slider value within a submission. questionKey is the stable per-question
+// identifier (TrackerQuestion.key), kept as a string rather than a foreign key so a
+// response stays associated with its question even across question edits — and so a
+// submission survives a question being hidden/retired.
 model TrackerResponse {
   id           String @id @default(cuid())
   submissionId String

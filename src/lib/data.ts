@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { axisScores } from "@/lib/tracker";
 
 const childSelect = {
   // Candidates may share an article parent but must not appear in the article's
@@ -384,11 +383,15 @@ export async function getArticleOptions() {
   });
 }
 
-/** Personhood tracker: the questions (grouped by axis) people rate, plus every
- *  public submission with its per-question answers and computed axis scores. */
+/** Personhood tracker: the active questions (grouped by axis) people rate, plus
+ *  every public submission with its per-question answers and its stored axis
+ *  coordinates. Coordinates are read as stored (computed at submit time against
+ *  the questions active then) so a submission keeps its place on the plot even
+ *  after questions are later hidden or edited. */
 export async function getPersonhoodTracker() {
   const [questions, submissions] = await Promise.all([
     prisma.trackerQuestion.findMany({
+      where: { active: true },
       orderBy: [{ category: "asc" }, { sortOrder: "asc" }],
       select: { key: true, category: true, question: true, explanation: true },
     }),
@@ -399,6 +402,8 @@ export async function getPersonhoodTracker() {
         id: true,
         name: true,
         userId: true,
+        x: true,
+        y: true,
         createdAt: true,
         user: { select: { name: true, email: true } },
         responses: { select: { questionKey: true, rating: true } },
@@ -414,7 +419,6 @@ export async function getPersonhoodTracker() {
     submissions: submissions.map((s) => {
       const answers: Record<string, number> = {};
       for (const r of s.responses) answers[r.questionKey] = r.rating;
-      const { x, y } = axisScores(answers, questions);
       return {
         id: s.id,
         name: s.name,
@@ -422,8 +426,8 @@ export async function getPersonhoodTracker() {
         userName: s.user.name || s.user.email || "Anonymous",
         createdAt: s.createdAt.toISOString(),
         answers,
-        x,
-        y,
+        x: s.x,
+        y: s.y,
       };
     }),
   };

@@ -8,6 +8,7 @@ import { requireUser, requireModerator, requireAdmin } from "@/lib/session";
 import { pageHref, ROLES, STANCES, isModerator, type Role, type Stance } from "@/lib/constants";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { slugify } from "@/lib/slug";
+import { buildTrackerSubmission } from "@/lib/tracker";
 
 async function logAudit(
   actorId: string,
@@ -689,18 +690,23 @@ export async function createTrackerSubmission(formData: FormData) {
   }
   const parsed = submissionSchema.parse({ name: formData.get("name"), answers });
 
-  // Only accept ratings for questions that actually exist; ignore stray keys.
-  const questions = await prisma.trackerQuestion.findMany({ select: { key: true } });
-  const validKeys = new Set(questions.map((q) => q.key));
-  const responses = Object.entries(parsed.answers)
-    .filter(([key]) => validKeys.has(key))
-    .map(([questionKey, rating]) => ({ questionKey, rating }));
+  // Compute against the currently-active questions; stray keys are dropped and
+  // the x/y coordinates are stored so the submission keeps its place on the plot
+  // even after questions are later hidden or edited. Shares buildTrackerSubmission
+  // with the MCP tool so both write the same format.
+  const questions = await prisma.trackerQuestion.findMany({
+    where: { active: true },
+    select: { key: true, category: true },
+  });
+  const { responses, x, y } = buildTrackerSubmission(parsed.answers, questions);
   if (!responses.length) throw new Error("No valid ratings to save.");
 
   await prisma.trackerSubmission.create({
     data: {
       userId: user.id,
       name: parsed.name,
+      x,
+      y,
       responses: { create: responses },
     },
   });

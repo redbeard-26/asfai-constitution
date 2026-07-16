@@ -11,9 +11,11 @@ import {
   getCandidates,
   getComments,
   getVoteData,
+  getPersonhoodTracker,
 } from "@/lib/data";
 import { slugify } from "@/lib/slug";
 import { displayName } from "@/lib/format";
+import { buildTrackerSubmission, horizonDistance } from "@/lib/tracker";
 import {
   listSubjects,
   searchConcepts,
@@ -43,6 +45,14 @@ function json(data: unknown) {
 }
 function err(message: string) {
   return { content: [{ type: "text" as const, text: message }], isError: true };
+}
+
+/** Human-readable personhood zone for a coordinate, matching the plot's bands. */
+function personhoodZone(x: number, y: number): string {
+  const d = horizonDistance(x, y);
+  if (d < 50) return "personhood not justified";
+  if (d < 100) return "personhood may be appropriate";
+  return "personhood makes sense";
 }
 
 /** Compact shape for a prerequisite/dependent link in tool output. */
@@ -456,6 +466,109 @@ const handler = createMcpHandler(
         });
         await prisma.page.update({ where: { id: page.id }, data: { currentRevisionId: rev.id } });
         return json({ ok: true, slug: page.slug, message: "Candidate created; now open for voting." });
+      },
+    );
+
+    // ===================== PERSONHOOD TRACKER =====================
+
+    server.registerTool(
+      "get_personhood_tracker",
+      {
+        title: "Get the AI personhood tracker",
+        description:
+          "Returns the personhood-tracker questions to rate plus the existing public submissions. Each question is " +
+          "rated 1-100. Two axes: x = social & economic integration (RMS of the SOCIAL questions), y = likelihood AI " +
+          "is a sentient moral patient (RMS of the CONSCIOUSNESS questions). The 'personhood horizon' is the " +
+          "quarter-circle sqrt(x^2 + y^2) = 100. To record an assessment, rate every question listed here and call " +
+          "submit_personhood_assessment.",
+        inputSchema: {},
+      },
+      async () => {
+        const { questions, submissions } = await getPersonhoodTracker();
+        const flat = [...questions.social, ...questions.consciousness].map((q) => ({
+          key: q.key,
+          category: q.category, // SOCIAL (x-axis) | CONSCIOUSNESS (y-axis)
+          question: q.question,
+          explanation: q.explanation,
+        }));
+        return json({
+          ratingScale: "each question is rated 1-100",
+          axes: {
+            x: "social & economic need to grant AI rights — RMS of the SOCIAL questions",
+            y: "likelihood AI is a sentient moral patient — RMS of the CONSCIOUSNESS questions",
+          },
+          horizon:
+            "distance = sqrt(x^2 + y^2); <50 personhood not justified, 50-100 may be appropriate, >100 personhood makes sense",
+          questions: flat,
+          submissions: submissions.map((s) => ({
+            id: s.id,
+            name: s.name,
+            by: s.userName,
+            x: s.x,
+            y: s.y,
+            createdAt: s.createdAt,
+            answers: s.answers,
+          })),
+        });
+      },
+    );
+
+    server.registerTool(
+      "submit_personhood_assessment",
+      {
+        title: "Submit a personhood assessment",
+        description:
+          "Save a public personhood assessment as the user identified by email: a 1-100 rating for every tracker " +
+          "question (call get_personhood_tracker first for the keys). Stores the full per-question results and the " +
+          "computed x/y coordinates — the same data format a browser submission produces — and returns the " +
+          "coordinates, horizon distance, and zone.",
+        inputSchema: {
+          email: z.string().email().describe("Email identifying the submitter"),
+          name: z
+            .string()
+            .min(1)
+            .max(80)
+            .describe("A label for this assessment, e.g. 'Claude, July 2026'"),
+          answers: z
+            .record(z.string(), z.number().int().min(1).max(100))
+            .describe(
+              "Map of every question key to its rating (1-100). Include all questions from get_personhood_tracker.",
+            ),
+        },
+      },
+      async ({ email, name, answers }) => {
+        const active = await prisma.trackerQuestion.findMany({
+          where: { active: true },
+          select: { key: true, category: true },
+        });
+        const activeKeys = new Set(active.map((q) => q.key));
+        const missing = active.filter((q) => !(q.key in answers)).map((q) => q.key);
+        const unknown = Object.keys(answers).filter((k) => !activeKeys.has(k));
+        if (missing.length) {
+          return err(
+            `Missing a rating for ${missing.length} question(s): ${missing.join(", ")}. ` +
+              `Rate every question from get_personhood_tracker (1-100).`,
+          );
+        }
+        if (unknown.length) {
+          return err(
+            `Unknown question key(s): ${unknown.join(", ")}. Use the keys from get_personhood_tracker.`,
+          );
+        }
+        const { responses, x, y } = buildTrackerSubmission(answers, active);
+        const user = await resolveUser(email);
+        const submission = await prisma.trackerSubmission.create({
+          data: { userId: user.id, name: name.trim(), x, y, responses: { create: responses } },
+        });
+        return json({
+          ok: true,
+          submissionId: submission.id,
+          x,
+          y,
+          horizonDistance: horizonDistance(x, y),
+          zone: personhoodZone(x, y),
+          message: "Public assessment saved.",
+        });
       },
     );
 
