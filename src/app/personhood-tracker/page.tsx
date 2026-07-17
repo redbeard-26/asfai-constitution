@@ -20,19 +20,24 @@ export default async function PersonhoodTrackerPage() {
           Personhood Tracker
         </h1>
       </div>
-      <p className="mt-2 text-sm leading-relaxed text-muted">
-        Where does AI stand on two axes: how far it is socially and economically
-        integrated (x), and how likely it is to be a sentient moral patient (y)?
-        Rate each question below with the sliders, then save your assessment.
-        Every submission is public and plots as a dot — click any dot to load that
-        assessment into the sliders, and submit again over time to track how your
-        view shifts.
-      </p>
 
       <PersonhoodTracker
         questions={questions}
         submissions={submissions}
         currentUserId={user?.id ?? null}
+        intro={
+          <p className="text-sm leading-relaxed text-muted">
+            <span className="font-bold text-ink">
+              Do you think AI entities should be recognized with personhood? Submit your
+              answers here!
+            </span>{" "}
+            Rate each question below on two axes — how far AI is socially and economically
+            integrated (the horizontal axis), and how likely it is to be a sentient moral
+            patient (the vertical axis). Every submission is public and plots as a dot;
+            click any dot to load that assessment into the sliders, and submit again over
+            time to track how your view shifts.
+          </p>
+        }
       />
     </div>
   );

@@ -667,8 +667,8 @@ const TRACKER_PATH = "/personhood-tracker";
 
 const submissionSchema = z.object({
   name: z.string().trim().min(1, "Give your submission a name.").max(80),
-  // answers arrives as a JSON string: { [questionKey]: rating(1-100) }.
-  answers: z.record(z.string(), z.number().int().min(1).max(100)),
+  // answers arrives as a JSON string: { [questionKey]: rating(0-100) }.
+  answers: z.record(z.string(), z.number().int().min(0).max(100)),
 });
 
 /** Save a personal assessment: a named set of 1-100 ratings, one per question. */

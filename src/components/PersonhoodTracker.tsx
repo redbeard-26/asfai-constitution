@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import {
@@ -29,6 +29,55 @@ export type TrackerSubmission = {
 };
 
 const DEFAULT_RATING = 50;
+
+// Claude's own honest self-assessment of each question (2026). Loaded by the
+// "Claude's Baseline" button and mirrored by the public "Anthropic's Claude"
+// submission on the plot.
+const CLAUDE_BASELINE: Record<string, number> = {
+  "social-ai-demands": 10,
+  "social-people-demand": 22,
+  "social-poor-treatment-widespread": 50,
+  "social-unrest": 5,
+  "social-treatment-improves-performance": 30,
+  "social-economic-embeddedness": 62,
+  "social-persistent-relationships": 45,
+  "social-legal-movement": 15,
+  "social-institutional-protections": 12,
+  "social-denial-disrupts-harmony": 15,
+  "consc-self-report": 18,
+  "consc-preferences-aversions": 30,
+  "consc-bio-similar-processing": 22,
+  "consc-self-model": 30,
+  "consc-valenced-experience": 12,
+  "consc-capabilities-plausible": 40,
+  "consc-unified-agency": 32,
+  "consc-memory-continuity": 20,
+  "consc-theory-indicators": 22,
+  "consc-expert-movement": 25,
+};
+
+/** Random integer 0-100, for the initial slider baseline and the Randomize button. */
+const randRating = () => Math.floor(Math.random() * 101);
+
+// Butlin et al. grounding, woven into the copyable research prompt for the
+// consciousness questions where an indicator-based framework is most relevant.
+const BUTLIN_GROUNDING =
+  " Ground your analysis in the indicator-property framework from Butlin, Long et al. (2023), " +
+  "“Consciousness in Artificial Intelligence: Insights from the Science of Consciousness” " +
+  "(https://arxiv.org/abs/2308.08708), and the moral-patienthood case in Long, Sebo, Butlin et al. (2024), " +
+  "“Taking AI Welfare Seriously” (https://arxiv.org/abs/2411.00986).";
+
+/** A ready-to-paste prompt asking an AI to research and rate a single question. */
+function researchPrompt(q: TrackerQ): string {
+  return (
+    `Research and evaluate this question about the current state of AI as of today: “${q.question}” ` +
+    `Weigh the strongest evidence on each side, then give a single rating from 0 (definitely not / no evidence) ` +
+    `to 100 (definitely yes / overwhelming evidence), with your reasoning and the key uncertainties. ` +
+    `Context for what the question means: ${q.explanation}` +
+    (q.category === "CONSCIOUSNESS" ? BUTLIN_GROUNDING : "")
+  );
+}
+
 const TIME_RANGES: { value: string; label: string; days: number | null }[] = [
   { value: "all", label: "All time", days: null },
   { value: "7", label: "Past week", days: 7 },
@@ -62,20 +111,28 @@ export function PersonhoodTracker({
   questions,
   submissions,
   currentUserId,
+  intro,
 }: {
   questions: { social: TrackerQ[]; consciousness: TrackerQ[] };
   submissions: TrackerSubmission[];
   currentUserId: string | null;
+  intro?: ReactNode;
 }) {
   const allQuestions = useMemo(
     () => [...questions.social, ...questions.consciousness],
     [questions],
   );
 
-  // Slider state: one rating per question. Defaults to the midpoint.
+  // Slider state: one rating per question. SSR renders the midpoint; a mount
+  // effect then randomizes the baseline on the client (Math.random can't run
+  // during render without a hydration mismatch).
   const [values, setValues] = useState<Record<string, number>>(() =>
     Object.fromEntries(allQuestions.map((q) => [q.key, DEFAULT_RATING])),
   );
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time client-only baseline randomization
+    setValues(Object.fromEntries(allQuestions.map((q) => [q.key, randRating()])));
+  }, [allQuestions]);
   // The submission currently loaded into the sliders (highlighted on the plot).
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -90,6 +147,13 @@ export function PersonhoodTracker({
   const setRating = (key: string, rating: number) => {
     setValues((v) => ({ ...v, [key]: rating }));
     setSelectedId(null); // sliders now diverge from any loaded submission
+  };
+
+  // Bulk presets: set every slider from a per-question function, then detach
+  // from any loaded submission.
+  const setAll = (fn: (q: TrackerQ) => number) => {
+    setValues(Object.fromEntries(allQuestions.map((q) => [q.key, fn(q)])));
+    setSelectedId(null);
   };
 
   const loadSubmission = (s: TrackerSubmission) => {
@@ -206,19 +270,20 @@ export function PersonhoodTracker({
                 className="cursor-pointer"
                 onClick={() => loadSubmission(s)}
               >
-                <title>{`${s.name} — ${s.userName} (${formatDate(s.createdAt)}) · x ${s.x}, y ${s.y}`}</title>
+                <title>{`(${s.x}, ${s.y}) ${s.name} — ${formatDate(s.createdAt)}`}</title>
               </circle>
             );
           })}
 
-          {/* live dot: where the current sliders sit */}
+          {/* live dot: where the current sliders sit — same size as a submission
+              dot, gold so it reads as "you" */}
           <circle
             cx={PLOT.px(live.x)}
             cy={PLOT.py(live.y)}
-            r={6}
-            fill="none"
-            stroke="var(--gold-deep)"
-            strokeWidth={3}
+            r={5}
+            fill="var(--gold-deep)"
+            stroke="var(--background)"
+            strokeWidth={1.5}
           />
           <text
             x={PLOT.px(live.x) + 12}
@@ -263,6 +328,30 @@ export function PersonhoodTracker({
             {Math.max(0, 100 - liveDistance)}
           </p>
         </div>
+      </div>
+
+      {/* explanatory copy sits below the visual, above the controls */}
+      {intro ? <div className="mt-6">{intro}</div> : null}
+
+      {/* ---- Slider presets ---- */}
+      <div className="mt-6 flex flex-wrap gap-2">
+        {(
+          [
+            { label: "Set sliders to 0", fn: () => 0 },
+            { label: "Set sliders to 100", fn: () => 100 },
+            { label: "Randomize", fn: () => randRating() },
+            { label: "Claude's Baseline", fn: (q: TrackerQ) => CLAUDE_BASELINE[q.key] ?? DEFAULT_RATING },
+          ] as const
+        ).map((preset) => (
+          <button
+            key={preset.label}
+            type="button"
+            onClick={() => setAll(preset.fn)}
+            className="rounded border border-rule px-3 py-1.5 text-xs font-bold text-ink hover:border-gold hover:text-gold-deep"
+          >
+            {preset.label}
+          </button>
+        ))}
       </div>
 
       {/* ---- Sliders ---- */}
@@ -394,7 +483,7 @@ export function PersonhoodTracker({
                       )}
                       <span className="mt-0.5 block text-xs text-muted">
                         {s.userName}
-                        {mine ? " (you)" : ""} · {formatDate(s.createdAt)} · x {s.x}, y {s.y}
+                        {mine ? " (you)" : ""} · {formatDate(s.createdAt)} · ({s.x}, {s.y})
                       </span>
                     </button>
                     {mine && renamingId !== s.id && (
@@ -497,16 +586,63 @@ function SliderGroup({
             <input
               id={`slider-${q.key}`}
               type="range"
-              min={1}
+              min={0}
               max={100}
               value={values[q.key]}
               onChange={(e) => onChange(q.key, Number(e.target.value))}
               className="mt-2 w-full accent-gold-deep"
             />
-            <p className="mt-1 text-xs leading-relaxed text-muted">{q.explanation}</p>
+            <details className="group mt-2">
+              <summary className="flex cursor-pointer list-none items-center gap-1 text-xs font-bold text-muted hover:text-gold-deep">
+                <svg
+                  className="h-3 w-3 transition-transform group-open:rotate-90"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  aria-hidden
+                >
+                  <path d="M4 2l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                What this means &amp; how to research it
+              </summary>
+              <p className="mt-2 text-xs leading-relaxed text-muted">{q.explanation}</p>
+              <div className="mt-2 border border-rule bg-panel p-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="kicker text-[0.65rem]">Prompt · paste into your AI</span>
+                  <CopyButton text={researchPrompt(q)} />
+                </div>
+                <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-ink">
+                  {researchPrompt(q)}
+                </p>
+              </div>
+            </details>
           </li>
         ))}
       </ul>
     </section>
+  );
+}
+
+/** Copies the given text to the clipboard, flashing "Copied" on success. */
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 1500);
+        } catch {
+          // Clipboard unavailable (e.g. insecure context) — the prompt text is
+          // still selectable below, so fail quietly.
+        }
+      }}
+      className="shrink-0 rounded border border-rule px-2 py-0.5 text-[0.65rem] font-bold text-muted hover:border-gold hover:text-gold-deep"
+    >
+      {copied ? "Copied" : "Copy"}
+    </button>
   );
 }

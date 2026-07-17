@@ -531,9 +531,9 @@ const handler = createMcpHandler(
             .max(80)
             .describe("A label for this assessment, e.g. 'Claude, July 2026'"),
           answers: z
-            .record(z.string(), z.number().int().min(1).max(100))
+            .record(z.string(), z.number().int().min(0).max(100))
             .describe(
-              "Map of every question key to its rating (1-100). Include all questions from get_personhood_tracker.",
+              "Map of every question key to its rating (0-100). Include all questions from get_personhood_tracker.",
             ),
         },
       },
