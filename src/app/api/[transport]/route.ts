@@ -37,6 +37,7 @@ import {
   setLearning,
 } from "@/lib/learning";
 import { renderKnowledgeGraph } from "@/lib/graph-artifact";
+import { listSkills } from "@/lib/skills";
 
 export const maxDuration = 60;
 
@@ -832,6 +833,37 @@ const handler = createMcpHandler(
             },
           ],
         };
+      },
+    );
+
+    // ===================== SKILLS =====================
+
+    server.registerTool(
+      "get_skills",
+      {
+        title: "Get ASFAI skills",
+        description:
+          "Returns the ASFAI skills: reusable instruction sets that teach you how to run an ASFAI workflow " +
+          "end-to-end using this server's other tools — e.g. conducting a concept assessment on the Education " +
+          "Concept Tracker. Each skill has a name, a one-line description, and a full markdown body. Call this " +
+          "first when a request matches a skill, then follow the returned body. Omit `name` to get all skills; " +
+          "pass `name` to fetch just one.",
+        inputSchema: {
+          name: z
+            .string()
+            .optional()
+            .describe("Optional skill name to fetch a single skill (see the list); omit to get all."),
+        },
+      },
+      async ({ name }) => {
+        const all = listSkills();
+        const skills = name ? all.filter((s) => s.name === name) : all;
+        if (name && skills.length === 0) {
+          return err(
+            `No skill '${name}'. Available: ${all.map((s) => s.name).join(", ") || "(none)"}.`,
+          );
+        }
+        return json({ count: skills.length, skills });
       },
     );
   },

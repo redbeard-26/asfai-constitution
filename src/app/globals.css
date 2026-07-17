@@ -51,6 +51,11 @@ body {
   background: var(--background);
   color: var(--ink);
   font-family: var(--font-serif);
+  /* Contain full-bleed sections (e.g. the concept-graph map uses 100vw) so the
+     scrollbar-width gap never adds a stray horizontal page scroll. `clip` (not
+     `hidden`) avoids creating a scroll container, so sticky positioning still
+     works. */
+  overflow-x: clip;
 }
 
 /* Small-caps kicker — the signature heading style after the gold rule. */

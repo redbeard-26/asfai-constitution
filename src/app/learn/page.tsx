@@ -23,7 +23,7 @@ import { KnowledgeGraph } from "@/components/KnowledgeGraph";
 import { markMastered, markLearning, clearMastery } from "./actions";
 
 export const metadata = {
-  title: "Concept Tracker — AI Constitution",
+  title: "Education Concept Tracker — AI Constitution",
 };
 
 /** Build a /learn href from the params that should survive a navigation. */
@@ -249,8 +249,6 @@ export default async function LearnPage({
   const signedIn = Boolean(user);
 
   const subjects = listSubjects();
-  const subject =
-    rawSubject && subjects.some((s) => s.subject === rawSubject) ? rawSubject : undefined;
 
   // Learner state (empty for signed-out visitors — they still get a read-only tour).
   const mastered = user ? await getMasteredIds(user.id) : new Set<string>();
@@ -262,6 +260,25 @@ export default async function LearnPage({
   }
   const progress = user ? await getProgress(user.id) : null;
 
+  // Mastered count per subject — shown as a ratio in each subject pill.
+  const masteredBySubject = new Map(
+    progress?.bySubject.map((s) => [s.subject, s.mastered]) ?? [],
+  );
+  // Start with a subject selected so the graph is populated on first load: the
+  // learner's most-active subject, else the largest. `?subject=all` opts into the
+  // cross-subject view (which has no single-graph).
+  const defaultSubject =
+    progress?.bySubject
+      .slice()
+      .sort((a, b) => b.mastered - a.mastered)
+      .find((s) => s.mastered > 0)?.subject ?? subjects[0]?.subject;
+  const subject =
+    rawSubject === "all"
+      ? undefined
+      : rawSubject && subjects.some((s) => s.subject === rawSubject)
+        ? rawSubject
+        : defaultSubject;
+
   const selected = concept ? getConcept(concept) : undefined;
   const here = href({ subject, q: query || undefined, concept });
   const backHref = href({ subject, q: query || undefined });
@@ -270,7 +287,7 @@ export default async function LearnPage({
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <div className="section-rule pt-3">
         <p className="kicker text-xs">Resources · Learning tool</p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">Concept Tracker</h1>
+        <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">Education Concept Tracker</h1>
       </div>
       <p className="mt-2 text-sm leading-relaxed text-muted">
         A prerequisite knowledge graph of {progress?.totalTopics ?? 1590} learning
@@ -320,37 +337,10 @@ export default async function LearnPage({
         </p>
       )}
 
-      {progress && progress.bySubject.length > 0 && (
-        <div className="mt-4 space-y-2">
-          {progress.bySubject.map((s) => {
-            const pct = Math.round((s.mastered / s.totalTopics) * 100);
-            return (
-              <div key={s.subject}>
-                <div className="flex items-baseline justify-between text-xs">
-                  <Link
-                    href={href({ subject: s.subject })}
-                    className="font-bold text-ink hover:text-gold-deep"
-                  >
-                    {s.subject}
-                  </Link>
-                  <span className="tabular-nums text-muted">
-                    {s.mastered}/{s.totalTopics} mastered
-                    {s.learning > 0 ? ` · ${s.learning} learning` : ""}
-                  </span>
-                </div>
-                <div className="mt-0.5 h-1.5 w-full bg-panel">
-                  <div className="h-1.5 bg-pro-rule" style={{ width: `${pct}%` }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
       {/* Subject filter */}
       <nav className="mt-8 flex flex-wrap gap-2">
         <Link
-          href={href({})}
+          href={href({ subject: "all" })}
           className={`rounded-full border px-3 py-1 text-xs ${
             subject ? "border-rule text-muted hover:bg-panel" : "border-gold-deep bg-panel text-gold-deep"
           }`}
@@ -368,7 +358,9 @@ export default async function LearnPage({
             }`}
           >
             {s.subject}
-            <span className="ml-1 tabular-nums opacity-70">{s.topicCount}</span>
+            <span className="ml-1 tabular-nums opacity-70">
+              {progress ? `${masteredBySubject.get(s.subject) ?? 0}/${s.topicCount}` : s.topicCount}
+            </span>
           </Link>
         ))}
       </nav>
@@ -395,6 +387,44 @@ export default async function LearnPage({
           </Link>
         )}
       </form>
+
+      {/* Knowledge-graph map — the learner's local slice, full-width, above the list */}
+      <section className="mt-8">
+        <div className="section-rule flex items-baseline justify-between pt-2">
+          <h2 className="kicker text-base">Knowledge-graph map</h2>
+          {subject && <span className="text-xs text-muted">{subject}</span>}
+        </div>
+        {subject ? (
+          <>
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-block h-3 w-3 rounded-sm bg-pro-rule" /> Mastered
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-block h-3 w-3 rounded-sm bg-gold" /> Ready to learn
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-block h-3 w-3 rounded-sm border border-panel-border bg-panel" />{" "}
+                Locked
+              </span>
+              <span className="ml-auto">Hover a node for its description · click to open</span>
+            </div>
+            {/* Full-bleed: break out of the max-w-3xl column to use the whole viewport. */}
+            <div className="mt-3 ml-[calc(50%-50vw)] w-screen px-4 sm:px-6">
+              <div className="overflow-x-auto border border-rule bg-background p-2">
+                <KnowledgeGraph
+                  hood={neighborhood(mastered, { subject })}
+                  hrefFor={(id) => href({ subject, concept: id })}
+                />
+              </div>
+            </div>
+          </>
+        ) : (
+          <p className="mt-3 text-sm text-muted">
+            Pick a subject above to see its knowledge-graph map.
+          </p>
+        )}
+      </section>
 
       {/* Main content: concept detail > search results > recommended frontier */}
       {selected ? (
@@ -504,40 +534,6 @@ export default async function LearnPage({
         })()
       )}
 
-      {/* Knowledge-graph map (subject-scoped so it stays legible) */}
-      <section className="mt-10">
-        <div className="section-rule flex items-baseline justify-between pt-2">
-          <h2 className="kicker text-base">Knowledge-graph map</h2>
-          {subject && <span className="text-xs text-muted">{subject}</span>}
-        </div>
-        {subject ? (
-          <>
-            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="inline-block h-3 w-3 rounded-sm bg-pro-rule" /> Mastered
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="inline-block h-3 w-3 rounded-sm bg-gold" /> Ready to learn
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="inline-block h-3 w-3 rounded-sm border border-panel-border bg-panel" />{" "}
-                Locked
-              </span>
-              <span className="ml-auto">Hover a node for its description · click to open</span>
-            </div>
-            <div className="mt-3 overflow-x-auto border border-rule bg-background p-2">
-              <KnowledgeGraph
-                hood={neighborhood(mastered, { subject })}
-                hrefFor={(id) => href({ subject, concept: id })}
-              />
-            </div>
-          </>
-        ) : (
-          <p className="mt-3 text-sm text-muted">
-            Pick a subject above to see its knowledge-graph map.
-          </p>
-        )}
-      </section>
     </div>
   );
 }
