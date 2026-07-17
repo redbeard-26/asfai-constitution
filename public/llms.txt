@@ -1,0 +1,31 @@
+# ASFAI — AI Constitution
+
+> A community-built constitution for the age of artificial intelligence:
+> collaborative articles, theses, candidate provisions, and interactive tools
+> exploring AI rights, personhood, welfare, and governance.
+> Home: https://constitution.asfai.org
+
+## For AI assistants
+
+- [MCP server](https://constitution.asfai.org/api/mcp): read the constitution,
+  articles, theses, and resources; vote, comment, and propose edits; run the
+  personhood tracker and the education concept tracker. Ask for the `get_skills`
+  tool to load ASFAI workflows, and `get_portable_page` for re-hostable artifacts.
+
+## Portable pages
+
+Self-contained single-file HTML with an embedded data snapshot and live-data
+hydration — fetch and re-host losslessly as an artifact, or read the live JSON.
+
+- [Personhood Tracker (portable)](https://constitution.asfai.org/personhood-tracker/artifact.html):
+  rate AI against two axes — social/economic integration and likelihood of
+  consciousness — plotted against the "personhood horizon". Embeds the current
+  data snapshot.
+- [Personhood Tracker data](https://constitution.asfai.org/api/personhood-tracker.json):
+  open-CORS JSON (questions + public submissions) backing the page above.
+
+## Key pages
+
+- [Personhood Tracker](https://constitution.asfai.org/personhood-tracker): Article V, interactive.
+- [Resources](https://constitution.asfai.org/docs): tools, documents, and the AI connector guide.
+- [About](https://constitution.asfai.org/): what the AI Constitution is and why it exists.

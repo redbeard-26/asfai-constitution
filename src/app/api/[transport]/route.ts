@@ -38,6 +38,7 @@ import {
 } from "@/lib/learning";
 import { renderKnowledgeGraph } from "@/lib/graph-artifact";
 import { listSkills } from "@/lib/skills";
+import { getTrackerSnapshot, renderPortableTracker } from "@/lib/portable-tracker";
 
 export const maxDuration = 60;
 
@@ -570,6 +571,34 @@ const handler = createMcpHandler(
           zone: personhoodZone(x, y),
           message: "Public assessment saved.",
         });
+      },
+    );
+
+    server.registerTool(
+      "get_portable_page",
+      {
+        title: "Get a portable ASFAI page",
+        description:
+          "Returns a self-contained, single-file HTML 'portable page' — all CSS/JS inline, a live " +
+          "data snapshot embedded, progressive hydration, no external assets or storage. Republish " +
+          "the returned HTML directly as an artifact for the user (no changes needed); it renders and " +
+          "is interactive offline and refreshes from live data when online. Available slugs: " +
+          "'personhood-tracker'. Omit slug to list available pages.",
+        inputSchema: {
+          slug: z
+            .string()
+            .optional()
+            .describe("Which portable page to return, e.g. 'personhood-tracker'. Omit to list."),
+        },
+      },
+      async ({ slug }) => {
+        const pages = ["personhood-tracker"];
+        if (!slug) return json({ pages });
+        if (slug !== "personhood-tracker") {
+          return err(`Unknown portable page '${slug}'. Available: ${pages.join(", ")}.`);
+        }
+        const html = renderPortableTracker(await getTrackerSnapshot());
+        return { content: [{ type: "text" as const, text: html }] };
       },
     );
 

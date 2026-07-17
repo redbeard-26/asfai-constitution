@@ -4,6 +4,12 @@ import { PersonhoodTracker } from "@/components/PersonhoodTracker";
 
 export const metadata = {
   title: "Personhood Tracker — AI Constitution",
+  // Point AI agents at the self-contained, re-hostable portable export.
+  alternates: {
+    types: {
+      "text/html": [{ url: "/personhood-tracker/artifact.html", title: "portable" }],
+    },
+  },
 };
 
 export default async function PersonhoodTrackerPage() {
