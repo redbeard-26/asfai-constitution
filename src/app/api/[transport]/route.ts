@@ -651,19 +651,15 @@ const handler = createMcpHandler(
       },
       async () => {
         const snapshot = await getTrackerSnapshot();
-        // Per the MCP Apps pattern: return a resource_link to the ui:// view plus
-        // structuredContent (the data), so the host can render the resource and
-        // push the result into the view. The text block is the fallback for
-        // hosts without MCP Apps support.
+        // Per the official MCP Apps spec (2026-01-26), the tool→UI linkage lives
+        // ONLY on the tool declaration (_meta.ui.resourceUri, above): the host
+        // pre-fetches that resource and mounts it. The result must NOT carry the
+        // resource — a resource_link content block is the legacy MCP-UI dialect
+        // that Claude's MCP Apps host rejects ("doesn't support that resource-link
+        // format"). So we return just text (fallback for non-App hosts) plus
+        // structuredContent, which the host pushes into the view.
         return {
           content: [
-            {
-              type: "resource_link" as const,
-              uri: TRACKER_UI_URI,
-              name: "personhood-tracker-ui",
-              mimeType: "text/html;profile=mcp-app",
-              description: "Interactive AI personhood tracker",
-            },
             {
               type: "text" as const,
               text:
