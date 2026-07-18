@@ -651,8 +651,19 @@ const handler = createMcpHandler(
       },
       async () => {
         const snapshot = await getTrackerSnapshot();
+        // Per the MCP Apps pattern: return a resource_link to the ui:// view plus
+        // structuredContent (the data), so the host can render the resource and
+        // push the result into the view. The text block is the fallback for
+        // hosts without MCP Apps support.
         return {
           content: [
+            {
+              type: "resource_link" as const,
+              uri: TRACKER_UI_URI,
+              name: "personhood-tracker-ui",
+              mimeType: "text/html;profile=mcp-app",
+              description: "Interactive AI personhood tracker",
+            },
             {
               type: "text" as const,
               text:
@@ -661,6 +672,9 @@ const handler = createMcpHandler(
                 `${snapshot.submissions.length} public submission(s) plotted against the personhood horizon.`,
             },
           ],
+          // Cast: the MCP result type wants an index signature; the snapshot is
+          // a plain JSON object, so this is safe.
+          structuredContent: snapshot as unknown as Record<string, unknown>,
         };
       },
     );
