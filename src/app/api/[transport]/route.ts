@@ -38,7 +38,10 @@ import {
 } from "@/lib/learning";
 import { renderKnowledgeGraph } from "@/lib/graph-artifact";
 import { listSkills } from "@/lib/skills";
+import { readSkillFiles } from "@/lib/skill-bundle";
 import { getTrackerSnapshot, renderPortableTracker } from "@/lib/portable-tracker";
+
+const SITE_ORIGIN = "https://constitution.asfai.org";
 
 export const maxDuration = 60;
 
@@ -959,13 +962,78 @@ const handler = createMcpHandler(
       },
       async ({ name }) => {
         const all = listSkills();
-        const skills = name ? all.filter((s) => s.name === name) : all;
-        if (name && skills.length === 0) {
+        const picked = name ? all.filter((s) => s.name === name) : all;
+        if (name && picked.length === 0) {
           return err(
             `No skill '${name}'. Available: ${all.map((s) => s.name).join(", ") || "(none)"}.`,
           );
         }
+        // Serve the instruction text; assets ship via install_asfai_skills.
+        const skills = picked.map((s) => ({
+          name: s.name,
+          description: s.description,
+          version: s.version,
+          body: s.body,
+        }));
         return json({ count: skills.length, skills });
+      },
+    );
+
+    server.registerTool(
+      "install_asfai_skills",
+      {
+        title: "Install an ASFAI skill",
+        description:
+          "Install an ASFAI skill — a folder (SKILL.md + any asset files, e.g. a self-contained interactive " +
+          "HTML page) — into the user's ~/.claude/skills/. Omit `skill` to list the catalog. Pass `skill` to " +
+          "install it: by default you get a `downloadUrl` to a .skill zip (download it and unzip into " +
+          "~/.claude/skills/ — it contains the <skill>/ folder); `delivery: \"inline\"` returns the file contents " +
+          "directly instead (fallback for hosts that can't download+unzip). Unlike get_skills (instruction text " +
+          "only), this ships the asset files onto disk so you can render them without reading them into context.",
+        inputSchema: {
+          skill: z
+            .string()
+            .optional()
+            .describe("Skill name to install (see the catalog). Omit to list all available skills."),
+          delivery: z
+            .enum(["url", "inline"])
+            .optional()
+            .describe("'url' (default) returns a downloadUrl to a .skill zip; 'inline' returns file contents."),
+        },
+      },
+      async ({ skill, delivery }) => {
+        const all = listSkills();
+        if (!skill) {
+          return json({
+            skills: all.map((s) => ({ name: s.name, description: s.description, version: s.version })),
+            nextStep: "Call again with { skill } to install it (returns a downloadUrl to a .skill zip).",
+          });
+        }
+        const target = all.find((s) => s.name === skill);
+        if (!target) {
+          return err(`No skill '${skill}'. Available: ${all.map((s) => s.name).join(", ") || "(none)"}.`);
+        }
+        if (delivery === "inline") {
+          const files = readSkillFiles(skill);
+          if (!files) return err(`Could not read files for skill '${skill}'.`);
+          return json({
+            skill,
+            version: target.version,
+            files,
+            nextStep:
+              `Write each file to ~/.claude/skills/ at its given path (they are rooted at ${skill}/). ` +
+              `Then follow ${skill}/SKILL.md — render its asset files as artifacts without reading them into context.`,
+          });
+        }
+        const downloadUrl = `${SITE_ORIGIN}/api/skills/${skill}.skill`;
+        return json({
+          skill,
+          version: target.version,
+          downloadUrl,
+          nextStep:
+            `Download ${downloadUrl} and unzip it into ~/.claude/skills/ (the zip contains the ${skill}/ folder). ` +
+            `Then follow ${skill}/SKILL.md. If you can't download+unzip, call again with delivery:"inline".`,
+        });
       },
     );
   },
