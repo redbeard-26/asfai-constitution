@@ -68,6 +68,15 @@
       --band-outer: rgba(224,169,59,0.18);
     }
   }
+  /* Host-driven theme (MCP Apps hostContext) — overrides the OS preference when
+     the page runs embedded in a host that tells us which theme to use. */
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1: #1a1a19; --page: #0d0d0d; --text-primary: #ffffff; --text-secondary: #c3c2b7;
+    --muted: #898781; --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --series-1: #3987e5; --series-2: #008300; --series-3: #e0a93b; --series-4: #bd82d1;
+    --band-inner: rgba(137,135,129,0.12); --band-mid: rgba(224,169,59,0.10); --band-outer: rgba(224,169,59,0.18);
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body.viz-root {
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -413,6 +422,53 @@ async function hydrate(){
 render();
 setPill("snapshot");
 hydrate();
+
+// ---------- MCP Apps host bridge ----------
+// Only runs when embedded in a host iframe (window.parent !== window). Opened
+// standalone as an artifact or from file://, parent === window so this stays
+// dormant and the page runs purely on its snapshot. Inside an MCP Apps host the
+// iframe MUST perform the ui/initialize -> initialized handshake or the host
+// treats the view as failed to load; see the MCP Apps spec (2026-01-26).
+(function(){
+  if (window.parent === window) return;   // not embedded — nothing to talk to
+  let inited = false;
+  const post = m => { try { window.parent.postMessage(m, "*"); } catch(_){} };
+
+  window.addEventListener("message", ev => {
+    const m = ev.data;
+    if (!m || m.jsonrpc !== "2.0") return;
+
+    // Host's response to our ui/initialize — apply theme, then confirm ready.
+    if (m.id === 1 && m.result && !inited) {
+      inited = true;
+      const theme = m.result.hostContext && m.result.hostContext.theme;
+      if (theme === "dark" || theme === "light") {
+        document.documentElement.setAttribute("data-theme", theme);
+      }
+      post({ jsonrpc:"2.0", method:"ui/notifications/initialized", params:{} });
+      return;
+    }
+    // Host pushed the tool result — hydrate if it carries our data shape.
+    if (m.method === "ui/notifications/tool-result" && m.params) {
+      const sc = m.params.structuredContent;
+      if (sc && Array.isArray(sc.questions) && Array.isArray(sc.submissions)) {
+        DATA = sc; render(); setPill("live");
+      }
+      return;
+    }
+    // Liveness + graceful teardown both just need an empty result echoed back.
+    if ((m.method === "ping" || m.method === "ui/resource-teardown") && m.id != null) {
+      post({ jsonrpc:"2.0", id:m.id, result:{} });
+      return;
+    }
+  });
+
+  // Kick off the handshake.
+  post({
+    jsonrpc:"2.0", id:1, method:"ui/initialize",
+    params:{ capabilities:{}, clientInfo:{ name:"ASFAI Personhood Tracker", version:"1.0.0" }, protocolVersion:"2026-01-26" }
+  });
+})();
 </script>
 </body>
 </html>
