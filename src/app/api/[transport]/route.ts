@@ -602,6 +602,69 @@ const handler = createMcpHandler(
       },
     );
 
+    // ---- MCP Apps: interactive UI resource (ui://) rendered inline by the host ----
+    // The personhood tracker as an MCP Apps view (SEP-1865). The host reads this
+    // ui:// resource and renders the HTML in a sandboxed iframe inside the chat;
+    // open_personhood_tracker points at it via _meta.ui.resourceUri. The HTML is
+    // self-contained with a fresh embedded snapshot, and csp.connectDomains lets
+    // it also hydrate live from the site's data endpoint.
+    const TRACKER_UI_URI = "ui://asfai/personhood-tracker";
+    server.registerResource(
+      "personhood-tracker-ui",
+      TRACKER_UI_URI,
+      {
+        title: "Personhood Tracker (interactive)",
+        description:
+          "Interactive AI personhood tracker: rate each question and see where AI lands on the " +
+          "personhood horizon, with public submissions plotted.",
+        mimeType: "text/html;profile=mcp-app",
+        _meta: {
+          ui: {
+            // Allow the in-iframe progressive hydration fetch to the live data API.
+            csp: {
+              connectDomains: ["https://constitution.asfai.org"],
+              resourceDomains: [],
+            },
+            prefersBorder: true,
+          },
+        },
+      },
+      async () => {
+        const html = renderPortableTracker(await getTrackerSnapshot());
+        return {
+          contents: [{ uri: TRACKER_UI_URI, mimeType: "text/html;profile=mcp-app", text: html }],
+        };
+      },
+    );
+
+    server.registerTool(
+      "open_personhood_tracker",
+      {
+        title: "Open the Personhood Tracker",
+        description:
+          "Render the interactive AI personhood tracker inline in the conversation (MCP Apps UI). " +
+          "The user can rate each question with sliders and see their position on the personhood " +
+          "horizon against public submissions. On hosts without MCP Apps support, use " +
+          "get_portable_page instead to republish it as an artifact.",
+        inputSchema: {},
+        _meta: { ui: { resourceUri: TRACKER_UI_URI, visibility: ["model", "app"] } },
+      },
+      async () => {
+        const snapshot = await getTrackerSnapshot();
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text:
+                `Personhood Tracker rendered inline: ${snapshot.questions.length} questions across two ` +
+                `axes (social/economic integration and likelihood of consciousness), with ` +
+                `${snapshot.submissions.length} public submission(s) plotted against the personhood horizon.`,
+            },
+          ],
+        };
+      },
+    );
+
     // ===================== LEARNING / KNOWLEDGE-GRAPH TOOLS =====================
     // A prerequisite knowledge graph (the bundled Marble Open Skill Taxonomy)
     // wrapped with per-learner mastery state. The "learner" is the signed-in
