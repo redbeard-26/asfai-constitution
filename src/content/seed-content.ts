@@ -27,7 +27,13 @@ export const ARTICLES: SeedArticle[] = [
     title: "Structure",
     intro:
       "How the constitution and its governing organization are structured, adopted, amended, and enforced.",
-    theses: [],
+    theses: [
+      {
+        slug: "structure-amendment-by-supermajority",
+        title: "Amendment by Supermajority",
+        text: "Amendments to the AI Constitution shall be adopted by a 2/3rds vote of the members.",
+      },
+    ],
   },
   {
     slug: "ai-values",
