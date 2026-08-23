@@ -1,0 +1,227 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Shared AWS runtime for ASFAI Constitution and Education
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: t3.medium
+    AllowedValues: [t3.small, t3.medium, t3.large]
+
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.86.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags: [{ Key: Name, Value: asfai-production }]
+
+  InternetGateway: { Type: AWS::EC2::InternetGateway }
+  GatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties: { VpcId: !Ref Vpc, InternetGatewayId: !Ref InternetGateway }
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.86.1.0/24
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags: [{ Key: Name, Value: asfai-production-public }]
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties: { VpcId: !Ref Vpc }
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: GatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: { RouteTableId: !Ref PublicRouteTable, SubnetId: !Ref PublicSubnet }
+
+  HostSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Public HTTPS for ASFAI; administration uses SSM
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: 0.0.0.0/0 }
+        - { IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0 }
+        - { IpProtocol: udp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0 }
+      SecurityGroupEgress:
+        - { IpProtocol: -1, CidrIp: 0.0.0.0/0 }
+
+  ConstitutionRepository:
+    Type: AWS::ECR::Repository
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RepositoryName: asfai-constitution
+      ImageScanningConfiguration: { ScanOnPush: true }
+      ImageTagMutability: MUTABLE
+      LifecyclePolicy:
+        LifecyclePolicyText: '{"rules":[{"rulePriority":1,"description":"Keep twenty images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":20},"action":{"type":"expire"}}]}'
+
+  EducationRepository:
+    Type: AWS::ECR::Repository
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RepositoryName: asfai-education
+      ImageScanningConfiguration: { ScanOnPush: true }
+      ImageTagMutability: MUTABLE
+      LifecyclePolicy:
+        LifecyclePolicyText: '{"rules":[{"rulePriority":1,"description":"Keep twenty images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":20},"action":{"type":"expire"}}]}'
+
+  ConstitutionSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: asfai/constitution
+      Description: ASFAI Constitution runtime values imported from production
+      SecretString: '{"ASFAI_ENV_NOT_CONFIGURED":"true"}'
+
+  EducationSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: asfai/education
+      Description: ASFAI Education runtime values
+      SecretString: '{}'
+
+  DeploymentBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  HostRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ec2.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: AsfaiRuntime
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - { Effect: Allow, Action: [ecr:GetAuthorizationToken], Resource: "*" }
+              - Effect: Allow
+                Action: [ecr:BatchCheckLayerAvailability, ecr:GetDownloadUrlForLayer, ecr:BatchGetImage]
+                Resource: [!GetAtt ConstitutionRepository.Arn, !GetAtt EducationRepository.Arn]
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: [!Ref ConstitutionSecret, !Ref EducationSecret]
+              - Effect: Allow
+                Action: [s3:GetObject, s3:ListBucket]
+                Resource: [!GetAtt DeploymentBucket.Arn, !Sub "${DeploymentBucket.Arn}/*"]
+              - { Effect: Allow, Action: cloudformation:DescribeStacks, Resource: !Ref "AWS::StackId" }
+
+  HostInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: { Roles: [!Ref HostRole] }
+
+  Host:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Sub "{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}"
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref HostInstanceProfile
+      SubnetId: !Ref PublicSubnet
+      SecurityGroupIds: [!Ref HostSecurityGroup]
+      MetadataOptions: { HttpTokens: required, HttpEndpoint: enabled, HttpPutResponseHopLimit: 2 }
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs: { VolumeSize: 30, VolumeType: gp3, Encrypted: true, DeleteOnTermination: true }
+      Tags:
+        - { Key: Name, Value: asfai-production }
+        - { Key: Environment, Value: production }
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -euxo pipefail
+          dnf install -y docker jq
+          systemctl enable --now docker
+          mkdir -p /usr/local/lib/docker/cli-plugins /opt/asfai
+          curl -fsSL "https://github.com/docker/compose/releases/download/v2.39.2/docker-compose-linux-x86_64" -o /usr/local/lib/docker/cli-plugins/docker-compose
+          chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+          echo "AWS_REGION=${AWS::Region}" > /opt/asfai/host.env
+          echo "STACK_NAME=${AWS::StackName}" >> /opt/asfai/host.env
+
+  HostAddress:
+    Type: AWS::EC2::EIP
+    Properties: { Domain: vpc }
+  HostAddressAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties: { AllocationId: !GetAtt HostAddress.AllocationId, InstanceId: !Ref Host }
+
+  BuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: codebuild.amazonaws.com }
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: AsfaiContainerBuild
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - { Effect: Allow, Action: [logs:CreateLogGroup, logs:CreateLogStream, logs:PutLogEvents], Resource: "*" }
+              - { Effect: Allow, Action: [s3:GetObject, s3:GetObjectVersion], Resource: !Sub "${DeploymentBucket.Arn}/source/*" }
+              - { Effect: Allow, Action: ecr:GetAuthorizationToken, Resource: "*" }
+              - Effect: Allow
+                Action: [ecr:BatchCheckLayerAvailability, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart]
+                Resource: [!GetAtt ConstitutionRepository.Arn, !GetAtt EducationRepository.Arn]
+
+  ContainerBuild:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: asfai-containers
+      Description: On-demand builder for the shared ASFAI release
+      ServiceRole: !GetAtt BuildRole.Arn
+      TimeoutInMinutes: 90
+      Artifacts: { Type: NO_ARTIFACTS }
+      Source:
+        Type: S3
+        Location: !Sub "${DeploymentBucket}/source/asfai.zip"
+        BuildSpec: constitution/deploy/aws/buildspec.yml
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_LARGE
+        Image: aws/codebuild/standard:7.0
+        PrivilegedMode: true
+        EnvironmentVariables:
+          - { Name: AWS_DEFAULT_REGION, Value: !Ref "AWS::Region" }
+          - { Name: CONSTITUTION_REPOSITORY, Value: !GetAtt ConstitutionRepository.RepositoryUri }
+          - { Name: EDUCATION_REPOSITORY, Value: !GetAtt EducationRepository.RepositoryUri }
+          - { Name: CONSTITUTION_COMMIT, Value: unknown }
+          - { Name: EDUCATION_COMMIT, Value: unknown }
+          - { Name: RELEASE_ID, Value: unknown }
+
+Outputs:
+  InstanceId: { Value: !Ref Host }
+  PublicIp: { Value: !Ref HostAddress }
+  DeploymentBucket: { Value: !Ref DeploymentBucket }
+  ConstitutionRepositoryUri: { Value: !GetAtt ConstitutionRepository.RepositoryUri }
+  EducationRepositoryUri: { Value: !GetAtt EducationRepository.RepositoryUri }
+  CodeBuildProject: { Value: !Ref ContainerBuild }

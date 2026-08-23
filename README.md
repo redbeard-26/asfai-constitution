@@ -12,8 +12,8 @@ small-caps headings; green = agreement, terracotta = tension).
 
 ## Stack
 
-- **Next.js 16** (App Router, TypeScript, Server Actions) — deploys to Vercel
-- **Prisma 7** + **PostgreSQL** (Vercel Postgres / Neon), via the `@prisma/adapter-pg` driver adapter
+- **Next.js 16** (App Router, TypeScript, Server Actions) — standalone containers on AWS
+- **Prisma 7** + **PostgreSQL** (Neon), via the `@prisma/adapter-pg` driver adapter
 - **Auth.js (NextAuth v5)** — Google OAuth + email magic links
 - **Tailwind CSS v4** + `@tailwindcss/typography`
 - **MCP server** (`mcp-handler` + `@modelcontextprotocol/sdk`) at `/api/mcp` — AI-native access
@@ -144,41 +144,31 @@ Local dev endpoint: `http://localhost:3000/api/mcp`.
 | `npm run db:seed` | Seed initial content + admin users |
 | `npm run db:studio` | Open Prisma Studio to inspect data |
 
-## Deploying to Vercel
+## Deploying to AWS
 
-1. **Push to GitHub** and import the repo as a Vercel project.
-2. **Create a Postgres store** (Vercel dashboard → Storage → Postgres/Neon) and
-   connect it to the project.
-3. **Set environment variables** in the Vercel project (Production + Preview):
+Production uses a manually released AWS stack shared with `redbeard-26/asfai-education`. GitHub pushes do not deploy it. See [ASFAI AWS deployment](docs/AWS-HOSTING.md) for the CloudFormation, CodeBuild, ECR, EC2, Caddy, Secrets Manager, DNS, rollback, and Vercel-freeze procedure.
 
-   | Variable | Value |
-   | --- | --- |
-   | `DATABASE_URL` | pooled connection string |
-   | `DIRECT_URL` | non-pooled connection string |
-   | `AUTH_SECRET` | random 32-byte base64 secret |
-   | `AUTH_URL` | your deployed URL, e.g. `https://constitution.example.org` |
-   | `ADMIN_EMAILS` | comma-separated admin emails |
-   | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | *(optional)* Google OAuth |
-   | `AUTH_RESEND_KEY` / `EMAIL_FROM` | *(optional)* email magic links |
+Set these runtime environment variables in the `asfai/constitution` Secrets Manager record:
 
-   > Vercel's Postgres integration injects names like `POSTGRES_PRISMA_URL` and
-   > `POSTGRES_URL_NON_POOLING`. Map them to `DATABASE_URL` and `DIRECT_URL`.
+| Variable | Value |
+| --- | --- |
+| `DATABASE_URL` | pooled connection string |
+| `DIRECT_URL` | non-pooled connection string |
+| `AUTH_SECRET` | random 32-byte base64 secret |
+| `ADMIN_EMAILS` | comma-separated admin emails |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | *(optional)* Google OAuth |
+| `AUTH_RESEND_KEY` / `EMAIL_FROM` | *(optional)* email magic links |
 
-4. **Initialize the database once** (from your machine, with the production
-   connection strings in `.env`):
+The Vercel-to-AWS importer retains compatible Neon names such as `POSTGRES_PRISMA_URL` and `POSTGRES_URL_NON_POOLING`. The container configuration sets `AUTH_URL`, `AUTH_TRUST_HOST`, and the private education origin explicitly.
 
-   ```bash
-   npm run db:push
-   npm run db:seed
-   ```
+Initialize the database once from your machine, with the production connection strings in `.env`:
 
-5. **Deploy.** The build runs `prisma generate && next build` automatically.
+```bash
+npm run db:push
+npm run db:seed
+```
 
-6. **Custom subdomain (CNAME):** in the Vercel project → Settings → Domains, add
-   your subdomain (e.g. `constitution.example.org`). Vercel will tell you to add
-   a `CNAME` record pointing to `cname.vercel-dns.com` at your DNS provider.
-   Update `AUTH_URL` to that domain. If using Google OAuth, add
-   `https://<your-domain>/api/auth/callback/google` as an authorized redirect URI.
+The on-demand CodeBuild release runs `prisma generate && next build`, publishes both application images, and updates the SSM-managed host. `constitution.asfai.org` and `education.asfai.org` are A records for the stack's Elastic IP. Keep `https://constitution.asfai.org/api/auth/callback/google` registered with Google OAuth.
 
 ## Authentication setup
 

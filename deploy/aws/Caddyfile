@@ -1,0 +1,13 @@
+{
+  email infrastructure@asfai.org
+}
+
+constitution.asfai.org {
+  encode zstd gzip
+  reverse_proxy constitution:3000
+}
+
+education.asfai.org {
+  encode zstd gzip
+  reverse_proxy education:3000
+}
