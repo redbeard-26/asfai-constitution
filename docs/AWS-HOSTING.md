@@ -37,6 +37,17 @@ The release is deliberately on demand. A GitHub push does not build or deploy AW
    ./deploy/aws/import-vercel-secrets.ps1
    ```
 
+   Vercel does not export values marked `sensitive`. If the production project
+   uses that type, pass a trusted dotenv export containing the original values:
+
+   ```powershell
+   ./deploy/aws/import-vercel-secrets.ps1 `
+     -ConstitutionEnvironmentPath C:\secure\asfai-constitution.env
+   ```
+
+   The importer refuses to write an incomplete constitution secret. Never
+   commit this dotenv file.
+
 4. Build and deploy both committed repositories:
 
    ```powershell
