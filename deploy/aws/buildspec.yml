@@ -1,0 +1,18 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - registry="${CONSTITUTION_REPOSITORY%%/*}"
+      - aws ecr get-login-password | docker login --username AWS --password-stdin "$registry"
+  build:
+    commands:
+      - docker build -f education/Dockerfile --build-arg "GIT_COMMIT_SHA=$EDUCATION_COMMIT" -t "$EDUCATION_REPOSITORY:$EDUCATION_COMMIT" -t "$EDUCATION_REPOSITORY:latest" education
+      - docker build -f constitution/Dockerfile --build-arg "GIT_COMMIT_SHA=$CONSTITUTION_COMMIT" --build-arg EDUCATION_ORIGIN=http://education:3000 -t "$CONSTITUTION_REPOSITORY:$CONSTITUTION_COMMIT" -t "$CONSTITUTION_REPOSITORY:latest" constitution
+  post_build:
+    commands:
+      - docker push "$EDUCATION_REPOSITORY:$EDUCATION_COMMIT"
+      - docker push "$EDUCATION_REPOSITORY:latest"
+      - docker push "$CONSTITUTION_REPOSITORY:$CONSTITUTION_COMMIT"
+      - docker push "$CONSTITUTION_REPOSITORY:latest"
+      - printf '{"releaseId":"%s","constitutionCommit":"%s","educationCommit":"%s"}\n' "$RELEASE_ID" "$CONSTITUTION_COMMIT" "$EDUCATION_COMMIT"

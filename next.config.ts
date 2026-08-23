@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const educationOrigin = process.env.EDUCATION_ORIGIN?.replace(/\/$/, "");
 
 const nextConfig: NextConfig = {
+  output: process.env.NEXT_OUTPUT_STANDALONE === "1" ? "standalone" : undefined,
   // Bundle runtime-read content files into the serverless functions that need
   // them. The MCP route reads skill markdown (get_skills) and the portable
   // tracker template (get_portable_page); the artifact route renders the same
@@ -20,9 +21,10 @@ const nextConfig: NextConfig = {
   },
 
   // ASFAI Education is independently deployed from redbeard-26/asfai-education.
-  // Setting EDUCATION_ORIGIN in Vercel makes constitution.asfai.org/education
-  // present that deployment as one logical site without copying education code
-  // or learner data into this repository.
+  // Setting EDUCATION_ORIGIN makes constitution.asfai.org/education present the
+  // independently built service as one logical site without copying education
+  // code or learner data into this repository. AWS uses the private Docker
+  // origin http://education:3000.
   async rewrites() {
     if (!educationOrigin) return [];
     return [
