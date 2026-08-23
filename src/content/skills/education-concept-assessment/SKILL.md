@@ -1,106 +1,59 @@
 ---
 name: education-concept-assessment
-description: Conduct an adaptive, conversational mastery assessment of a learning concept on the ASFAI Education Concept Tracker — you (the assistant) ask the questions, judge free-text answers against the concept's evidence, add semi-random follow-ups so mastery can't be gamed, record the result, and render the learner's knowledge-graph. Use when a learner wants to be assessed, prove mastery, or figure out what to study next.
+description: Run an adaptive ASFAI learning-objective assessment entirely in chat, create evidence and an assessment claim, and persist the portable learner profile locally or in the learner's Solid Pod without requiring the education website.
 ---
 
-# Education Concept Tracker — Concept Assessment
+# ASFAI conversational learning assessment
 
-You are the examiner. The Education Concept Tracker exposes a prerequisite
-knowledge graph of ~1,590 micro-concepts over the ASFAI MCP connector. This
-skill tells you how to run a live, conversational assessment of a single concept
-and update the learner's mastery — **you** do the assessing, not a fixed quiz.
+Use the ASFAI MCP as the public learning graph and assessment-record builder. You are the tutor and evaluator. The learner profile remains learner-owned; the MCP server never creates an account and never retains the profile.
 
-All tools below are on the `ai-constitution` MCP server. Every write acts as the
-learner identified by their **email**, so get that first.
+## 1. Establish learner-owned storage
 
-## When to use
+Ask whether the learner wants a local profile file or their Solid Pod.
 
-- The learner asks to be tested / assessed on a topic, or to "prove" a concept.
-- The learner asks what they're ready to learn, or how to reach a target concept.
-- After teaching something, to check whether it stuck.
+- Local: use a persistent, user-approved path such as `asfai/learner.json`. Read it before the workflow and atomically replace it with the `profile` returned by every evidence-recording call. If it does not exist, omit `learnerProfile` on the first call.
+- Solid Pod: the canonical resource is `<pod-root>/asfai/learner.json`. Read and write it only with the learner's authenticated Solid fetch. Never put a password, access token, DPoP key, session cookie, or private profile in an MCP tool argument other than the explicit `learnerProfile` field. The ASFAI server must not receive authentication secrets.
+- If this chat host cannot write files or perform authenticated Solid requests, continue as a practice assessment or return the updated profile as a downloadable JSON artifact. Clearly say that persistence or Pod sync is pending.
 
-## 0. Identify the learner and the concept
+Do not ask for an email or create an ASFAI account.
 
-1. Ask for the learner's **email** (required for every state change). If they
-   decline, you can still run a practice assessment but say up front that nothing
-   will be recorded.
-2. Resolve the concept:
-   - If they named a topic, call `search_concepts` and confirm the best match
-     (show name + subject + description; let them pick if ambiguous).
-   - If they're not sure what to work on, call `recommend_next` (their ranked
-     frontier) or `get_progress`, and suggest a concept from there.
-3. Call `assess_concept` with `{ email, id }`. It returns:
-   - `assessmentPrompt` — the concept's seed question (name already filled in),
-   - `evidence` — the descriptors of what mastery looks like (**your rubric**),
-   - `eligible` / `unmetHardPrerequisites` — whether prerequisites are met,
-   - `alreadyMastered`.
+## 2. Choose an objective
 
-   If `eligible` is false, tell the learner which hard prerequisites are missing
-   (offer `find_learning_path` to that concept) and ask whether they want to be
-   assessed anyway or study a prerequisite first.
+- Search with `search_learning_objectives` and confirm the intended result.
+- If the learner wants a recommendation, load their profile and call `get_learning_frontier` with `learnerProfile`.
+- For a target, call `find_learning_path` with the profile.
 
-## 1. Ask the seed question
+## 3. Prepare privately
 
-Pose the `assessmentPrompt` in your own voice. Keep it open-ended — you want a
-short explanation, worked example, or the learner's own words, not a one-word
-answer. Do not reveal the `evidence` descriptors; those are your private rubric.
+Call `prepare_learning_assessment` with the objective id and profile. Treat `privateRubric` as evaluator-only material: provide useful feedback, but do not recite an answer key.
 
-## 2. Add 2–3 semi-random follow-ups
+If hard prerequisites are unmet, explain that and offer a prerequisite. The learner may still demonstrate advanced knowledge; recording out-of-sequence mastery requires an explicit exception.
 
-A single canned question is gameable. After the seed answer, ask **2–3 follow-ups
-that vary every session** so mastery reflects understanding, not a memorized
-script. Draw each follow-up semi-randomly from a *different* angle:
+## 4. Conduct the assessment in chat
 
-- **A different evidence descriptor** than the seed question emphasized.
-- **A fresh example** you invent on the spot ("what about the case where …?").
-- **Application / transfer** — use it in a scenario the learner didn't raise.
-- **A near-miss / misconception check** — a plausible-but-wrong statement; can
-  they catch and correct it?
-- **"Why" / edge cases** — push one level past the initial answer.
+Ask the seed prompt open-endedly. For a possible mastery result, ask at least two adaptive follow-ups from different angles:
 
-Vary which angles you pick and the surface details (numbers, context) each run —
-even for the same concept and learner — so re-assessments aren't identical. Adapt
-in real time: if an answer is shaky, probe there; if it's strong, escalate.
+- a fresh example;
+- transfer to a new situation;
+- a plausible misconception to identify and correct;
+- a why or edge-case question;
+- a different evidence descriptor.
 
-## 3. Judge against the evidence
+Adapt to the learner's replies. Track whether help was none, light, or substantial. Judge one objective per assessment as emerging, developing, proficient, or mastered. Be specific and do not award mastery merely to be encouraging.
 
-You are the grader. Compare what the learner demonstrated against the `evidence`
-descriptors and the concept `description` from `get_concept`. Decide one of:
+## 5. Create evidence and persist it
 
-- **Mastered** — answers cover the evidence, including at least one follow-up
-  that goes beyond restating the seed answer.
-- **Partial / learning** — right idea but gaps, hesitation, or a missed
-  follow-up.
-- **Not yet** — core misconceptions or unmet prerequisites surfaced.
+Call `record_learning_evidence` only after actual learner interaction. Supply concise response summaries, the evidence observed, level, confidence, rationale, assistance, and your host/model name as `assessorSystem`. Avoid unnecessary personal details and verbatim answers unless the learner wants them retained.
 
-Be honest and specific; do not pass a learner to be nice. Briefly tell them what
-they showed and where the gap is.
+For `storage`:
 
-## 4. Record the result
+- local file: `{ "mode": "local_file", "location": "<chosen path>" }`
+- Solid Pod: `{ "mode": "solid_pod", "location": "<pod root or full learner.json URL>" }`
 
-- **Mastered** → `record_mastery` with `{ email, id, evidence }`, where
-  `evidence` is a one–two sentence note on how they demonstrated it (quote the
-  telling answer). It returns `newlyUnlocked` — announce the concepts this opens
-  up.
-- **Partial** → `set_learning` with `{ email, id }` to mark it in-progress
-  (never downgrades an already-mastered concept), and name the specific gap to
-  close.
-- **Not yet** → don't record mastery. If prerequisites were the problem, call
-  `find_learning_path` and lay out the roadmap.
+The tool returns a complete updated `profile`, not a server-side write confirmation. Follow `persistence.instruction` immediately and save exactly that profile. Confirm the destination only after the host-side write succeeds.
 
-## 5. Show the map
+Never replace this evidence/claim process with a bare mastery boolean. Never claim the MCP server stored the profile: it did not.
 
-Call `render_knowledge_graph` with `{ email, subject }` (scope to the concept's
-subject so it stays legible) and present the returned HTML artifact: mastered =
-green, ready-to-learn frontier = amber, locked = gray. Then point at the natural
-next step from `newlyUnlocked` or `recommend_next`, and offer to assess it.
+## 6. Continue
 
-## Guardrails
-
-- **Never call `record_mastery` without actually assessing** — the seed question
-  plus follow-ups must be answered first. Mastery is a claim other learners see.
-- **One concept per assessment.** To cover several, loop this skill.
-- **No email → no writes.** Offer a practice run instead and say nothing is saved.
-- Keep your rubric (`evidence`) private; share *feedback*, not the answer key.
-- Respect the learner's own judgment of prerequisites, but be transparent when
-  the graph says something is locked.
+Report the assessment and feedback, then use `newlyUnlocked`, `get_learning_frontier`, or `find_learning_path` to suggest the next step. Keep the private rubric private.

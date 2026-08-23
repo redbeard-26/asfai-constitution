@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import type { NextAuthConfig } from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Google from "next-auth/providers/google";
-import Nodemailer from "next-auth/providers/nodemailer";
+import Resend from "next-auth/providers/resend";
 import { prisma } from "@/lib/prisma";
 import { isAdminEmail } from "@/lib/env";
 
@@ -20,8 +20,9 @@ if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
 // Email magic link. We override sendVerificationRequest so:
 //  - with AUTH_RESEND_KEY: the link is emailed via the Resend HTTP API,
 //  - without it (dev): the link is printed to the server console.
-// Because sendVerificationRequest is overridden, the `nodemailer` package is
-// never imported at runtime and does not need to be installed.
+// The Resend provider uses fetch rather than pulling an SMTP library into the
+// production dependency graph. We override its sender to preserve the local
+// development behavior when no API key is configured.
 const EMAIL_FROM =
   process.env.EMAIL_FROM ?? "AI Constitution <onboarding@resend.dev>";
 
@@ -40,8 +41,8 @@ function magicLinkEmailHtml(url: string): string {
 }
 
 providers.push(
-  Nodemailer({
-    server: { host: "localhost", port: 587 },
+  Resend({
+    apiKey: process.env.AUTH_RESEND_KEY ?? "development-only",
     from: EMAIL_FROM,
     async sendVerificationRequest({ identifier, url }) {
       const key = process.env.AUTH_RESEND_KEY;
