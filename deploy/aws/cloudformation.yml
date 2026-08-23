@@ -83,14 +83,12 @@ Resources:
     Properties:
       Name: asfai/constitution
       Description: ASFAI Constitution runtime values imported from production
-      SecretString: '{"ASFAI_ENV_NOT_CONFIGURED":"true"}'
 
   EducationSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
       Name: asfai/education
       Description: ASFAI Education runtime values
-      SecretString: '{}'
 
   DeploymentBucket:
     Type: AWS::S3::Bucket
