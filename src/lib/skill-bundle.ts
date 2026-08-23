@@ -26,7 +26,10 @@ export function readSkillFiles(name: string): { path: string; text: string }[] |
   if (!dir || !skill) return null;
   return skill.files.map((rel) => ({
     path: `${name}/${rel}`,
-    text: fs.readFileSync(path.join(dir, rel), "utf8"),
+    text: fs.readFileSync(
+      /* turbopackIgnore: true */ path.join(/* turbopackIgnore: true */ dir, rel),
+      "utf8",
+    ),
   }));
 }
 
@@ -37,7 +40,11 @@ export function buildSkillBundle(name: string): Uint8Array | null {
   if (!dir || !skill) return null;
   const entries: Record<string, Uint8Array> = {};
   for (const rel of skill.files) {
-    entries[`${name}/${rel}`] = new Uint8Array(fs.readFileSync(path.join(dir, rel)));
+    entries[`${name}/${rel}`] = new Uint8Array(
+      fs.readFileSync(
+        /* turbopackIgnore: true */ path.join(/* turbopackIgnore: true */ dir, rel),
+      ),
+    );
   }
   return zipSync(entries, { level: 6 });
 }
