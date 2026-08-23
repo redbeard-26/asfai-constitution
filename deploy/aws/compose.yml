@@ -5,6 +5,8 @@ services:
     image: ${EDUCATION_IMAGE:?EDUCATION_IMAGE is required}
     restart: unless-stopped
     env_file: [/opt/asfai/education.env]
+    environment:
+      NEXT_PUBLIC_SITE_ORIGIN: https://education.asfai.org/education
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/education').then(r=>{if(!r.ok)process.exit(1)})"]
       interval: 30s
