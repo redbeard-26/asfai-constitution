@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const educationOrigin = process.env.EDUCATION_ORIGIN?.replace(/\/$/, "");
+
 const nextConfig: NextConfig = {
   // Bundle runtime-read content files into the serverless functions that need
   // them. The MCP route reads skill markdown (get_skills) and the portable
@@ -15,6 +17,24 @@ const nextConfig: NextConfig = {
       "src/content/portable/**/*.html",
     ],
     "/personhood-tracker/artifact.html": ["src/content/portable/**/*.html"],
+  },
+
+  // ASFAI Education is independently deployed from redbeard-26/asfai-education.
+  // Setting EDUCATION_ORIGIN in Vercel makes constitution.asfai.org/education
+  // present that deployment as one logical site without copying education code
+  // or learner data into this repository.
+  async rewrites() {
+    if (!educationOrigin) return [];
+    return [
+      {
+        source: "/education",
+        destination: `${educationOrigin}/education`,
+      },
+      {
+        source: "/education/:path*",
+        destination: `${educationOrigin}/education/:path*`,
+      },
+    ];
   },
 };
 
