@@ -11,3 +11,10 @@ education.asfai.org {
   encode zstd gzip
   reverse_proxy education:3000
 }
+
+# AWS API Gateway uses its own Host header. This HTTP-only catch-all is reached
+# through the temporary HTTPS execute-api endpoint defined in the stack.
+:80 {
+  encode zstd gzip
+  reverse_proxy constitution:3000
+}

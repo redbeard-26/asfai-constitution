@@ -172,6 +172,58 @@ Resources:
     Type: AWS::EC2::EIPAssociation
     Properties: { AllocationId: !GetAtt HostAddress.AllocationId, InstanceId: !Ref Host }
 
+  TemporaryMcpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: asfai-temporary-mcp
+      Description: Temporary AWS-issued HTTPS endpoints for ASFAI MCP testing before DNS cutover
+      ProtocolType: HTTP
+
+  TemporaryConstitutionMcpIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DependsOn: HostAddressAssociation
+    Properties:
+      ApiId: !Ref TemporaryMcpApi
+      IntegrationType: HTTP_PROXY
+      IntegrationMethod: ANY
+      IntegrationUri: !Sub "http://${HostAddress}/api/mcp"
+      PayloadFormatVersion: "1.0"
+      TimeoutInMillis: 30000
+
+  TemporaryEducationMcpIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DependsOn: HostAddressAssociation
+    Properties:
+      ApiId: !Ref TemporaryMcpApi
+      IntegrationType: HTTP_PROXY
+      IntegrationMethod: ANY
+      IntegrationUri: !Sub "http://${HostAddress}/education/api/mcp"
+      PayloadFormatVersion: "1.0"
+      TimeoutInMillis: 30000
+
+  TemporaryConstitutionMcpRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref TemporaryMcpApi
+      AuthorizationType: NONE
+      RouteKey: "ANY /api/mcp"
+      Target: !Join ["/", [integrations, !Ref TemporaryConstitutionMcpIntegration]]
+
+  TemporaryEducationMcpRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref TemporaryMcpApi
+      AuthorizationType: NONE
+      RouteKey: "ANY /education/api/mcp"
+      Target: !Join ["/", [integrations, !Ref TemporaryEducationMcpIntegration]]
+
+  TemporaryMcpStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref TemporaryMcpApi
+      StageName: $default
+      AutoDeploy: true
+
   BuildRole:
     Type: AWS::IAM::Role
     Properties:
@@ -225,3 +277,6 @@ Outputs:
   ConstitutionRepositoryUri: { Value: !GetAtt ConstitutionRepository.RepositoryUri }
   EducationRepositoryUri: { Value: !GetAtt EducationRepository.RepositoryUri }
   CodeBuildProject: { Value: !Ref ContainerBuild }
+  TemporaryMcpOrigin:
+    Description: AWS-issued HTTPS origin available before ASFAI DNS cutover
+    Value: !Sub "https://${TemporaryMcpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}"

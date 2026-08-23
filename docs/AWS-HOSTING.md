@@ -14,6 +14,12 @@ One `t3.medium` EC2 instance runs Docker Compose and Caddy behind an Elastic IP.
 
 The education service continues to fetch and cache the public Marble competency graph from its upstream GitHub source. The deployment does not copy or fork the Marble taxonomy files.
 
+The stack also outputs `TemporaryMcpOrigin`, an AWS-issued HTTPS origin for use
+before DNS cutover. Append `/api/mcp` for the constitution server or
+`/education/api/mcp` for the education server. API Gateway limits this
+temporary path to 30-second backend calls; the custom-domain endpoints connect
+directly to Caddy and retain the applications' 60-second MCP limit.
+
 ## Release procedure
 
 The release is deliberately on demand. A GitHub push does not build or deploy AWS.
