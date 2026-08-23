@@ -44,4 +44,5 @@ EOF
 cd /opt/asfai
 docker compose --env-file images.env pull
 docker compose --env-file images.env up -d --remove-orphans
+docker compose --env-file images.env restart caddy
 docker image prune -f
