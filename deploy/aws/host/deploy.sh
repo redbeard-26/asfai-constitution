@@ -10,6 +10,7 @@ stack_output() {
 deployment_bucket="$(stack_output DeploymentBucket)"
 constitution_image="$(stack_output ConstitutionRepositoryUri):latest"
 education_image="$(stack_output EducationRepositoryUri):latest"
+temporary_mcp_origin="$(stack_output TemporaryMcpOrigin)"
 
 aws s3 sync "s3://${deployment_bucket}/host" /opt/asfai --region "$AWS_REGION"
 
@@ -39,6 +40,7 @@ aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS 
 cat > /opt/asfai/images.env <<EOF
 CONSTITUTION_IMAGE=$constitution_image
 EDUCATION_IMAGE=$education_image
+TEMPORARY_MCP_ORIGIN=$temporary_mcp_origin
 EOF
 
 cd /opt/asfai

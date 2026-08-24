@@ -14,11 +14,13 @@ One `t3.medium` EC2 instance runs Docker Compose and Caddy behind an Elastic IP.
 
 The education service continues to fetch and cache the public Marble competency graph from its upstream GitHub source. The deployment does not copy or fork the Marble taxonomy files.
 
-The stack also outputs `TemporaryMcpOrigin`, an AWS-issued HTTPS origin for use
-before DNS cutover. Append `/api/mcp` for the constitution server or
-`/education/api/mcp` for the education server. API Gateway limits this
-temporary path to 30-second backend calls; the custom-domain endpoints connect
-directly to Caddy and retain the applications' 60-second MCP limit.
+The stack also outputs `TemporaryMcpOrigin`, an AWS-issued HTTPS origin that is
+the supported pre-DNS address. Append `/api/mcp` for the constitution server,
+`/education/api/mcp` for the education server, or `/education` for the optional
+education browser/OIDC handoff. API Gateway limits these temporary paths to
+30-second backend calls; the custom-domain endpoints connect directly to Caddy
+and retain the applications' 60-second MCP limit. Moving
+`education.asfai.org` is not a release prerequisite.
 
 ## Release procedure
 
@@ -58,7 +60,7 @@ The deploy script refuses dirty repositories, archives the two exact commits, wa
 
 ## DNS and TLS
 
-After the host passes its internal checks, point both DNS names to the stack's `PublicIp` output:
+At any later chosen time, after the host passes its internal checks, the DNS names may be pointed to the stack's `PublicIp` output:
 
 - replace the existing `constitution.asfai.org` Vercel CNAME with an A record;
 - add an `education.asfai.org` A record.

@@ -199,6 +199,28 @@ Resources:
       PayloadFormatVersion: "1.0"
       TimeoutInMillis: 30000
 
+  TemporaryEducationWebIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DependsOn: HostAddressAssociation
+    Properties:
+      ApiId: !Ref TemporaryMcpApi
+      IntegrationType: HTTP_PROXY
+      IntegrationMethod: ANY
+      IntegrationUri: !Sub "http://${HostAddress}/education"
+      PayloadFormatVersion: "1.0"
+      TimeoutInMillis: 30000
+
+  TemporaryEducationWebProxyIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DependsOn: HostAddressAssociation
+    Properties:
+      ApiId: !Ref TemporaryMcpApi
+      IntegrationType: HTTP_PROXY
+      IntegrationMethod: ANY
+      IntegrationUri: !Sub "http://${HostAddress}/education/{proxy}"
+      PayloadFormatVersion: "1.0"
+      TimeoutInMillis: 30000
+
   TemporaryConstitutionMcpRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -214,6 +236,22 @@ Resources:
       AuthorizationType: NONE
       RouteKey: "ANY /education/api/mcp"
       Target: !Join ["/", [integrations, !Ref TemporaryEducationMcpIntegration]]
+
+  TemporaryEducationWebRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref TemporaryMcpApi
+      AuthorizationType: NONE
+      RouteKey: "ANY /education"
+      Target: !Join ["/", [integrations, !Ref TemporaryEducationWebIntegration]]
+
+  TemporaryEducationWebProxyRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref TemporaryMcpApi
+      AuthorizationType: NONE
+      RouteKey: "ANY /education/{proxy+}"
+      Target: !Join ["/", [integrations, !Ref TemporaryEducationWebProxyIntegration]]
 
   TemporaryMcpStage:
     Type: AWS::ApiGatewayV2::Stage
