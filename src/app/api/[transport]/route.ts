@@ -17,7 +17,6 @@ import { slugify } from "@/lib/slug";
 import { displayName } from "@/lib/format";
 import { buildTrackerSubmission, horizonDistance } from "@/lib/tracker";
 import { getTrackerSnapshot, renderPortableTracker } from "@/lib/portable-tracker";
-import { registerEducationTools } from "@/lib/register-education-tools";
 import { registerSkillTools } from "@/lib/register-skill-tools";
 
 const SITE_ORIGIN = "https://constitution.asfai.org";
@@ -636,12 +635,9 @@ const handler = createMcpHandler(
       },
     );
 
-    // Public graph + learner-owned evidence workflow. These tools are shared
-    // with asfai-education and never create accounts or retain learner profiles.
-    registerEducationTools(server);
-
-    // Fenix-style installer: one tool delivers a versioned workflow skill that
-    // teaches an AI chat host to assess, build evidence, and persist the profile.
+    // The Education MCP is exposed unchanged at /education/api/mcp by the
+    // EDUCATION_ORIGIN reverse proxy. Do not duplicate its catalog or tool
+    // definitions here: clients that need education connect to that endpoint.
     registerSkillTools(server, SITE_ORIGIN);
   },
   { serverInfo: { name: "ai-constitution", version: "2.1.0" } },

@@ -60,6 +60,13 @@ End-user connection instructions live at **`/connect`** (the "AI Connector" tab)
 
 Local dev endpoint: `http://localhost:3000/api/mcp`.
 
+The ASFAI Education MCP is a separate compact server at
+`https://constitution.asfai.org/education/api/mcp` (also available directly at
+`https://education.asfai.org/education/api/mcp`). The constitution deployment
+reverse-proxies that path to `EDUCATION_ORIGIN`, so both URLs expose the exact
+same eight-tool manifest and capability-catalog digest without copying the
+Marble taxonomy or education business logic into this MCP route.
+
 ## How it works
 
 - **Pages** have a current published **Revision** and a full revision history.
