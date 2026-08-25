@@ -11,6 +11,7 @@ deployment_bucket="$(stack_output DeploymentBucket)"
 constitution_image="$(stack_output ConstitutionRepositoryUri):latest"
 education_image="$(stack_output EducationRepositoryUri):latest"
 temporary_mcp_origin="$(stack_output TemporaryMcpOrigin)"
+public_education_origin="$(stack_output EducationPublicOrigin)"
 education_data_volume_id="$(stack_output EducationDataVolumeId)"
 
 volume_serial="${education_data_volume_id//-/}"
@@ -67,6 +68,7 @@ cat > /opt/asfai/images.env <<EOF
 CONSTITUTION_IMAGE=$constitution_image
 EDUCATION_IMAGE=$education_image
 TEMPORARY_MCP_ORIGIN=$temporary_mcp_origin
+PUBLIC_EDUCATION_ORIGIN=$public_education_origin
 EOF
 
 cd /opt/asfai

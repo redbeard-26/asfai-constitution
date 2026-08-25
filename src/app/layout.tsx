@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: "AI Constitution",
   description:
     "An open, community-developed draft constitution for AI — proposed, discussed, and moderated openly. Hosted by the American Society for AI.",
+  verification: {
+    google: "xqxpo8sBhYVZcXOCqbTFvdW8fCv5ryEFSTmy_uajqzk",
+  },
 };
 
 export const viewport: Viewport = {

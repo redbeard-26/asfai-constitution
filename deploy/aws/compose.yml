@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     env_file: [/opt/asfai/education.env]
     environment:
-      ASFAI_SITE_ORIGIN: ${TEMPORARY_MCP_ORIGIN:?TEMPORARY_MCP_ORIGIN is required}
+      ASFAI_SITE_ORIGIN: ${PUBLIC_EDUCATION_ORIGIN:?PUBLIC_EDUCATION_ORIGIN is required}
       ASFAI_REMOTE_DATA_DIR: /var/lib/asfai
     volumes:
       - /var/lib/asfai:/var/lib/asfai

@@ -6,6 +6,10 @@ Parameters:
     Type: String
     Default: t3.medium
     AllowedValues: [t3.small, t3.medium, t3.large]
+  EducationPublicOrigin:
+    Type: String
+    Default: https://constitution.asfai.org
+    Description: Verified public origin used for education OAuth and MCP metadata
 
 Resources:
   Vpc:
@@ -336,6 +340,9 @@ Outputs:
   TemporaryMcpOrigin:
     Description: AWS-issued HTTPS origin available before ASFAI DNS cutover
     Value: !Sub "https://${TemporaryMcpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}"
+  EducationPublicOrigin:
+    Description: Verified public origin used for education OAuth and MCP metadata
+    Value: !Ref EducationPublicOrigin
   EducationDataVolumeId:
     Description: Retained encrypted volume for accountless connector authorization and fallback documents
     Value: !Ref EducationDataVolume
