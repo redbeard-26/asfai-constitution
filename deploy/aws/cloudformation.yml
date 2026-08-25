@@ -136,6 +136,19 @@ Resources:
     Type: AWS::IAM::InstanceProfile
     Properties: { Roles: [!Ref HostRole] }
 
+  EducationDataVolume:
+    Type: AWS::EC2::Volume
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      AvailabilityZone: !GetAtt PublicSubnet.AvailabilityZone
+      Encrypted: true
+      Size: 10
+      VolumeType: gp3
+      Tags:
+        - { Key: Name, Value: asfai-education-private-data }
+        - { Key: Environment, Value: production }
+
   Host:
     Type: AWS::EC2::Instance
     Properties:
@@ -169,6 +182,13 @@ Resources:
   HostAddressAssociation:
     Type: AWS::EC2::EIPAssociation
     Properties: { AllocationId: !GetAtt HostAddress.AllocationId, InstanceId: !Ref Host }
+
+  EducationDataVolumeAttachment:
+    Type: AWS::EC2::VolumeAttachment
+    Properties:
+      Device: /dev/sdf
+      InstanceId: !Ref Host
+      VolumeId: !Ref EducationDataVolume
 
   TemporaryMcpApi:
     Type: AWS::ApiGatewayV2::Api
@@ -316,3 +336,6 @@ Outputs:
   TemporaryMcpOrigin:
     Description: AWS-issued HTTPS origin available before ASFAI DNS cutover
     Value: !Sub "https://${TemporaryMcpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}"
+  EducationDataVolumeId:
+    Description: Retained encrypted volume for accountless connector authorization and fallback documents
+    Value: !Ref EducationDataVolume
