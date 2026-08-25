@@ -35,6 +35,7 @@ fi
 if ! grep -q "UUID=${education_data_uuid} /var/lib/asfai " /etc/fstab; then
   echo "UUID=${education_data_uuid} /var/lib/asfai ext4 defaults,nofail 0 2" >> /etc/fstab
 fi
+chown 1001:1001 /var/lib/asfai
 chmod 700 /var/lib/asfai
 
 aws s3 sync "s3://${deployment_bucket}/host" /opt/asfai --region "$AWS_REGION"
