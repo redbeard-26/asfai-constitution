@@ -43,7 +43,7 @@ function CollapsibleSection({
   );
 }
 
-const TOOLS: { title: string; href: string; kind: string; icon: string; blurb: string }[] = [
+const TOOLS: { title: string; href: string; kind: string; icon: string; blurb: string; download?: string }[] = [
   {
     title: "Autonomy Zone",
     href: "/autonomous-targeting-game",
@@ -67,6 +67,15 @@ const TOOLS: { title: string; href: string; kind: string; icon: string; blurb: s
     icon: "🕸️",
     blurb:
       "A prerequisite knowledge graph of 1,590 learning concepts. Track what you've mastered and see what you're ready to learn next.",
+  },
+  {
+    title: "ASFAI Education Plugin",
+    href: "/downloads/asfai-education-plugin.zip",
+    download: "asfai-education-plugin.zip",
+    kind: "Plugin",
+    icon: "🧩",
+    blurb:
+      "Download the MCP-first teaching and learning plugin with Pod-first private records, lesson workflows, assessment evidence, and provider-neutral classroom exchange.",
   },
 ];
 
@@ -105,12 +114,14 @@ export default async function DocsIndex({
         Expand any section below.
       </p>
 
-      <CollapsibleSection kicker="Library" title="Tools & Games">
+      <CollapsibleSection kicker="Library" title="Tools & Games" defaultOpen>
         <div className="grid gap-4 sm:grid-cols-2">
           {TOOLS.map((it) => (
             <Link
               key={it.href}
               href={it.href}
+              download={it.download}
+              prefetch={it.download ? false : undefined}
               className="group block border border-rule bg-background p-4 transition-colors hover:border-gold"
             >
               <div className="flex items-center justify-between gap-2">
@@ -130,6 +141,11 @@ export default async function DocsIndex({
                 </span>
               </div>
               <p className="mt-2 text-sm text-muted">{it.blurb}</p>
+              {it.download && (
+                <p className="mt-3 text-xs font-bold uppercase tracking-wide text-gold-deep">
+                  Download ZIP ↓
+                </p>
+              )}
             </Link>
           ))}
         </div>
