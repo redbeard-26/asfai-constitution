@@ -75,7 +75,7 @@ const TOOLS: { title: string; href: string; kind: string; icon: string; blurb: s
     kind: "Plugin",
     icon: "🧩",
     blurb:
-      "Download the MCP-first teaching and learning plugin with Pod-first private records, lesson workflows, assessment evidence, and provider-neutral classroom exchange.",
+      "Download the ChatGPT/Codex and Claude plugin for MCP-first teaching and learning, Pod-first private records, lessons, assessment evidence, and classroom exchange.",
   },
 ];
 
@@ -143,7 +143,7 @@ export default async function DocsIndex({
               <p className="mt-2 text-sm text-muted">{it.blurb}</p>
               {it.download && (
                 <p className="mt-3 text-xs font-bold uppercase tracking-wide text-gold-deep">
-                  Download ZIP ↓
+                  Download ChatGPT + Claude ZIP ↓
                 </p>
               )}
             </Link>
