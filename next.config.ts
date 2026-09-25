@@ -29,6 +29,13 @@ const nextConfig: NextConfig = {
     if (!educationOrigin) return [];
     return [
       {
+        // RFC 8414 inserts the well-known segment before the OAuth issuer's
+        // /education/oauth path. Proxy that discovery URL to Education's
+        // existing metadata handler so Claude and other MCP clients find it.
+        source: "/.well-known/oauth-authorization-server/education/oauth",
+        destination: `${educationOrigin}/education/oauth/.well-known/oauth-authorization-server`,
+      },
+      {
         source: "/education",
         destination: `${educationOrigin}/education`,
       },
