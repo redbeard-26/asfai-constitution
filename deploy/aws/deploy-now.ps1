@@ -5,11 +5,11 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$constitutionRepo = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
+$constitutionRepo = [IO.Path]::GetFullPath((Resolve-Path (Join-Path $PSScriptRoot "../..")).ProviderPath)
 if (-not $EducationRepoPath) {
   $EducationRepoPath = Join-Path (Split-Path $constitutionRepo -Parent) "asfai-education"
 }
-$educationRepo = (Resolve-Path $EducationRepoPath).Path
+$educationRepo = [IO.Path]::GetFullPath((Resolve-Path $EducationRepoPath).ProviderPath)
 
 foreach ($repo in @($constitutionRepo, $educationRepo)) {
   $dirty = git -C $repo status --porcelain
